@@ -16,6 +16,7 @@
 
 namespace aitool_openaitts;
 
+use local_ai_manager\local\aitool_option_azure;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\unit;
 use local_ai_manager\local\usage;
@@ -35,7 +36,7 @@ class connector extends \local_ai_manager\base_connector {
     #[\Override]
     public function get_models_by_purpose(): array {
         return [
-                'tts' => ['tts-1'],
+                'tts' => ['tts-1', 'gpt-4o-mini-tts'],
         ];
     }
 
@@ -46,12 +47,18 @@ class connector extends \local_ai_manager\base_connector {
                 'input' => $prompttext,
                 'voice' => empty($options['voices'][0]) ? 'alloy' : $options['voices'][0],
         ];
+        if (
+                ($this->instance->get_model() === 'gpt-4o-mini-tts' ||
+                        instance::get_model_specific_azure_model_name($this->instance->get_model()) === 'gpt-4o-mini-tts')
+                && !empty($options['instructions'])) {
+            $data['instructions'] = $options['instructions'];
+        }
         if (!$this->instance->azure_enabled()) {
             // If azure is enabled, the model will be preconfigured in the azure resource, so we do not need to send it.
             $data['model'] = $this->instance->get_model();
         } else {
             // OpenAI via Azure expects the model to be sent despite being preconfigured in the resource. So we hardcode "tts".
-            $data['model'] = 'tts';
+            $data['model'] = 'ineffective_parameter_value';
         }
 
         return $data;
@@ -102,15 +109,25 @@ class connector extends \local_ai_manager\base_connector {
 
     #[\Override]
     public function get_available_options(): array {
-        return [
+        $options = [
                 'voices' => [
-                         ['key' => 'alloy', 'displayname' => 'Alloy'],
-                         ['key' => 'echo', 'displayname' => 'Echo'],
-                         ['key' => 'fable', 'displayname' => 'Fable'],
-                         ['key' => 'onyx', 'displayname' => 'Onyx'],
-                         ['key' => 'nova', 'displayname' => 'Nova'],
-                         ['key' => 'shimmer', 'displayname' => 'Shimmer'],
+                        ['key' => 'alloy', 'displayname' => 'Alloy'],
+                        ['key' => 'ash', 'displayname' => 'Ash'],
+                        ['key' => 'ballad', 'displayname' => 'Ballad'],
+                        ['key' => 'coral', 'displayname' => 'Coral'],
+                        ['key' => 'echo', 'displayname' => 'Echo'],
+                        ['key' => 'fable', 'displayname' => 'Fable'],
+                        ['key' => 'onyx', 'displayname' => 'Onyx'],
+                        ['key' => 'nova', 'displayname' => 'Nova'],
+                        ['key' => 'sage', 'displayname' => 'Sage'],
+                        ['key' => 'shimmer', 'displayname' => 'Shimmer'],
+                        ['key' => 'verse', 'displayname' => 'Verse'],
                 ],
         ];
+        if ($this->instance->get_model() === 'gpt-4o-mini-tts'
+                || instance::extract_model_name_from_azure_model_name($this->instance->get_model()) === 'gpt-4o-mini-tts') {
+            $options['instructions'] = PARAM_TEXT;
+        }
+        return $options;
     }
 }

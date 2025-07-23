@@ -33,7 +33,7 @@ class instance extends base_instance {
 
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
-        aitool_option_azure::extend_form_definition($mform);
+        aitool_option_azure::extend_form_definition($mform, true);
     }
 
     #[\Override]
@@ -43,6 +43,8 @@ class instance extends base_instance {
                 $this->get_customfield4(), $this->get_customfield5()) as $key => $value) {
             $data->{$key} = $value;
         }
+
+        $data->model = self::extract_model_name_from_azure_model_name($this->get_model());
         return $data;
     }
 
@@ -56,7 +58,7 @@ class instance extends base_instance {
                     . $deploymentid . '/audio/speech?api-version=' . $apiversion;
             // We have an empty model because the model is preconfigured if we're using azure.
             // So we overwrite the default "preconfigured" value by a better model name.
-            $this->set_model(aitool_option_azure::get_azure_model_name($this->get_connector()));
+            $this->set_model(self::get_model_specific_azure_model_name($data->model));
         } else {
             $endpoint = 'https://api.openai.com/v1/audio/speech';
         }
@@ -75,5 +77,28 @@ class instance extends base_instance {
      */
     public function azure_enabled(): bool {
         return !empty($this->get_customfield2());
+    }
+
+    /**
+     * Standardized way of creating a name that is used for storing the model information in case of using Azure.
+     *
+     * In the case of openaitts we, however, need to also add the real model being used to the name, because we have to distinguish
+     * between tts and gpt-4o-mini-tts, for example, because these models do not have the same API options available.
+     *
+     * @param string $model the model name, for example 'tts' or 'gpt-4o-mini-tts'
+     * @return string the calculated model name
+     */
+    public static function get_model_specific_azure_model_name(string $model): string {
+        return aitool_option_azure::get_azure_model_name('openaitts_' . $model);
+    }
+
+    /**
+     * Extracts the real model name from the azure model name calculated by {@see self::get_model_specific_azure_model_name()}.
+     *
+     * @param string $azuremodelname the model name when using Azure, for example 'openaitts_tts_preconfigured_azure'
+     * @return string the extracted model name, for example 'tts'
+     */
+    public static function extract_model_name_from_azure_model_name(string $azuremodelname): string {
+        return preg_replace('/^openaitts_/', '', aitool_option_azure::get_value_from_azure_model_name($azuremodelname));
     }
 }

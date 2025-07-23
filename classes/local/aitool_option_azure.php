@@ -32,8 +32,9 @@ class aitool_option_azure {
      * Extends the form definition of the edit instance form by adding azure options.
      *
      * @param \MoodleQuickForm $mform the mform object
+     * @param bool $showmodel if the model should be shown in the form, defaults to false
      */
-    public static function extend_form_definition(\MoodleQuickForm $mform): void {
+    public static function extend_form_definition(\MoodleQuickForm $mform, bool $showmodel = false): void {
         $mform->addElement('selectyesno', 'azure_enabled', get_string('use_openai_by_azure_heading', 'local_ai_manager'));
         $mform->setDefault('azure_enabled', false);
 
@@ -53,7 +54,9 @@ class aitool_option_azure {
         $mform->setDefault('endpoint', '');
         $mform->freeze('endpoint');
 
-        $mform->hideIf('model', 'azure_enabled', 'eq', 1);
+        if (!$showmodel) {
+            $mform->hideIf('model', 'azure_enabled', 'eq', 1);
+        }
     }
 
     /**
@@ -118,14 +121,24 @@ class aitool_option_azure {
      * When using azure we cannot select a model, because it is preconfigured in the azure resource.
      * This function defines the string to use as model for logging etc.
      *
-     * @param ?string $connectorname The name of the connector, will be included into the model name
+     * @param ?string $identifier Additional identifier, typically the name of the connector, will be included into the model name
      * @return string the string defining the name of the model
      * @throws \coding_exception if the $connectorname is null or empty
      */
-    public static function get_azure_model_name(?string $connectorname): string {
-        if (empty($connectorname)) {
+    public static function get_azure_model_name(?string $identifier): string {
+        if (empty($identifier)) {
             throw new \coding_exception('Azure model name cannot be empty or null');
         }
-        return $connectorname . '_preconfigured_azure';
+        return $identifier . '_preconfigured_azure';
+    }
+
+    /**
+     * Extracts the value that has been used to create the model name in case of using Azure back from the azure model name.
+     *
+     * @param string $azuremodelname the azure model name, for example 'chatgpt_preconfigured_azure'
+     * @return string the extracted value, for example 'chatgpt'
+     */
+    public static function get_value_from_azure_model_name(string $azuremodelname): string {
+        return preg_replace('/_preconfigured_azure$/', '', $azuremodelname);
     }
 }
