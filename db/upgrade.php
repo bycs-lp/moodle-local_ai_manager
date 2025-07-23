@@ -301,5 +301,24 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025022102, 'local', 'ai_manager');
     }
 
+    if ($oldversion < 2025072300) {
+        $rs = $DB->get_recordset('local_ai_manager_instance', ['model' => 'openaitts_preconfigured_azure']);
+        foreach ($rs as $record) {
+            $record->model = 'openaitts_tts-1_preconfigured_azure';
+            $DB->update_record('local_ai_manager_instance', $record);
+        }
+        $rs->close();
+
+        $rs = $DB->get_recordset('local_ai_manager_request_log', ['model' => 'openaitts_preconfigured_azure']);
+        foreach ($rs as $record) {
+            $record->model = 'openaitts_tts-1_preconfigured_azure';
+            $record->modelinfo = 'openaitts_tts-1_preconfigured_azure';
+            $DB->update_record('local_ai_manager_request_log', $record);
+        }
+        $rs->close();
+
+        upgrade_plugin_savepoint(true, 2025072300, 'local', 'ai_manager');
+    }
+
     return true;
 }
