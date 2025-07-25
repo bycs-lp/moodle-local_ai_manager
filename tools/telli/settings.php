@@ -48,7 +48,10 @@ if ($hassiteconfig) {
             . "mistralai/Mixtral-8x7B-Instruct-v0.1\n"
             . "meta-llama/Meta-Llama-3.1-405B-Instruct-FP8\n"
             . "BAAI/bge-m3\n"
-            . "gpt-4o#VISION"
+            . "gpt-4o#VISION\n"
+            . "dall-e-3#IMGGEN\n"
+            . "stabilityai/stable-diffusion-xl-base-1.0#IMGGEN\n"
+            . "black-forest-labs/FLUX.1-schnell#IMGGEN"
     ));
 
     $settings->add(new admin_setting_description('aitool_telli/managementsitebutton',
