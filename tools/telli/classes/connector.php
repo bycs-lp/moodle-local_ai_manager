@@ -16,7 +16,14 @@
 
 namespace aitool_telli;
 
+use local_ai_manager\base_connector;
+use local_ai_manager\base_instance;
+use local_ai_manager\local\connector_factory;
+use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\unit;
+use local_ai_manager\request_options;
+use Psr\Http\Client\ClientExceptionInterface;
+use Psr\Http\Message\StreamInterface;
 
 /**
  * Connector for the AIS API.
@@ -26,20 +33,68 @@ use local_ai_manager\local\unit;
  * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class connector extends \aitool_chatgpt\connector {
+class connector extends base_connector {
+
+    /** @var base_connector The wrapped connector this connector is passing everything to. */
+    private base_connector $wrappedconnector;
+
+    public function __construct(base_instance $instance) {
+        parent::__construct($instance);
+        $connectorfactory = \core\di::get(connector_factory::class);
+        // The Telli API is basically using OpenAI endpoints and API structure.
+        // That's why we are using the following pattern here to avoid code duplication and stability.
+        // Depending on the endpoint being used (LLM, image generation, ...), we are using the corresponding OpenAI connector and
+        // use the aitool_telli connector purely as a wrapper for it.
+        // When creating the connector object $wrappedconnector an empty instance is also being created by
+        // \local_ai_manager\local\connector_factory::get_connector_by_connectorname which can be accessed by
+        // $wrappedconnector->instance. We pass all the information of the aitool_telli instance to this wrapped instance
+        // (which is never being persisted) and implement most of the functions in the aitool_telli connector in that way that they
+        // only pass the call to the wrapped connector.
+        if (!$instance->record_exists()) {
+            return;
+        }
+        $baseurl = get_config('aitool_telli', 'baseurl');
+        if (in_array($instance->get_model(), $this->get_models_by_purpose()['imggen'])) {
+            $this->wrappedconnector = $connectorfactory->get_connector_by_connectorname('dalle');
+            $endpointsuffix = 'v1/images/generations';
+        } else {
+            $this->wrappedconnector = $connectorfactory->get_connector_by_connectorname('chatgpt');
+            $endpointsuffix = 'v1/chat/completions';
+            // If there is a temperature parameter, pass it.
+            $this->wrappedconnector->instance->set_customfield1($this->instance->get_customfield1());
+        }
+        // Pass the model to the wrapped instance.
+        $this->wrappedconnector->instance->set_model($instance->get_model());
+        // Set the endpoint.
+        if (!empty($baseurl)) {
+            if (!str_ends_with($baseurl, '/')) {
+                $baseurl .= '/';
+            }
+            $this->wrappedconnector->instance->set_endpoint($baseurl . $endpointsuffix);
+        }
+        // Set the api key.
+        $globalapikey = get_config('aitool_telli', 'globalapikey');
+        $this->wrappedconnector->instance->set_apikey(!empty($globalapikey) ? $globalapikey : $this->instance->get_apikey());
+    }
 
     #[\Override]
     public function get_models_by_purpose(): array {
         $models = [];
         $visionmodels = [];
+        $imggenmodels = [];
         $availablemodelssetting = get_config('aitool_telli', 'availablemodels');
         foreach (explode("\n", $availablemodelssetting) as $model) {
             $model = trim($model);
-            if (str_ends_with($model, '#VISION')) {
+            if (str_ends_with($model, '#IMGGEN')) {
+                $model = trim(preg_replace('/#IMGGEN$/', '', $model));
+                $imggenmodels[] = $model;
+            } else if (str_ends_with($model, '#VISION')) {
                 $model = trim(preg_replace('/#VISION$/', '', $model));
                 $visionmodels[] = $model;
+                $models[] = $model;
+            } else {
+                $models[] = $model;
             }
-            $models[] = $model;
         }
 
         asort($models);
@@ -51,34 +106,52 @@ class connector extends \aitool_chatgpt\connector {
                 'singleprompt' => $models,
                 'translate' => $models,
                 'itt' => $visionmodels,
+                'imggen' => $imggenmodels,
         ];
     }
 
     #[\Override]
-    protected function get_endpoint_url(): string {
-        $baseurl = get_config('aitool_telli', 'baseurl');
-        if (!empty($baseurl)) {
-            if (!str_ends_with($baseurl, '/')) {
-                $baseurl .= '/';
-            }
-            return $baseurl . 'v1/chat/completions';
-        }
-        return parent::get_endpoint_url();
-    }
-
-    #[\Override]
     public function get_unit(): unit {
-        return unit::TOKEN;
+        return $this->wrappedconnector->get_unit();
     }
 
     #[\Override]
     protected function get_api_key(): string {
-        $globalapikey = get_config('aitool_telli', 'globalapikey');
-        return !empty($globalapikey) ? $globalapikey : $this->instance->get_apikey();
+        return $this->wrappedconnector->instance->get_apikey();
+    }
+
+    protected function get_endpoint_url(): string {
+        return $this->wrappedconnector->get_endpoint_url();
     }
 
     #[\Override]
     public function has_customvalue1(): bool {
-        return true;
+        if (in_array($this->instance->get_model(), $this->get_models_by_purpose()['imggen'])) {
+            return false;
+        } else {
+            return true;
+        }
     }
+
+    public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
+        return $this->wrappedconnector->get_prompt_data($prompttext, $requestoptions);
+    }
+
+    public function execute_prompt_completion(StreamInterface $result, request_options $requestoptions): prompt_response {
+        return $this->wrappedconnector->execute_prompt_completion($result, $requestoptions);
+    }
+
+    public function get_available_options(): array {
+        // The endpoint v1/chat/completions does not support any options anyway, but also v1/images/generations of the Telli API
+        // does not support any options like for example sizes which the OpenAI endpoint does, so we have to disable options here.
+        return [];
+    }
+
+    protected function get_custom_error_message(int $code, ?ClientExceptionInterface $exception = null): string {
+        // TODO If the API behind the Telli API returns errors, Telli API reacts with code 500 and an object
+        //  {"error": "General error message", "details": "XXX Detailed error message"} where XXX is the error code of the API
+        //  behind the Telli API.
+        return '';
+    }
+
 }

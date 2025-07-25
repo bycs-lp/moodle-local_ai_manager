@@ -18,6 +18,7 @@ namespace aitool_telli;
 
 use local_ai_manager\base_instance;
 use local_ai_manager\local\aitool_option_temperature;
+use local_ai_manager\local\connector_factory;
 use stdClass;
 
 /**
@@ -40,7 +41,9 @@ class instance extends base_instance {
         if (!empty($globalendpoint)) {
             $mform->removeElement('endpoint');
         }
-        aitool_option_temperature::extend_form_definition($mform);
+        $connectorfactory = \core\di::get(connector_factory::class);
+        $connectorinstance = $connectorfactory->get_connector_by_connectorname($this->connector);
+        aitool_option_temperature::extend_form_definition($mform, $connectorinstance->get_models_by_purpose()['imggen']);
     }
 
     #[\Override]
@@ -80,16 +83,4 @@ class instance extends base_instance {
     public function get_temperature(): float {
         return floatval($this->get_customfield1());
     }
-
-    /**
-     * We add this so the AIS API connector can inherit from ChatGPT connector.
-     *
-     * We just disable azure by making this function always return false.
-     *
-     * @return bool false
-     */
-    public function azure_enabled(): bool {
-        return false;
-    }
-
 }
