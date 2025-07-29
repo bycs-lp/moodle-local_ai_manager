@@ -163,8 +163,9 @@ class connector extends \local_ai_manager\base_connector {
         $message = '';
         switch ($code) {
             case 400:
-                if (method_exists($exception, 'getResponse') && !empty($exception->getResponse())) {
-                    $responsebody = json_decode($exception->getResponse()->getBody()->getContents());
+		$response = method_exists($exception, 'getResponse') ? $exception->getResponse() : null;
+		if (!empty($response)) {
+   		 $responsebody = json_decode($response->getBody()->getContents());
                     if (property_exists($responsebody, 'error') && property_exists($responsebody->error, 'code')
                             && $responsebody->error->code === 'content_filter') {
                         $message = get_string('err_contentfilter', 'aitool_chatgpt');
