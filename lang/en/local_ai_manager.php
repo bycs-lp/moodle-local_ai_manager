@@ -102,6 +102,7 @@ $string['error_http403disabled'] = 'Your tenant manager has not enabled the AI t
 $string['error_http403nocapability'] = 'You do not have the capability to use the AI manager ("local/ai_manager:use")';
 $string['error_http403notconfirmed'] = 'You have not yet confirmed the terms of use';
 $string['error_http403usertype'] = 'Your tenant manager has disabled this purpose for your user type';
+$string['error_http404endpointempty'] = 'No endpoint has been specified to send the request to';
 $string['error_http409'] = 'The itemid {$a} is already taken';
 $string['error_http429'] = 'You have reached the maximum amount of requests. You are only allowed to send {$a->count} requests in a period of {$a->period}';
 $string['error_limitreached'] = 'You have reached the maximum amount of requests for this purpose. Please wait until the counter has been reset.';
