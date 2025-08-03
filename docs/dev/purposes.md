@@ -1,6 +1,6 @@
-# aipurpose subplugins
+# 2 aipurpose subplugins
 
-## 1. General information (also for non-developers)
+## 2.1 General information (also for non-developers)
 
 Whenever a call to an external AI system is being made, you need to specify which purpose you want to use.
 
@@ -13,9 +13,11 @@ Currently implemented purposes are *chat*, *feedback*, *imggen* (image generatio
 - *Access control*: By using an additional plugin *block_ai_control* (https://moodle.org/plugins/block_ai_control | https://github.com/bycs-lp/moodle-block_ai_control) you can allow teachers in a course to enable and disable the different purposes in their courses.
 - *Statistics*: Statistics are being provided grouped by purposes, so you can tell for which the external AI systems are being used for.
 
-## 2. Write your own aipurpose subplugin
+## 2.2 Write your own aipurpose subplugin
 
 The subplugins of type *aitool* are located in the *local/ai_manager/tools/* directory. You can copy one of the existing subplugins and adapt it to your needs.
+
+### 2.2.1 Plugin structure
 
 The following files should be self-explanatory:
 - classes/privacy/provider.php (in most cases a null provider should be fine)
@@ -25,12 +27,12 @@ The following files should be self-explanatory:
 Besides that, you only need to implement the following class:
 - classes/purpose.php
 
-Required lang strings:
+### 2.2.2 Required lang strings:
 - `'purposedescription'`: If you do not overwrite the method `::get_description` in your purpose class, the default implementation will try to get the string definition `'purposedescription'`. The purpose description will be shown to all the users in small info icons whenever a purpose is being shown (when assigning AI tools for a purpose, on the general `ai_info.php` page etc.). Put the description of your AI purpose in this string, especially what the purpose is for and when it is being used.
 - `'requestcount'`: The string definition `'requestcount'` is used in the usage quota widget which basically display text like "5 chat, 3 image generation, 5 feedback requests". In this case "feedback requests" would be the lang string stored in the key `'requestcount'`.
 - `'requestcount_shortened'`. Having a look at the example before, "chat" would be the lang string stored in the key `'requestcount_shortened'`.
 
-### 2.1 The purpose class
+### 2.2.3 The purpose class
 
 The class `\aipurpose_YOURAIPURPOSEPLUGINNAME` has to extend `\local_ai_manager\base_purpose`. That's basically it, you don't need to do anything else, but of course you can and probably want to overwrite some methods of the base class. Here comes a description of the most important methods that could be overwritten:
 

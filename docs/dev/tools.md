@@ -1,6 +1,6 @@
-# aitool subplugins ("connector subplugins")
+# 3 aitool subplugins ("connector subplugins")
 
-## 1. General information (also for non-developers)
+## 3.1 General information (also for non-developers)
 
 The aitool subplugins are also referred to *connector* plugins - they are similar to the provider plugins of the core_ai subsystem. The aitool subplugins are the connectors to the external AI systems, handling the configuration and the actual communication with the external AI system.
 
@@ -15,9 +15,11 @@ You can define different connector *instances* (referred to "AI tool" in the fro
 
 The connector plugins basically define which models can be used, which parameters are being passed to the external AI systems, take care of the API responses and return the output back to the purpose which then hands it back to the manager. Switching the AI system is as easy as changing which instance should be used by a purpose.
 
-## 2. Write your own aitool subplugin ("connector subplugin")
+## 3.2 Write your own aitool subplugin ("connector subplugin")
 
 The subplugins of type *aitool* are located in the *local/ai_manager/tools/* directory. You can copy one of the existing subplugins and adapt it to your needs.
+
+### 3.2.1 Plugin structure
 
 The following files should be self-explanatory:
 - classes/privacy/provider.php (in most cases a null provider should be fine)
@@ -28,10 +30,10 @@ Besides that, you basically need to implement two classes:
 - classes/connector.php
 - classes/instance.php
 
-Required lang strings:
+### 3.2.2 Required lang strings:
 - `'adddescription'`: Put the description of your AI tool in this string. It will be shown as description of your connector in the connector selection modal when adding a new AI tool.
 
-### 2.1 The connector class
+### 3.2.3 The connector class
 
 This is the main class of the connector plugin implementing how the API of the external AI system is being accessed.
 
@@ -91,7 +93,7 @@ Other methods of `\local_ai_manager\base_connector`:
 
   Helper function that just returns a list of all available model names without any grouping by purposes. It extracts the information out of `get_models_by_purpose()`.
 
-### 2.2 The instance class
+### 3.2.4 The instance class
 
 The instance class is basically a wrapper class for the configuration data and on the one hand, handles the corresponding record in `local_ai_manager_instance` while on the other hand, provides customization options for the frontend moodle form. It represents the *configuration instance* of a connector class. You can imagine this as a set of parameter values for the connector to use. That's also why a connector object will always have an instance object attached to it where it gets its configuration parameters from (API key, endpoint, etc.).
 
@@ -107,7 +109,7 @@ If you do not need to provide any extra configuration parameters, you can just i
 
 For further information have a look at the examples in the existing aitool plugins and the PhpDocs of the `\local_ai_manager\base_instance` class.
 
-## 2.3 General recommendations
+### 3.2.5 General recommendations
 
 AI tools tend to provide OpenAI compatible APIs. In this case you probably want to create a separate connector plugin, but of course **you want to avoid code duplication as hard as possible*.
 
