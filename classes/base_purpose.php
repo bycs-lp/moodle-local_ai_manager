@@ -52,7 +52,7 @@ class base_purpose {
         return preg_replace('/^aipurpose_(.*)\\\\.*/', '$1', get_class($this));
     }
 
-    public final function get_available_purpose_options(): array {
+    public final function get_available_purpose_options(): ?array {
         $options = [];
         $options['component'] = PARAM_TEXT;
         $options['contextid'] = PARAM_INT;
