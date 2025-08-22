@@ -429,7 +429,7 @@ class base_instance {
             return true;
         } else {
             $this->load();
-            return is_null($this->record);
+            return !is_null($this->record);
         }
     }
 

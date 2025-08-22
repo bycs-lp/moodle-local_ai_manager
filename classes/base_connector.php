@@ -170,6 +170,10 @@ abstract class base_connector {
         $options['headers'] = $this->get_headers();
         $options['body'] = json_encode($data);
 
+        if (empty($this->get_endpoint_url())) {
+            return request_response::create_from_error(404, get_string('error_http404endpointempty', 'local_ai_manager'), '');
+        }
+
         try {
             $response = $client->post($this->get_endpoint_url(), $options);
         } catch (ClientExceptionInterface $exception) {

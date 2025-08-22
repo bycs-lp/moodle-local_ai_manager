@@ -22,17 +22,17 @@
  * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-$string['adddescription'] = 'The Telli API provides a lot of different large language models for German schools.';
+$string['adddescription'] = 'The Telli API provides different AI models for German schools.';
 $string['apikey'] = 'API key';
 $string['availablemodels'] = 'Available models';
 $string['availablemodelssetting'] = 'Available models';
-$string['availablemodelssettingdesc'] = 'Enter the names of the models that should be available for selection by the tenant manager. One model per line. Names must be identical to returned "name" attribute of the model description returned by the /v1/models endpoint. Add a "#VISION" at the end of the name to declare it as vision model. Please note that changing this setting will only affect the select field in the instance edit form, it will not affect already configured AI tools.';
+$string['availablemodelssettingdesc'] = 'Enter the names of the models that should be available for selection by the tenant manager. One model per line. Names must be identical to returned "name" attribute of the model description returned by the /v1/models endpoint. Add a "#VISION" at the end of the name to declare it as vision model. Add a "#IMGGEN" at the end of the name to declare it as image generation model. Please note that changing this setting will only affect the select field in the instance edit form, it will not affect already configured AI tools.';
 $string['baseurl'] = 'Base URL';
 $string['baseurlsetting'] = 'Base URL for the API';
 $string['baseurlsettingdesc'] = 'Insert the base URL of the Telli API here, stopping before "/v1..."';
 $string['err_apiresult'] = 'An error occurred while trying to connect to the API.';
 $string['err_contentfilter'] = 'Your request was rejected as a result of the content filter of the external tool. Your prompt probably requests something that is not allowed.';
-$string['err_retrievingmodels'] = 'There was an error while trying to retrieve the list of models from the AIS API. Error code: {$a->code}.';
+$string['err_retrievingmodels'] = 'There was an error while trying to retrieve the list of models from the Telli API. Error code: {$a->code}.';
 $string['globalapikeysetting'] = 'Global API key';
 $string['globalapikeysettingdesc'] = 'If this setting is set, this API key will be used for all requests. If not, the tenant manager will be able to insert own API keys.';
 $string['managementpage'] = 'Management page';
