@@ -89,45 +89,17 @@ if ($hassiteconfig) {
                 '60'
         ));
 
+        $settings->add(new admin_setting_configcheckbox(
+                'local_ai_manager/requireconfirmtou',
+                new lang_string('requireconfirmtou', 'local_ai_manager'),
+                new lang_string('requireconfirmtoudesc', 'local_ai_manager'),
+                0
+        ));
+
         $settings->add(new admin_setting_confightmleditor(
                 'local_ai_manager/termsofuse',
                 new lang_string('termsofusesetting', 'local_ai_manager'),
                 new lang_string('termsofusesettingdesc', 'local_ai_manager'),
-                '',
-                PARAM_RAW,
-                60,
-                20
-        ));
-
-        $roleids = get_roles_for_contextlevels(CONTEXT_SYSTEM);
-        if (empty($roleids)) {
-            $roles = [];
-        } else {
-            [$insql, $inparams] = $DB->get_in_or_equal($roleids, SQL_PARAMS_NAMED);
-            $roles = $DB->get_records_select('role', "id $insql", $inparams, 'shortname');
-        }
-        $roles = role_fix_names($roles, null, ROLENAME_BOTH, true);
-        $settings->add(new admin_setting_configmultiselect('local_ai_manager/legalroles',
-                get_string('legalroles', 'local_ai_manager'),
-                get_string('legalrolesdesc', 'local_ai_manager'),
-                ['manager'],
-                $roles
-        ));
-
-        $settings->add(new admin_setting_confightmleditor(
-                'local_ai_manager/termsofuselegal',
-                new lang_string('termsofuselegalsetting', 'local_ai_manager'),
-                new lang_string('termsofuselegalsettingdesc', 'local_ai_manager'),
-                '',
-                PARAM_RAW,
-                60,
-                20
-        ));
-
-        $settings->add(new admin_setting_confightmleditor(
-                'local_ai_manager/dataprocessing',
-                new lang_string('dataprocessingsetting', 'local_ai_manager'),
-                new lang_string('dataprocessingsettingdesc', 'local_ai_manager'),
                 '',
                 PARAM_RAW,
                 60,
@@ -141,6 +113,14 @@ if ($hassiteconfig) {
                 ''
         ));
 
+        $roleids = get_roles_for_contextlevels(CONTEXT_SYSTEM);
+        if (empty($roleids)) {
+            $roles = [];
+        } else {
+            [$insql, $inparams] = $DB->get_in_or_equal($roleids, SQL_PARAMS_NAMED);
+            $roles = $DB->get_records_select('role', "id $insql", $inparams, 'shortname');
+        }
+        $roles = role_fix_names($roles, null, ROLENAME_BOTH, true);
         $settings->add(new admin_setting_configmultiselect('local_ai_manager/privilegedroles',
                 get_string('privilegedroles', 'local_ai_manager'),
                 get_string('privilegedrolesdesc', 'local_ai_manager'),

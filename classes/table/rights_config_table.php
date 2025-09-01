@@ -67,7 +67,7 @@ class rights_config_table extends table_sql implements dynamic {
         $this->define_baseurl(new moodle_url('/local/ai_manager/rights_config.php',
                 ['tenant' => $this->tenant->get_identifier()]));;
         // Define the list of columns to show.
-        $this->columnnames = ['checkbox', 'lastname', 'firstname', 'role', 'locked', 'confirmed', 'scope'];
+        $this->columnnames = ['checkbox', 'lastname', 'firstname', 'role', 'locked', 'scope'];
         $checkboxheader = html_writer::div('', 'rights-table-selection_info', ['id' => 'rights-table-selection_info']);
         $checkboxheader .= html_writer::empty_tag('input', ['type' => 'checkbox', 'id' => 'rights-table-selectall_checkbox']);
         $this->headernames = [
@@ -76,17 +76,21 @@ class rights_config_table extends table_sql implements dynamic {
                 get_string('firstname'),
                 get_string('role', 'local_ai_manager'),
                 get_string('locked', 'local_ai_manager'),
-                get_string('confirmed', 'local_ai_manager'),
                 get_string('scope', 'local_ai_manager'),
         ];
 
         $this->no_sorting('checkbox');
         $this->no_sorting('role');
-        $this->no_sorting('locked');
-        $this->no_sorting('confirmed');
         $this->no_sorting('scope');
+        $this->no_sorting('locked');
         $this->collapsible(false);
         $this->sortable(true, 'lastname');
+
+        if (!empty(get_config('local_ai_manager', 'requireconfirmtou'))) {
+            $this->columnnames[] = 'confirmed';
+            $this->headernames[] = get_string('confirmed', 'local_ai_manager');
+            $this->no_sorting('confirmed');
+        }
 
         $filterset = new rights_config_table_filterset();
         $this->set_filterset($filterset);

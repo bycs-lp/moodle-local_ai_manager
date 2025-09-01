@@ -22,9 +22,7 @@
     Example context (json):
     {
         "showtermsofuse": true,
-        "termsofuse": "This are the terms of use which you need to accept",
-        "showdataprocessing": true,
-        "dataprocessing": "This is that you have to consent regarding data processing"
+        "termsofuse": "This are the terms of use which you need to accept"
     }
 }}
 
@@ -36,9 +34,3 @@
 {{^showtermsofuse}}
     <p>{{#str}}privacy_terms_missing, local_ai_manager{{/str}}</p>
 {{/showtermsofuse}}
-
-{{#showdataprocessing}}
-    <div class="border border-dark m-3 p-3">
-        {{{dataprocessing}}}
-    </div>
-{{/showdataprocessing}}

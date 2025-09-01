@@ -330,5 +330,13 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025073100, 'local', 'ai_manager');
     }
 
+    if ($oldversion < 2025082900) {
+        unset_config('dataprocessing', 'local_ai_manager');
+        unset_config('legalroles', 'local_ai_manager');
+        unset_config('termsofuselegal', 'local_ai_manager');
+
+        upgrade_plugin_savepoint(true, 2025082900, 'local', 'ai_manager');
+    }
+
     return true;
 }

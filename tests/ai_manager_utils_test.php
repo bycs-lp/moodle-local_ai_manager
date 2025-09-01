@@ -326,6 +326,8 @@ final class ai_manager_utils_test extends \advanced_testcase {
         $configmanager->set_config('tenantenabled', true);
 
         $userinfo = new userinfo($user->id);
+        // We only test the case when the confirmation setting is enabled.
+        set_config('requireconfirmtou', 1, 'local_ai_manager');
         $userinfo->set_confirmed(true);
         $userinfo->set_role(userinfo::ROLE_BASIC);
         $userinfo->set_locked(false);

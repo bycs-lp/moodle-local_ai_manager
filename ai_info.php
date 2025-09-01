@@ -80,27 +80,12 @@ foreach ($configmanager->get_purpose_config($userinfo->get_role()) as $purpose =
     $templatecontext['purposes'][] = $templatepurpose;
 }
 
-$legalroles = explode(',', get_config('local_ai_manager', 'legalroles'));
-// If the user has at least one of the defined roles, he/she will have to consent to the data processing.
-$userhaslegalrole =
-        array_reduce($legalroles,
-                fn($acc, $cur) => $acc || user_has_role_assignment($USER->id, $cur, \context_system::instance()->id));
-$dataprocessing = get_config('local_ai_manager', 'dataprocessing') ?: '';
-$showdataprocessing = $userhaslegalrole && !empty($dataprocessing);
-
 $termsofuse = get_config('local_ai_manager', 'termsofuse') ?: '';
-$termsofuselegal = get_config('local_ai_manager', 'termsofuselegal') ?: '';
-if (!empty($termsofuselegal) && $userhaslegalrole) {
-    $termsofuse = $termsofuselegal;
-}
 $showtermsofuse = !empty($termsofuse);
 $templatecontext['showtermsofuse'] = $showtermsofuse;
 if ($showtermsofuse) {
     $templatecontext['termsofuse'] = $termsofuse;
 }
-$templatecontext['showdataprocessing'] = $showdataprocessing;
-if ($showdataprocessing) {
-    $templatecontext['dataprocessing'] = $dataprocessing;
-}
+
 echo $OUTPUT->render_from_template('local_ai_manager/purpose_info', $templatecontext);
 echo $OUTPUT->footer();

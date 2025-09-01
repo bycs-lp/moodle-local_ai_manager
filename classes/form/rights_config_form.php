@@ -68,13 +68,16 @@ class rights_config_form extends \moodleform {
         $mform->addElement('hidden', 'userids', '', ['id' => 'rights-table-userids']);
         $mform->setType('userids', PARAM_TEXT);
 
-        $actionselectsgroup[] = $mform->createElement('select', 'action', '',
-                [
-                        self::ACTION_ASSIGN_ROLE => get_string('assignrole', 'local_ai_manager'),
-                        self::ACTION_CHANGE_LOCK_STATE => get_string('changelockstate', 'local_ai_manager'),
-                        self::ACTION_CHANGE_CONFIRM_STATE => get_string('changeconfirmstate', 'local_ai_manager'),
-                        self::ACTION_CHANGE_SCOPE => get_string('changescope', 'local_ai_manager'),
-                ]);
+        $actionoptions = [
+                self::ACTION_ASSIGN_ROLE => get_string('assignrole', 'local_ai_manager'),
+                self::ACTION_CHANGE_LOCK_STATE => get_string('changelockstate', 'local_ai_manager'),
+                self::ACTION_CHANGE_SCOPE => get_string('changescope', 'local_ai_manager'),
+        ];
+        if (!empty(get_config('local_ai_manager', 'requireconfirmtou'))) {
+            $actionoptions[self::ACTION_CHANGE_CONFIRM_STATE] = get_string('changeconfirmstate', 'local_ai_manager');
+        }
+
+        $actionselectsgroup[] = $mform->createElement('select', 'action', '', $actionoptions);
 
         $actionselectsgroup[] = $mform->createElement('select', 'role', '', [
                 userinfo::ROLE_BASIC => get_string(userinfo::get_role_as_string(userinfo::ROLE_BASIC), 'local_ai_manager'),
@@ -92,13 +95,15 @@ class rights_config_form extends \moodleform {
         );
         $mform->hideif('lockstate', 'action', 'neq', self::ACTION_CHANGE_LOCK_STATE);
 
-        $actionselectsgroup[] = $mform->createElement('select', 'confirmstate', '',
-                [
-                        self::ACTIONOPTION_CHANGE_CONFIRM_STATE_CONFIRM => get_string('confirmed', 'local_ai_manager'),
-                        self::ACTIONOPTION_CHANGE_CONFIRM_STATE_UNCONFIRM => get_string('unconfirmed', 'local_ai_manager'),
-                ]
-        );
-        $mform->hideif('confirmstate', 'action', 'neq', self::ACTION_CHANGE_CONFIRM_STATE);
+        if (!empty(get_config('local_ai_manager', 'requireconfirmtou'))) {
+            $actionselectsgroup[] = $mform->createElement('select', 'confirmstate', '',
+                    [
+                            self::ACTIONOPTION_CHANGE_CONFIRM_STATE_CONFIRM => get_string('confirmed', 'local_ai_manager'),
+                            self::ACTIONOPTION_CHANGE_CONFIRM_STATE_UNCONFIRM => get_string('unconfirmed', 'local_ai_manager'),
+                    ]
+            );
+            $mform->hideif('confirmstate', 'action', 'neq', self::ACTION_CHANGE_CONFIRM_STATE);
+        }
 
         $actionselectsgroup[] = $mform->createElement('select', 'scope', '',
                 [
