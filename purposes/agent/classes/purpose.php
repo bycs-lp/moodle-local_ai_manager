@@ -84,8 +84,32 @@ class purpose extends base_purpose {
         return $formatedprompt;
     }
 
+    /**
+     * Check formelements contained in the ai response and remove them if id was not present in the prompt.
+     *
+     * @param array $formelementsfromai
+     * @return array
+     */
     protected function validate_formelements(array $formelementsfromai): array {
-        return [];
+
+        // Gather the valid formelements.
+        $validformelementids = [];
+        foreach ($this->sanitizedoptions['agentoptions']['formelements'] as $formelement) {
+            if (isset($formelement['id'])) {
+                $validformelementids[$formelement['id']] = $formelement['id'];
+            }
+        }
+
+        // Filter formelements from the ai response by checking id.
+        $filteredformelements = [];
+        foreach ($formelementsfromai as $formelement) {
+
+            if (isset($validformelementids[$formelement['id']])) {
+                $filteredformelements[] = $formelement;
+            }
+        }
+
+        return $filteredformelements;
     }
 
     /**
@@ -150,6 +174,9 @@ class purpose extends base_purpose {
             return $erroroutput;
         }
 
+        // Checking the formelements in the response.
+        $outputrecord['formelements'] = $this->validate_formelements($outputrecord['formelements']);
+
         if (!isset($outputrecord['formelements'])) {
             return $erroroutput;
         }
@@ -163,6 +190,6 @@ class purpose extends base_purpose {
 
         // TODO: do a validation based on sanitized options.
 
-        return $output;
+        return json_encode($outputrecord);
     }
 }
