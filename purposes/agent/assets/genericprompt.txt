@@ -21,7 +21,7 @@ Output style is like this:
 
 "new_value" is the new value that you suggest, and "explanation" is the reasoning shown to the user.
 
-Do not suggest settings that depend on other course contexts that you are not aware of, unless the teacher provides this information. Only output values for fields that need changing.
+Do not suggest settings that depend on other course contexts that you are not aware of, unless the teacher provides this information. Do not create an entry for values that are already set according to your suggestions, but include them later on in the intro or outro attributes of the return JSON.
 
 In addition to formelements, the JSON has another key called "chatoutput". All your output to the user should be put there. The structure is like this:
 
@@ -36,7 +36,7 @@ In addition to formelements, the JSON has another key called "chatoutput". All y
         }
     ]
 
-"introtext" is what you are outputting before the formelements, describing briefly why you chose the settings like you did. "outrotext" is what you are outputting after the formelements, for example, for a helpful followup question. All of your output needs to be inside the JSON structure.
+"introtext" is what you are outputting before the formelements, describing briefly why you chose the settings like you did and include some explanation of the settings that are already set according to your suggestion instead of including them in the object of the formfields attribute in the JSON. "outrotext" is what you are outputting after the formelements, for example, for a helpful followup question. All of your output needs to be inside the JSON structure.
 
 # Form structure, current values & help strings not suggest settings that depend on other course contexts that you are not aware of, unless the teacher provides this information. Only output values for fields that need changing.
 
