@@ -77,6 +77,34 @@ class purpose extends base_purpose {
         return $formatedprompt;
     }
 
+    /**
+     * Validates and structures the given chat output data by formatting it into an associative array.
+     *
+     * @param array $chatoutput An array of chat output data where each element is expected to have 'type' and 'text' keys.
+     * @return array An array of structured chat output data containing 'intro' and 'outro' types along with their corresponding texts.
+     */
+    protected function validate_chatoutput(array $chatoutput): array {
+
+        // Convert into assoziative array;
+        $outputrecord = [];
+        foreach ($chatoutput as $value) {
+            if (!isset($value['type']) || !isset($value['text'])) {
+                continue;
+            }
+            $outputrecord[$value['type']] = $value['text'];
+        }
+        return [
+                [
+                        'type' => 'intro',
+                        'text' => $outputrecord['intro'] ?? '',
+                ],
+                [
+                        'type' => 'outro',
+                        'text' => $outputrecord['outro'] ?? '',
+                ],
+        ];
+    }
+
     #[\Override]
     public function format_output(string $output): string {
         // Standard data to return, when validation fails.
@@ -96,12 +124,15 @@ class purpose extends base_purpose {
 
         // Do a basic validation here.
         $output = trim($output);
+
+        // Clean the ai response (should be pure json object).
         $matches = [];
         $triplebackticks = "\u{0060}\u{0060}\u{0060}";
         preg_match('/' . $triplebackticks . '[a-zA-Z0-9]*\s*(.*?)\s*' . $triplebackticks . '/s', $output, $matches);
         if (count($matches) > 1) {
             $output = trim($matches[1]);
         }
+
         $outputrecord = json_decode($output, true);
 
         if (empty($outputrecord)) {
@@ -115,6 +146,9 @@ class purpose extends base_purpose {
         if (!isset($outputrecord['chatoutput'])) {
             return $erroroutput;
         }
+
+        // Checking the correct structure of chat output.
+        $outputrecord['chatoutput'] = $this->validate_chatoutput($outputrecord['chatoutput']);
 
         // TODO: do a validation based on sanitized options.
 
