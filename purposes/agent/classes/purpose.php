@@ -79,7 +79,6 @@ class purpose extends base_purpose {
 
     #[\Override]
     public function format_output(string $output): string {
-
         // Standard data to return, when validation fails.
         $erroroutput = json_encode([
                 'formelements' => [],
@@ -97,6 +96,12 @@ class purpose extends base_purpose {
 
         // Do a basic validation here.
         $output = trim($output);
+        $matches = [];
+        $triplebackticks = "\u{0060}\u{0060}\u{0060}";
+        preg_match('/' . $triplebackticks . '[a-zA-Z0-9]*\s*(.*?)\s*' . $triplebackticks . '/s', $output, $matches);
+        if (count($matches) > 1) {
+            $output = trim($matches[1]);
+        }
         $outputrecord = json_decode($output, true);
 
         if (empty($outputrecord)) {
