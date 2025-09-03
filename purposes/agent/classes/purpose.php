@@ -84,8 +84,14 @@ class purpose extends base_purpose {
         $erroroutput = json_encode([
                 'formelements' => [],
                 'chatoutput' => [
-                        'type' => 'intro',
-                        'text' => 'Sorry, I am not able to assist you.'
+                        [
+                                'type' => 'intro',
+                                'text' => 'Sorry, I am not able to assist you.'
+                        ],
+                        [
+                                'type' => 'outro',
+                                'text' => ''
+                        ],
                 ]
         ]);
 
