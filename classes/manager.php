@@ -192,6 +192,9 @@ class manager {
             );
         }
 
+        // Give the purpose a chance to manipulate the prompt text.
+        $prompttext = $this->purpose->format_prompt_text($prompttext, $requestoptions->get_options());
+
         $promptdata = $this->connector->get_prompt_data($prompttext, $requestoptions);
         $starttime = microtime(true);
         try {

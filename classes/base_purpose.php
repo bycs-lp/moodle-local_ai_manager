@@ -154,4 +154,16 @@ class base_purpose {
         $output = str_replace('\\]', '\\\\]', $output);
         return format_text($output, FORMAT_MARKDOWN, ['filter' => false]);
     }
+
+    /**
+     * Formats the given prompt text based on the provided sanitized options.
+     *
+     * @param string $prompttext The prompt text to be formatted.
+     * @param array $sanitizedoptions An array of sanitized options for formatting.
+     *
+     * @return array The formatted prompt text as an array.
+     */
+    public function format_prompt_text(string $prompttext, array $sanitizedoptions): string {
+        return $prompttext;
+    }
 }
