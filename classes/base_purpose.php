@@ -163,7 +163,7 @@ class base_purpose {
      *
      * @return array The formatted prompt text as an array.
      */
-    public function format_prompt_text(string $prompttext, array $sanitizedoptions): string {
+    public function format_prompt_text(string $prompttext, request_options $requestoptions): string {
         return $prompttext;
     }
 }

@@ -26,6 +26,7 @@
 namespace aipurpose_agent;
 
 use local_ai_manager\base_purpose;
+use local_ai_manager\request_options;
 
 /**
  * Purpose AI-Agent
@@ -48,16 +49,44 @@ class purpose extends base_purpose {
 
     #[\Override]
     public function get_additional_purpose_options(): array {
-        return ['domelements' => base_purpose::PARAM_ARRAY];
+        return ['agentoptions' => base_purpose::PARAM_ARRAY];
     }
-    #[\Override]
-    public function format_prompt_text(string $prompttext, array $sanitizedoptions): string {
-        $formatedprompt = $prompttext. json_encode($sanitizedoptions);
-        return $formatedprompt;
 
+    #[\Override]
+    public function format_prompt_text(string $prompttext, request_options $requestoptions): string {
+        global $CFG;
+
+        $sanitizedoptions = $requestoptions->get_options();
+
+        // If $sanitizedoptions contains domelements add genericprompt and add domelements.
+        if (!isset($sanitizedoptions['agentoptions']['domelements'])) {
+            return $prompttext;
+        }
+        $genericprompt = file_get_contents($CFG->dirroot . '/local/ai_manager/purposes/agent/assets/genericprompt.txt');
+        $formatedprompt = $genericprompt . json_encode($sanitizedoptions);
+
+        return $formatedprompt;
     }
+
     #[\Override]
     public function format_output(string $output): string {
+
+        // Do a basic validation here.
+        $output = trim($output);
+        $outputrecord = json_decode($output, true);
+
+        $erroroutput = [
+                'formelements' => [],
+                'chatoutput' => [
+                        'type' => 'intro',
+                        'text' => 'Sorry, I did not understand your input.'
+                ]
+        ];
+
+        if (!isset($outputrecord['formelements'])) {
+            return $output;
+        }
+
         return $output;
     }
 }
