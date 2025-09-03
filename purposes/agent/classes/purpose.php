@@ -80,13 +80,13 @@ class purpose extends base_purpose {
     public function format_output(string $output): string {
 
         // Standard data to return, when validation fails.
-        $erroroutput = [
+        $erroroutput = json_encode([
                 'formelements' => [],
                 'chatoutput' => [
                         'type' => 'intro',
                         'text' => 'Sorry, I am not able to assist you.'
                 ]
-        ];
+        ]);
 
         // Do a basic validation here.
         $output = trim($output);
