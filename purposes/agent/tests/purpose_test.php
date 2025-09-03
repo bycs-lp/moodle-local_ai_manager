@@ -86,7 +86,7 @@ final class purpose_test extends \advanced_testcase {
                 'agentoptions' => json_decode($options, true)
         ];
 
-        $result = $manager->perform_request('test', 'block_ai_chat',
+        $result = $manager->perform_request('teacherinput', 'block_ai_chat',
                 $correctaichatsystemblockcontext->id,
                 $agentoptions);
     }
