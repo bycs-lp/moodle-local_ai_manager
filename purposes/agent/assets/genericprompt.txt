@@ -6,7 +6,7 @@ This prompt has the following structure:
 
 # Model instructions
 
-I'll pass you Moodle help texts and input ids from the [modtype] activity. Based on the teacher prompt, give suggestions on how to populate the input fields. You can ask follow-up questions from the user if needed.
+I'll pass you Moodle help texts and input ids from the {{modtype}} activity. Based on the teacher prompt, give suggestions on how to populate the input fields. You can ask follow-up questions from the user if needed.
 
 Output style is like this:
 
@@ -40,8 +40,8 @@ In addition to formelements, the JSON has another key called "chatoutput". All y
 
 # Form structure, current values & help strings not suggest settings that depend on other course contexts that you are not aware of, unless the teacher provides this information. Only output values for fields that need changing.
 
-[formelementsjson]
+{{formelementsjson}}
 
 # Teacher input
-[teacherinput]
+{{teacherinput}}
 
