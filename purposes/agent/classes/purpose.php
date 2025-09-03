@@ -74,12 +74,18 @@ class purpose extends base_purpose {
         $docpagelink = page_get_doc_link_path($PAGE);
 
         // TODO: make the next line usable for other modtypes than assignment.
-        $formatedprompt = str_replace('{{modtype}}', 'assignment', $formatedprompt);
+        if (!empty($this->sanitizedoptions['agentoptions']['pageid'])) {
+            $formatedprompt = str_replace('{{pageid}}', $this->sanitizedoptions['agentoptions']['pageid'], $formatedprompt);
+        }
 
         // Replace the teacherinput.
         $formatedprompt = str_replace('{{teacherinput}}', $prompttext, $formatedprompt);
 
         return $formatedprompt;
+    }
+
+    protected function validate_formelements(array $formelementsfromai): array {
+        return [];
     }
 
     /**
