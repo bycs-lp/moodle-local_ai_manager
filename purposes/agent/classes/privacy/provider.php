@@ -15,38 +15,33 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Purpose chat methods
+ * aipurpose_agent privacy provider class.
  *
- * @package    aipurpose_aiagent
+ * @package    aipurpose_agent
  * @copyright  ISB Bayern, 2024
  * @author     Andreas Wagner
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace aipurpose_aiagent;
-
-use local_ai_manager\base_purpose;
+namespace aipurpose_agent\privacy;
 
 /**
- * Purpose chat methods
+ * aipurpose_agent privacy provider class.
  *
- * @package    aipurpose_aiagent
+ * @package    aipurpose_agent
  * @copyright  ISB Bayern, 2024
  * @author     Andreas Wagner
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class purpose extends base_purpose {
+class provider implements \core_privacy\local\metadata\null_provider {
 
-    #[\Override]
-    public function get_additional_request_options(array $options): array {
-        if (array_key_exists('conversationcontext', $options)) {
-            return ['conversationcontext' => $options['conversationcontext']];
-        }
-        return [];
-    }
-
-    #[\Override]
-    public function get_additional_purpose_options(): array {
-        return ['conversationcontext' => base_purpose::PARAM_ARRAY];
+    /**
+     * Get the language string identifier with the component's language
+     * file to explain why this plugin stores no data.
+     *
+     * @return  string
+     */
+    public static function get_reason(): string {
+        return 'privacy:metadata';
     }
 }

@@ -15,33 +15,49 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * aipurpose_aiagent privacy provider class.
+ * Purpose chat methods
  *
- * @package    aipurpose_aiagent
+ * @package    aipurpose_agent
  * @copyright  ISB Bayern, 2024
  * @author     Andreas Wagner
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace aipurpose_aiagent\privacy;
+namespace aipurpose_agent;
+
+use local_ai_manager\base_purpose;
 
 /**
- * aipurpose_aiagent privacy provider class.
+ * Purpose AI-Agent
  *
- * @package    aipurpose_aiagent
+ * @package    aipurpose_agent
  * @copyright  ISB Bayern, 2024
  * @author     Andreas Wagner
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class provider implements \core_privacy\local\metadata\null_provider {
+class purpose extends base_purpose {
 
-    /**
-     * Get the language string identifier with the component's language
-     * file to explain why this plugin stores no data.
-     *
-     * @return  string
-     */
-    public static function get_reason(): string {
-        return 'privacy:metadata';
+    /** @var array @var array keep the rawoptions during processing */
+    protected $rawoptions = [];
+
+    #[\Override]
+    public function get_additional_request_options(array $options): array {
+        $this->rawoptions = $options;
+        return $options;
+    }
+
+    #[\Override]
+    public function get_additional_purpose_options(): array {
+        return ['domelements' => base_purpose::PARAM_ARRAY];
+    }
+    #[\Override]
+    public function format_prompt_text(string $prompttext, array $sanitizedoptions): string {
+        $formatedprompt = $prompttext. json_encode($sanitizedoptions);
+        return $formatedprompt;
+
+    }
+    #[\Override]
+    public function format_output(string $output): string {
+        return $output;
     }
 }

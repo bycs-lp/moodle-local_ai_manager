@@ -44,6 +44,7 @@ class connector extends \local_ai_manager\base_connector {
                 'translate' => $chatgptmodels,
                 'itt' => ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o3', 'o4-mini'],
                 'questiongeneration' => $chatgptmodels,
+                'agent' => $chatgptmodels,
         ];
     }
 
