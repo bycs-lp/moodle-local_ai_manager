@@ -73,7 +73,7 @@ class purpose extends base_purpose {
         // Append the moodle doc pages.
         $docpagelink = page_get_doc_link_path($PAGE);
 
-        $formatedprompt = str_replace('[teacherinput]', $prompttext, $genericprompt);
+        $formatedprompt = str_replace('[teacherinput]', $prompttext, $formatedprompt);
         return $formatedprompt;
     }
 
