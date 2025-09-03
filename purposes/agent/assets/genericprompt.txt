@@ -42,3 +42,6 @@ In addition to formelements, the JSON has another key called "chatoutput". All y
 
 [formelementsjson]
 
+# Teacher input
+[teacherinput]
+
