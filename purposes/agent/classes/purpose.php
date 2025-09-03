@@ -39,11 +39,10 @@ use local_ai_manager\request_options;
 class purpose extends base_purpose {
 
     /** @var array @var array keep the rawoptions during processing */
-    protected $rawoptions = [];
+    protected $sanitizedoptions = [];
 
     #[\Override]
     public function get_additional_request_options(array $options): array {
-        $this->rawoptions = $options;
         return $options;
     }
 
@@ -54,16 +53,25 @@ class purpose extends base_purpose {
 
     #[\Override]
     public function format_prompt_text(string $prompttext, request_options $requestoptions): string {
-        global $CFG;
+        global $CFG, $PAGE;
 
-        $sanitizedoptions = $requestoptions->get_options();
+        // Keep the options for validating the ai answer
+        $this->sanitizedoptions = $requestoptions->get_options();
 
         // If $sanitizedoptions contains domelements add genericprompt and add domelements.
-        if (!isset($sanitizedoptions['agentoptions']['domelements'])) {
+        if (!isset($this->sanitizedoptions['agentoptions']['formelements'])) {
             return $prompttext;
         }
+
+        // Build the prompt. Start with generic prompt.
         $genericprompt = file_get_contents($CFG->dirroot . '/local/ai_manager/purposes/agent/assets/genericprompt.txt');
-        $formatedprompt = $genericprompt . json_encode($sanitizedoptions);
+
+        // Add formelement options.
+        $formelementoptionsjson = json_encode(['formelements' => $this->sanitizedoptions['agentoptions']['formelements']]);
+        $formatedprompt = str_replace('[formelementsjson]', $formelementoptionsjson, $genericprompt);
+
+        // Append the moodle doc pages.
+        $docpagelink = page_get_doc_link_path($PAGE);
 
         return $formatedprompt;
     }
@@ -71,21 +79,32 @@ class purpose extends base_purpose {
     #[\Override]
     public function format_output(string $output): string {
 
-        // Do a basic validation here.
-        $output = trim($output);
-        $outputrecord = json_decode($output, true);
-
+        // Standard data to return, when validation fails.
         $erroroutput = [
                 'formelements' => [],
                 'chatoutput' => [
                         'type' => 'intro',
-                        'text' => 'Sorry, I did not understand your input.'
+                        'text' => 'Sorry, I am not able to assist you.'
                 ]
         ];
 
-        if (!isset($outputrecord['formelements'])) {
-            return $output;
+        // Do a basic validation here.
+        $output = trim($output);
+        $outputrecord = json_decode($output, true);
+
+        if (empty($outputrecord)) {
+            return $erroroutput;
         }
+
+        if (!isset($outputrecord['formelements'])) {
+            return $erroroutput;
+        }
+
+        if (!isset($outputrecord['chatoutput'])) {
+            return $erroroutput;
+        }
+
+        // TODO: do a validation based on sanitized options.
 
         return $output;
     }
