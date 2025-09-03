@@ -73,7 +73,12 @@ class purpose extends base_purpose {
         // TODO: Add the moodle doc pages or information from other sources.
         $docpagelink = page_get_doc_link_path($PAGE);
 
+        // TODO: make the next line usable for other modtypes than assignment.
+        $formatedprompt = str_replace('[modtype]', 'assignment', $formatedprompt);
+
+        // Replace the teacherinput.
         $formatedprompt = str_replace('[teacherinput]', $prompttext, $formatedprompt);
+
         return $formatedprompt;
     }
 
