@@ -82,12 +82,13 @@ final class purpose_test extends \advanced_testcase {
         $conversationid = ai_manager_utils::get_next_free_itemid('block_ai_chat', $correctaichatsystemblockcontext->id);
 
         $options = file_get_contents($CFG->dirroot.'/local/ai_manager/purposes/agent/tests/fixtures/options.json');
-        $options = json_decode($options, true);
-        $genericprompt = file_get_contents($CFG->dirroot.'/local/ai_manager/purposes/agent/tests/fixtures/prompt.txt');
+        $agentoptions = [
+                'agentoptions' => json_decode($options, true)
+        ];
 
-        $result = $manager->perform_request($genericprompt, 'block_ai_chat',
+        $result = $manager->perform_request('test', 'block_ai_chat',
                 $correctaichatsystemblockcontext->id,
-                $options);
+                $agentoptions);
     }
 
     /**
@@ -96,7 +97,8 @@ final class purpose_test extends \advanced_testcase {
      * @param stdClass $user The user, which should be set up for performing the mock chat request
      */
     private function setup_ai_manager(\stdClass $user): void {
-        global $DB;
+        global $DB, $CFG;
+
         // Faking some chat conversations is going to be a bit of work, but let's do it.
         $tenant = new tenant('1234');
         // Set the capability based on the $configuration.
@@ -136,7 +138,10 @@ final class purpose_test extends \advanced_testcase {
         // Fake usage object.
         $usage = new usage(50.0, 30.0, 20.0);
         // Fake prompt_response object.
-        $promptresponse = prompt_response::create_from_result('gpt-4o', $usage, 'everything\'s fine');
+
+        $responsetext = file_get_contents($CFG->dirroot.'/local/ai_manager/purposes/agent/tests/fixtures/response.txt');
+
+        $promptresponse = prompt_response::create_from_result('gpt-4o', $usage, $responsetext);
 
         $chatgptconnector =
                 $this->getMockBuilder('\aitool_chatgpt\connector')->setConstructorArgs([$chatgptinstance])->getMock();
