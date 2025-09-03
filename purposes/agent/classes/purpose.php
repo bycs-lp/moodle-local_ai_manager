@@ -70,7 +70,7 @@ class purpose extends base_purpose {
         $formelementoptionsjson = json_encode(['formelements' => $this->sanitizedoptions['agentoptions']['formelements']]);
         $formatedprompt = str_replace('[formelementsjson]', $formelementoptionsjson, $genericprompt);
 
-        // Append the moodle doc pages.
+        // TODO: Add the moodle doc pages or information from other sources.
         $docpagelink = page_get_doc_link_path($PAGE);
 
         $formatedprompt = str_replace('[teacherinput]', $prompttext, $formatedprompt);
