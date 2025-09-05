@@ -148,7 +148,7 @@ class purpose extends base_purpose {
                 'chatoutput' => [
                         [
                                 'type' => 'intro',
-                                'text' => 'Sorry, I am not able to assist you.'
+                                'text' => get_string('errorresponse', 'aipurpose_agent')
                         ],
                         [
                                 'type' => 'outro',
