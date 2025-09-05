@@ -30,6 +30,9 @@ const constants = {
     MAXUSAGE_UNLIMITED: 999999
 };
 
+// Currently here have to be defined default strings for each purpose.
+// If a purpose has no strings here, they won't be shown even if the new purpose
+// correctly defines the lang strings in the purpose's lang file.
 const queryCountStrings = {
     chat: 'chat requests',
     chatShortened: 'chat',
@@ -46,7 +49,9 @@ const queryCountStrings = {
     itt: 'image analyse requests',
     ittShortened: 'image analyse',
     questiongeneration: 'question generation requests',
-    questiongenerationShortened: 'question generation'
+    questiongenerationShortened: 'question generation',
+    agent: 'agent',
+    agentShortened: 'agent requests'
 };
 
 const fetchUserquotaData = () => fetchMany([{
