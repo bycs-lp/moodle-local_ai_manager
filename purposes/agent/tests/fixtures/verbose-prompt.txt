@@ -1,0 +1,1572 @@
+This prompt has the following structure:
+
+* Relevant Moodle help files
+* Model instructions
+* DOM structure, current values & help strings
+* Teacher input
+
+# Relevant Moodle help files
+
+Moodle.org
+Forums
+Documentation
+Plugins
+Downloads
+Demo
+Development
+Translation
+Tracker
+Search
+Main page
+Table of contents
+Docs overview
+Recent changes
+Search MoodleDocs
+Article
+Page Comments
+View source
+View history
+Assignment FAQ
+Jump to:navigation, search
+Main page ► Managing a Moodle course ► Activities ► Assignment ► Assignment FAQ
+Assignment
+Assignment settings
+Using Assignment
+Assignment FAQ
+
+Contents
+1 Teachers
+1.1 I get a blank screen when trying to annotate online text or uploaded Word/LibreOffice submissions
+1.2 I can’t annotate directly on the students’ submissions
+1.3 Can I record my feedback to students?
+1.4 I don’t see the submit button when testing my assignment as a student
+1.5 Can I grade work that’s been done offline outside of Moodle?
+1.6 Can I grade assignments on my tablet/mobile/iPad?
+1.7 Can I specify which files my students can submit?
+1.8 How can I have a timed assignment?
+1.9 What’s the point of the Due date?
+1.10 Can I have different dates for different groups or individuals?
+1.11 How can I find assignments I haven’t yet graded?
+1.12 How can I grant extensions to individual students (or groups in group assignments?)
+1.13 How can I be notified when students submit work?
+1.14 How can I stop being notified for some submitted assignments?
+1.15 Can I delete a student’s assignment?
+1.16 Can I download assignments to view them offline?
+1.17 I can’t edit the grades for assignment submissions
+1.18 What’s the difference between ‘Revert submissions to draft’ and ‘Allow another attempt?’
+1.19 I see submissions closed even though the dates are in the future
+1.20 How can a selected outcome be removed from an assignment?
+1.21 How can I export the rubric levels and criteria along with students' submissions?
+1.22 Can I use assignments for teaching and assessing music?
+1.23 What is a good procedure to issue a certificate based on a face-to-face final test?
+1.24 Is there a tool on Moodle where groups can collaboratively draft a document and I can see what they are doing in real time or near real time, before they save their work?
+1.25 How can I make the text display correctly in assignment submission PDF files?
+2 Administrators
+2.1 How do I change assignment defaults?
+2.2 How do I set up Ghostscript?
+2.3 How do I set up unoconv?
+2.4 How do I list all assignment files for a user and/or a course?
+2.5 How do I fix an Error 500 for the View submissions page?
+3 Any further questions?
+Teachers
+I get a blank screen when trying to annotate online text or uploaded Word/LibreOffice submissions
+The most likely reason for this is that your Moodle site does not have a Document converter installed which converts submissions to PDF so the teacher can annotate them.
+
+You can still grade these submissions, but you can't comment directly on them. You can collapse the blank screen by clicking icons at the bottom right:
+
+CollapseReviewPanel.png
+I can’t annotate directly on the students’ submissions
+Check with your administrator that your site has Ghostscript and one of the Document converters enabled.
+
+Can I record my feedback to students?
+Yes! See the video Assignment feedback enhancements
+
+I don’t see the submit button when testing my assignment as a student
+This feature is intended for teachers so that they can see how their course appears for students. It isn't a reliable view however, as some features do not display correctly when viewed by a teacher who has switched their role to a student. For that reason it is always preferable where possible to have a "test" student log in to use.
+
+Can I grade work that’s been done offline outside of Moodle?
+Yes. Just untick all submission types when setting up the assignment and just use it for grading.
+
+Can I grade assignments on my tablet/mobile/iPad?
+Yes. Try it!
+
+Can I specify which files my students can submit?
+Yes! When you set up the assignment, you can make this selection in the Submission settings. See Assignment settings for more information.
+
+How can I have a timed assignment?
+Ask your administrator to enable the time limit feature from Site administration > Plugins > Assignment settings > Enable timed assignments and you will then have the option from the Availability section.
+
+What’s the point of the Due date?
+The Allow submissions from and Due date settings are useful for keeping learners on schedule. Using the Allow submissions from setting will make it possible for learners to preview upcoming activities, while at the same time, prevent them from finishing the course in the first week and not returning for additional activities or information. Likewise, the Due dates help keep the learners from lagging too far behind and decrease the likelihood that the learner will become overwhelmed by having to complete several weeks worth of work at once.
+
+Can I have different dates for different groups or individuals?
+You can use the assignment override feature accessed from the assignment settings as mentioned in Using Assignment.
+
+How can I find assignments I haven’t yet graded?
+Click on the assignment and then click 'View all submissions'. Click the 'Grade column and it will sort the submissions, with already graded ones at the top of the list.
+
+How can I grant extensions to individual students (or groups in group assignments?)
+See Using_Assignment#Granting_extensions (direct link to that section.)
+
+How can I be notified when students submit work?
+When setting up or editing the assignment, set the 'Notify graders about submissions' dropdown to 'Yes'.
+
+How can I stop being notified for some submitted assignments?
+If you want ALL teachers to stop receiving notifications for a particular assignment then simply set 'Notify graders about submissions' to 'No' in the assignment settings.
+
+By default, teachers and non-editing teachers have the capability Capabilities/mod/assign:receivegradernotifications. If you don't want either teachers or non-editing teachers to receive notifications for a particular assignment, then from the Permissions link in the Administration block of that assignment, set this capability to "prevent" for the role in question.
+
+Can I delete a student’s assignment?
+Yes, if the admin has given you the capability Capabilities/mod/assign:editothersubmission.
+
+Can I download assignments to view them offline?
+Yes. You can either download all assignment submissions by clicking 'View all submissions' and then 'Download all submissions' OR you can tick the boxes of certain submissions you wish to download and then, from under the list of students, choose 'With selected...Download selected submissions'.
+
+I can’t edit the grades for assignment submissions
+If you edit assignment grades directly in the gradebook, an "overridden" flag is set, meaning that the grade can no longer be edited from the Grading summary page. If required, the flag can be removed by turning editing on in the grader report, then clicking the edit grade icon, unchecking the overridden box and saving the changes.
+
+What’s the difference between ‘Revert submissions to draft’ and ‘Allow another attempt?’
+'Revert submission to draft' is basically an 'undo' for students who have incorrectly submitted an assignment - it allows them to go back and change the files before submitting again. 'Allow another attempt' saves the submission and the feedback into the submission history and allows them to create a new submission (optionally based on their original submission), which will have its own feedback associated with it.
+
+I see submissions closed even though the dates are in the future
+This message will appear if you are trying an assignment as an administrator without actually being enrolled in the course, even thought the dates might look correct. Try with a student account of someone enrolled in the course.
+
+How can a selected outcome be removed from an assignment?
+Follow the Grades link from the Course administration block.
+On the Grader report page, select the Categories and items tab.
+Locate the assignment for which the outcome is to be removed. The outcome is listed directly below it.
+Click the delete icon opposite the outcome.
+How can I export the rubric levels and criteria along with students' submissions?
+This is not yet possible. If you'd like this functionality, please vote for MDL-32089. (You need to create a tracker account and to log in to be able to vote.)
+
+Can I use assignments for teaching and assessing music?
+Yes.
+
+For music notation, chord charts, & even "Grigson grids," MuseScore, (free & open source of course) is a richly featured, flexible, & relatively easy to use addition to students' digital tool kits. There's also large libraries of shared transcriptions & scores in MuseScore file formats
+
+Students can submit their MuseScore files for feedback, advice, & grading as Assignments. MuseScore can also export scores as PNG images or post them as attachments in Moodle forums so that they can demonstrate what they mean. This would be better for studying music theory than MIDI files or audio recordings, i.e. keeping the focus on music structure rather than on performance.
+
+What is a good procedure to issue a certificate based on a face-to-face final test?
+If the offline assignment is aimed at showing mastery of specific skills or behaviors, you could also set up the Assignment activity in such a manner that:
+
+there are no submissions possible (no files, no online text)
+the assessment is by marking guide or rubric
+the marking guide or rubric is visible to participants
+With a passing grade and access restriction on the certificate, this will only become available to those who have successfully shown they master what's been assessed offline.
+This works well for master-apprentice type learning situations.
+The coolest thing about this approach is that the offline assessor can use the marking guide of rubric on his tablet, to assess on the go... and that a result will be available as soon as the grade has been saved and released... Plus: there's room to add feedback for the student (which, of course, most important).
+Is there a tool on Moodle where groups can collaboratively draft a document and I can see what they are doing in real time or near real time, before they save their work?
+Unfortunately Moodle doesn't currently contain an easy to use tool for collaboratively drafting a document.
+BUT, Matt Bury suggested:
+Use Google Docs, but it's independent of Moodle. Please see here: https://matbury.com/wordpress/?p=3771
+There's a Moodle-Etherpad integration module here: https://moodle.org/plugins/mod_etherpadlite that may be of use to you. However, you need to set up Etherpad on your server or at least on the same top-level domain (TLD). Etherpad: https://etherpad.org/
+There's also an integration with Collabora Office, i.e. the online version of LibreOffice (similar to Google Docs but free and open source & without the GDPR issues): https://moodle.org/plugins/mod_collabora Collabora Office: https://www.collaboraoffice.com/
+How can I make the text display correctly in assignment submission PDF files?
+If the text in your language (such as Chinese, Japanese, Korean, Hebrew or Arabic) displays as ???? in downloaded PDF files, your site admin needs to enable PDF fonts in Site administration > General > Language settings then specify fonts for the languages used on your site in $CFG->pdfexportfont in config.php.
+
+You can then select the font for your language in the new course setting PDF font.
+
+Administrators
+How do I change assignment defaults?
+Go to Site administration >Plugins >Activity modules >Assignment and check out the Assignment settings, Submission plugins and Feedback plugins links.
+
+How do I set up Ghostscript?
+See http://www.ghostscript.com/ and visit Site administration > Plugins > Activity modules > Assignment > Feedback plugins > Annotate PDF to make sure you have the correct path to Ghostscript.
+
+How do I set up unoconv?
+Note: Unoconv is deprecated. There is rewrite of Unoconv called "Unoserver" but Moodle does not currently support it. See MDL-75066
+
+How do I list all assignment files for a user and/or a course?
+Install the Assignment files report additional plugin.
+
+How do I fix an Error 500 for the View submissions page?
+If you have courses with more than 100 students, you can limit the number shown on the View submissions page by setting a maximum value for the setting 'Maximum assignments per page' in Site administration > Plugins > Assignment settings.
+
+Any further questions?
+Please post in the Assignment forum on moodle.org.
+
+Categories: AssignmentFAQMusic
+Tools
+In other languages
+This page was last edited on 29 June 2024, at 12:20.
+Content is available under GNU General Public License unless otherwise noted.
+Privacy
+About Moodle Docs
+Disclaimers
+Accessibility statement
+Powered by MediaWikiMoodle.org
+Forums
+Documentation
+Plugins
+Downloads
+Demo
+Development
+Translation
+Tracker
+Search
+Main page
+Table of contents
+Docs overview
+Recent changes
+Search MoodleDocs
+Article
+Page Comments
+View source
+View history
+Assignment settings
+Jump to:navigation, search
+Main page ► Managing a Moodle course ► Activities ► Assignment ► Assignment settings
+Assignment
+Assignment settings
+Using Assignment
+Assignment FAQ
+This page explores in more detail the settings for the Assignment activity once you have added it to your course and also covers the Site administration settings.
+
+Note that if you want to edit an existing assignment, click the Edit link to its right and choose the action you wish to take, e.g. 'Edit settings'.
+
+
+Contents
+1 General
+2 Availability
+3 Submission types
+4 Feedback types
+5 Submission settings
+6 Groups submission settings
+7 Notifications
+8 Grade
+8.1 Anonymous submissions
+8.2 Marking (grading) workflow
+9 Other settings
+10 Assignment capabilities
+11 Site administration settings
+11.1 Assignment settings
+11.2 Submission plugins
+11.3 Feedback plugins
+11.3.1 Manage assignment feedback plugins
+11.3.1.1 Check Ghostscript
+General
+In the Description, give a general explanation of the assignment. Check the box if you want this description to display on the course page.
+In Additional files, you can add files which may be of help to the students as they do their assignment, such as example submissions or answer templates.
+In Activity instructions, explain in greater detail what students must do. This is displayed when they edit and submit their assignment.
+Availability
+Allow submissions from
+This stops students from submitting before the shown date, but it doesn't hide the assignment and any included instructions or materials.
+Due date
+Submissions are still allowed after this date but will be marked as late. Disable it by unticking the checkbox. Assignments without a due date will appear on the dashboard with 'No Due Date' displayed.
+Cut-off date
+After this date, the submit button will be hidden, and students will not be able to submit.
+Remind me to grade by.
+A date needs to be entered here for the assignment to display on the teacher's Timeline block and in the Calendar. It will show when at least one student has submitted.
+Time limit
+An assignment may have a time limit, similar to a the Quiz activity. However, the time limit does not prevent learners from submitting after the time has passed. They can still submit but their submission is marked as submitted after the time limit. The time limit feature must be enabled by the admin from Site administration > Plugins > Assignment settings > Enable timed assignments.
+Submission types
+Here you can decide how you wish students to submit their work to you.
+
+Note: If Submission comments are enabled in Administration>Plugins>Activity modules>Assignment>Submission plugins, students will be able to add a note to their teacher on submitting work. If Anonymous submissions are enabled, student comments display in the gradebook as from "Participant 01 etc" to avoid revealing identities.
+
+Online text
+Students type their responses directly in Moodle using a text editor, which automatically saves text at regular intervals.
+It's possible to set a word limit on an online text assignment. Students get a warning if they try to exceed the word limit. Numbers are counted as words and abbreviations such as I'm or they're are counted as single words.
+
+File submissions
+Students can upload one or more files of any type the teacher can open. The teacher can annotate uploaded PDFs, docx and odt files within the browser, and on saving, the annotated file is made available to the student. (Check with your admin that Ghostscript and a document converter are enabled, if you can't annotate uploaded files.)
+404annotateassignment.png
+
+
+Comments may be collapsed to make it easier to read the original text:
+
+collapsedcommentexample.png
+
+Maximum submission size
+The maximum upload size refers to each file a student uploads. It cannot be larger than the limit in the Course settings.
+Accepted file types
+The teacher can specify the types of file the students may upload to the assignment. A file type selector appears upon clicking 'Choose', offering a choice of different file types. (See the video File type selection for more information.) Leaving the field blank will allow all file types.
+If the file types have been restricted, then when students attempt to submit the assignment, they will see a message telling them which files are accepted:
+
+
+Student view of specified files
+Feedback types
+Feedback comments
+With this enabled, markers can leave comments for each submission (which appear on the assignment grading screen.) Audio and video comments may also be left, using the icon in the text editor.
+
+Annotate PDF appears if this setting is enabled by the Site administrator in the Manage assignment feedback plugins section of Site admin and will allow the teacher to annotate using comments, stamps and other features.
+
+Offline grading worksheet
+This is useful if you wish to download the grading list and edit it in a program such as MS Excel.
+
+Editing the grades offline
+When the teacher has completed their grading offline, they can then upload the spreadsheet, confirm the changes and the grades and comments will be transferred over into Moodle's gradebook:
+
+
+Uploading the grading worksheet
+
+Confirming the changes
+
+
+Feedback files
+This allows markers to upload files with feedback when marking. These files may be the marked up student assignments, documents with comments, a completed marking guide, or spoken audio feedback. It enables the Feedback Files column in the assignment grading screen (accessed from the Submissions link in Assignment navigation). To upload feedback files, click the Grade button top right and then upload either with drag and drop or using the File picker. Alternatively, click the three dots next to a specific student in the grading screen, click Grade and upload in the same way.
+
+Uploading feedback files
+Uploading multiple feedback files is also possible:
+
+Download the students' assignments using the "Download all submissions" link.
+Extract the folder offline and add your comments to the student's submissions. Keep the names the same.
+Select the students' submissions and zip them into a new folder. Important: Don't just edit them inside their original folder and re-zip this; it will not work. The folder name does not matter as long as the feedback files have the same names as before.
+Upload this newly zipped folder.
+You will be presented with a confirmation screen displaying your feedback files. (If you zip files from a Mac, make sure to remove the folder _MACOSX)
+
+Confirmation screen displaying the feedback files to be uploaded
+
+Screen confirming uploaded feedback
+Comment inline
+This usefully allows you to comment directly on an 'online text' type submission.
+Submission settings
+Require students click submit button
+If this is set to 'No' students can make changes to their submission at any time. (If you want to stop them changing work once you are ready to grade, click the Submissions link; locate the student and From the Status column, click the the three dots icon and select 'Prevent submission changes'.)
+If set to 'Yes', students can upload draft versions of the assignment until such time as they are ready to submit. Clicking the submit button tells the teacher they have finished drafting and want the work to be graded. They can no longer edit it and must ask the teacher to revert to draft status if they need to change it again. To do that, click the Submissions link, locate the student and from the Status column, click the three dots icon and select 'Revert the submission to draft'. To do this in bulk, select the relevant students and from the Status menu at the top of the grading screen, select your chosen action.
+
+Prevent submission changes
+
+Status at top of screen for bulk select
+Require that students accept the Submission statement
+An administrator can define a "Submission statement" (see below) i.e. a statement where students promise the work is their own and which they must agree to before submitting their work. If the administrator has given teachers the option of using a submission statement or not, then it will be available in the assignment settings screen. If the administrator has forced the statement throughout the site, a teacher will not have this option in the settings but a student will see the statement when accessing their assignment. Note: The admin can set different submission statements for individual or group submissions.
+Allowed attempts
+The maximum number of attempts that a student can make. Once this number is reached, the submission can no longer be reopened.
+Grant attempts
+If 'Allowed attempts' is set to unlimited or more than 1, you can specify how to grant further attempts - Manually (via the Submissions page or Grader page), Automatically (after grading), or Automatically until pass (after grading, until the student achieves the passing grade).
+Groups submission settings
+These settings allow students to collaborate on a single assignment, e.g. working in the same online area or uploading, editing and reuploading an MS Powerpoint in the common assignment area.
+
+When grading, the teacher may choose to give a common grade and feedback to all students in the group or to give individual grades and feedback to each member.
+
+Require group to make submission
+Students not in a group can still submit assignments unless this is forced in Site administration > Plugins > Assignment > Assignment settings. Moodle will then display a message You're not a member of any group; please contact your teacher , and the student will not be able to submit the assignment.
+Require all group members submit
+This setting will only appear if the teacher has ticked the "Require students click submit button" earlier. The assignment will not be classed as "submitted" until all members of the group have made a contribution. When one student has submitted, the other members of the group will be able to see who still has to submit.
+Grouping for student groups
+If a particular grouping is selected here, then the gradebook will display any other groups and non-grouped students in the "default group", while naming the group(s) that are in the chosen grouping. If "none" is selected, then the gradebook will display the names of all groups and put any non-grouped students in the "default group". See this forum post on grouping for student groups for examples of how this might be used.
+Notifications
+(Note that if you are using group mode then course teachers need to be members of the group in order to receive submission and late submission notifications.)
+
+Learners receive the following assignment notifications (via their preferred notification format):
+
+Assignment due in 7 days
+Upcoming assignment due (48 hours before the due date)
+Assignment overdue.
+These notifications can be switched on or off, site wide, by an administrator in the site Notifications configuration.
+
+Teachers can send notifications to students when an assignment is graded.
+Teachers can receive notifications when students submit an assignment.
+Teachers can receive notifications when students submissions are overdue
+These notifications can be controlled by a teacher from the assignment settings page.
+
+Grade
+See Grade points and Advanced grading methods for more information on the settings here.
+Setting a passing grade may be connected with Activity completion and Restrict access such that a student will not be able to access a follow up activity until they have passed this assignment.
+Anonymous submissions
+This hides students' names when grading and instead shows randomly generated Participant numbers.
+
+With Anonymous submissions, students cannot see the final grade until all of the students' names have been revealed. Rubrics will also be hidden from students' view until the names are revealed. To reveal student names after you are finished grading, look under Assignment settings > Reveal student identities. Feedback comments will appear whether or not student names are hidden or revealed. Note that this level of anonymity might not suit the privacy requirements of your organisation. See MDL-35390 for more details.
+
+Users with the capability View student identities when Anonymous submissions are enabled (by default managers only) can view student identities and participant numbers.
+
+Users with the capability View anonymous events in reports (by default managers only) can view student submissions to assignments with Anonymous submissions (in Moodle 3.9 onwards).
+
+Marking (grading) workflow
+This lets you keep grades and feedback hidden until you are ready to release them to students. It is also useful if you want to show your progress in grading, or co-ordinate multiple markers/graders.
+
+
+
+
+Marking workflow state in the individual grading screen
+
+Dropdown to select marking workflow state when quick grading
+The phases are:
+
+Not marked (the marker has not yet started)
+In marking (the marker has started but not yet finished)
+Marking completed (the marker has finished but might need to go back for checking/corrections)
+In review (the marking is now with the teacher in charge for quality checking)
+Ready for release (the teacher in charge is satisfied with the marking but wait before giving students access to the marking)
+Released (the student can access the grades/feedback)
+Note: If the student's grade is locked or overridden in the Gradebook, changing the Marking Workflow State has no effect (either on the grading form or as a bulk action on multiple submissions)
+
+Marking allocation
+Marking allocation can be used if marking workflow is set to Yes. Teachers can then be selected to grade or review submitted work of specific students.
+
+
+
+Allocated markers on the grading screen
+Other settings
+Depending on what is enabled for your site and course, you may also need to explore Common module settings, Restrict access, Activity completion, Tags and Competencies
+
+Assignment capabilities
+Export own submission
+Grade assignment
+Submit assignment
+View assignment
+Role permissions for the activity can be changed from the gear icon Actions menu.
+
+Site administration settings
+Administrators can access assignment configuration options by expanding Administration > Site administration > Plugins > Activity modules > Assignment.
+
+Assignment settings
+Here, the administrator can set defaults for certain settings. They may also make certain settings 'Advanced' which means a course teacher has to click the 'Show more' link to see them, or they may 'lock' settings which means a course teacher cannot alter that setting.
+
+If the site contains courses with over 100 participants, the number of assignments listed on the assignment grading page may be limited using the Maximum assignments per page (assign | maxperpage) setting. This removes 'All' from the 'Assignments per page' setting.
+
+Submission statement
+Here is where the administrator can enter text which will appear when students are about to submit an assignment. There are three options:
+
+Admin view of Submission statement set up screens - click to enlarge
+
+Student view when about to submit - click to enlarge
+
+
+If it is left as the default "No", then teachers will have the choice within their own assignments to force this or not.
+
+The submission statement may be shown in different languages. See Multi-language content filter for how to do this.
+
+Note for sites using languages other than English: There is currently a bug affecting the default assignment submission statement - it doesn't display in a user's language (MDL-54731). A workaround is to enter the submission statement in the required language (using the multi-lang filter if multiple languages are required) in the 'Submission statement' (submissionstatement) field then save the changes.
+
+Submission plugins
+Here the administrator can enable, disable or change the order and default settings for any submission plugins.
+
+Submission comments
+Note that if submission comments are enabled here AND comments enabled globally in Site Administration > Advanced features) then students will be able to send a message to their teacher when submitting their assignment. If either of those settings is disabled, then the submission comments link will not appear.
+Feedback plugins
+Manage assignment feedback plugins
+Here the administrator can enable, disable or change the order and default settings for any feedback plugins.
+
+Annotate PDF
+This is the place to upload stamps for teachers to use when annotating student PDFs.
+Check Ghostscript
+You can also check the ghostscript path from here:
+
+
+Ghostscript not installed or incorrectly installed
+
+Ghostscript correctly installed
+If the default stamps are deleted by accident, they can be found in mod/assign/feedback/editpdf/pix and re-uploaded.
+
+Category: Assignment
+Tools
+In other languages
+This page was last edited on 18 August 2025, at 11:35.
+Content is available under GNU General Public License unless otherwise noted.
+Privacy
+About Moodle Docs
+Disclaimers
+Accessibility statement
+Powered by MediaWikiMoodle.org
+Forums
+Documentation
+Plugins
+Downloads
+Demo
+Development
+Translation
+Tracker
+Search
+Main page
+Table of contents
+Docs overview
+Recent changes
+Search MoodleDocs
+Article
+Page Comments
+View source
+View history
+Using Assignment
+Jump to:navigation, search
+Main page ► Managing a Moodle course ► Activities ► Assignment ► Using Assignment
+Assignment
+Assignment settings
+Using Assignment
+Assignment FAQ
+This page explores the different types of assignment, how students submit assignments and how teachers can grade them.
+
+
+Contents
+1 What are the options for submitting work in Moodle?
+2 Which type of assignment submission suits you best?
+2.1 You want students to type shorter or longer responses directly online
+2.2 You want students to submit work you can download in a specified program
+2.3 You want students to submit files at different times for a project
+2.4 You want students to write a response to a video/sound file/image
+2.5 You want students to answer a series of questions on a video/sound file/image
+2.6 You want to grade work students have done offline
+2.7 You want to view, comment on and send back students' assignments
+2.8 You want students to send you a comment or note along with their uploaded work
+2.9 You want to allow students to redraft and decide when to submit the work
+2.10 You want students to keep an ongoing journal or do an iterative assignment
+2.11 You want students to submit work in groups
+2.12 You want to grade students' work anonymously
+2.13 You want to read and grade student assignments offline
+2.14 You want to hide students' grades until a time of your choosing.
+2.15 You want to set a timed assignment
+2.16 You want to moderate other colleagues' marking or allocate certain teachers to certain students
+3 How do students submit their assignments?
+3.1 File submission
+3.2 Access controlled links
+3.3 Online text
+3.4 Submission comments
+4 How do teachers grade assignments?
+4.1 Filtering submissions
+4.2 Allocating submissions to markers
+4.3 Submission status
+4.4 Overriding assignment deadlines
+4.5 Granting extensions
+4.6 Quick grading
+4.7 Grading individual submissions
+4.7.1 Annotating submissions
+4.8 Controlling when to notify students of graded work
+4.8.1 Notifying as you mark
+4.8.2 Keeping grades hidden until a release date
+4.8.3 Examples of Marking workflow
+4.9 Offline marking - downloading and uploading multiple grades and feedback files
+4.9.1 Before you start, enable the multiple file upload settings
+4.9.2 Downloading student submissions
+4.9.3 Download the Grading Worksheet to record grades
+4.9.4 Grade and annotate (if applicable) the submitted work
+4.9.5 Upload the completed grading worksheet
+4.9.6 Upload feedback files (if applicable)
+4.10 Give the same feedback file to multiple students
+5 Keeping records (archiving, exporting, backing up)
+6 Tips and Tricks
+7 See also
+7.1 Examples from Mount Orange demo site
+What are the options for submitting work in Moodle?
+The standard ways students can submit assignments are:
+
+File submissions (students submit a file for assessment)
+Online text (students can type their responses directly in Moodle)
+Audio or video (via the recording button in the Text editor)
+Notes:
+
+It is also possible to use the assignment for grading an "offline assignment", ie, one where work is done outside of Moodle. This is done by simply unchecking the above three options.
+If you're not sure which assignment type best suits your needs, look at the section below #Which type of assignment submission suits you best?
+Which type of assignment submission suits you best?
+You want students to type shorter or longer responses directly online
+Set Online text to Yes. This works well for younger children who will only manage a sentence or two and works just as well for higher education students who write more.
+
+Advantage - quick for the student to get started; no need to use a word-processing program and upload the file. The text is saved on a regular basis so it will be preserved if the student loses the page for some reason.
+Disadvantage: if the word count is expected to be large, setting Online text to No and File submission to Yes might be a better option.
+You want students to submit work you can download in a specified program
+Set File submission to Yes, set the number of files you will allow using the Maximum number of uploaded files setting and the file sizes by using the Maximum submission size setting.
+
+Advantage - better than students emailing work as the whole class's work is collated in one space on your course. Markers can provide comments directly on the student work.
+Advantage - with "Attempts reopened" enabled, teachers can see the progression through various drafts of a student's work.
+Disadvantage - assignments must downloaded to be viewed (but they can be downloaded in bulk) and the teacher needs the appropriate program to open them.
+You want students to submit files at different times for a project
+Set File submission to Yes, and use Maximum number of uploaded files to set the maximum number of separate files they can upload
+
+Advantage - all project files are in one assignment area for grading so they get a single grade.
+Disadvantage - all project files are in one assignment area for grading - so they can only have a single grade!
+You want students to write a response to a video/sound file/image
+Set up an assignment allowing online text submission and get students to use the Moodle media icon to add video/sound/image files.
+
+You want students to answer a series of questions on a video/sound file/image
+Investigate the Quiz module. Assignments are really just for a single question.
+
+You want to grade work students have done offline
+Uncheck the submission types when setting up the assignment. Students won't be required to do anything but you can use the assignment to grade them for work done outside of Moodle.
+
+You want to view, comment on and send back students' assignments
+Set up an assignment allowing file submissions.
+
+Advantage: useful for teachers who like using the "comment" options in word-processing programs for example. If you have Ghostscript enabled on your server and the students upload PDF files, you can annotate them inline. See the section Annotating PDF files below.
+Disadvantage: if students upload other file types, you have to download them, comment and then re-upload them.
+You want students to send you a comment or note along with their uploaded work
+If comments are enabled site-wide, students will be able to add submission comments; if comments are disabled site-wide, students will not be given the option to add submission comments.
+
+You want to allow students to redraft and decide when to submit the work
+In the settings set Require students click submit button to Yes. Students can then control when their draft work is submitted to the teacher.
+
+You want students to keep an ongoing journal or do an iterative assignment
+In the settings set Require students click submit button to No. Students can continue to make changes to their assignment and at no point do they 'submit'. If the work will be graded at some point it is recommended that either Prevent late submissions is set to Yes to ensure that no changes can be made after the due date, or all submissions are locked when grading commences to ensure that the work is not altered during grading.
+
+Advantage: the work remains in one place and is constantly improved, graded (if needed) and improved again.
+Disadvantage: there is no record/history of previous attempts (such as with the Wiki). The online text assignment does not replicate the display of a journal or blog where each new entry is additional to the previous ones.
+You want students to submit work in groups
+In the settings, set "Students submit in groups" to Yes. If you just do this, then once one student has submitted, the assignment will be flagged as submitted even if the others haven't contributed. If you want to ensure everyone has an input, set "Require students click submit button" to Yes and then change "Require all group members to submit" to Yes. The assignment will only be classed as submitted when each member has contributed, and once one student has submitted, the remaining members's names will be displayed for the group to see who still needs to add their input.
+
+You want to grade students' work anonymously
+In the settings, choose 'Anonymous submissions'. When students submit assignments, their names will be replaced by randomly-generated participant numbers so you will not know who is who. Note that this is not totally anonymous because you can reveal their identities in the assignment settings and you can work out identities from the logs - so this might not be suitable if your establishment has very precise privacy requirements.
+
+You want to read and grade student assignments offline
+In the settings, choose "Offline grading worksheet". When students have submitted, click "View/grade all submissions" and you can download their assignments from the link "Download all submissions" and download the grading sheet from the link "Download grading worksheet". You can then edit grades and re-upload the grading worksheet. You can also upload multiple feedback files in a zip from this drop down menu. See Assignment settings for an explanation of how to use the "upload multiple feedback files as zip" feature.
+
+You want to hide students' grades until a time of your choosing.
+Use 'marking workflow' as explained in Assignment settings.
+
+You want to set a timed assignment
+Ask your administrator to enable the time limit feature from Site administration > Plugins > Assignment settings > Enable timed assignments and you will then have the option from the Availability section.
+
+You want to moderate other colleagues' marking or allocate certain teachers to certain students
+Use 'marking allocation' as explained in Assignment settings.
+
+How do students submit their assignments?
+The first page students will see when they click on the assignment activity link from the course page will display the assignment name, optionally a description and the submission status. The first time a student views the assignment (with a description) it will look like this:
+
+
+Student view of assignment
+The submission status section includes:
+
+Submission status
+Grading status
+Due date
+Time remaining
+Last modified
+Submission details
+If the teacher prefers, the description may be left blank (1 below) and the assignment instructions only presented once the student clicks to do the assignment (2 below).
+
+assignment instructions
+
+As they progress through the assignment the Submission status and Grading status will update and the Last modified date will appear.
+
+student assignment submitted and graded
+
+If the student uploaded a file which the teacher has annotated, this will be made available in the feedback section. The student can search through the document and filter specific comments.
+
+
+Student view of graded pdf file
+
+Searching and filtering comments in annotated pdf
+Submission statuses include:
+
+Nothing submitted for this assignment
+Draft (not submitted)
+Submitted for grading
+Grading statuses include:
+
+Not graded
+Graded
+File submission
+To submit a file submission, students complete the following steps:
+
+Click the ‘Add submission’ button to bring up the file upload page.
+Upload the relevant file into the submission. They are able to ‘drag and drop’ the file into the submission box.
+Click ‘Save Changes’.
+There should now be a Last modified date and the file(s) uploaded will also be displayed. Depending on how the assignment is setup the status will either read ‘Submitted for grading’ - in which case no further action is need, or ‘Draft (not submitted)’.
+
+If changes are required, click ‘Edit submission’.
+Once ready to submit, click ‘Submit assignment’.
+Note that once the assignment is 'submitted’ no further changes are allowed.
+
+
+Student view when adding a submission
+
+Student view once file is uploaded
+
+Student view when submitting assignment
+Note: Depending on how the assignment is setup students may see both a file submission page and an online text editor.
+
+If file submissions and online text are enabled, and a word limit is set for the online text, it is possible for a student to end up with a submission status of 'No attempt' together with saved file submissions. This occurs when a student submits files, enters online text, clicks 'Save changes' then obtains a message informing them that the text exceeds the word limit. If they then click Cancel, the submission status is shown as 'No attempt' together with saved file submissions.
+
+Access controlled links
+If the administrator has enabled this feature for either the Google Drive repository or the OneDrive repository then students can upload a file as an 'access controlled link' from either of these repositories. The file is then copied to the site account and the student is no longer able to edit it.The student retains the original file in their own Google Drive or OneDrive. The teacher is given permission to edit the file for grading purposes, and the student is sent a copy of the edited file.
+
+
+Student submits an access controlled link
+Online text
+To submit online text, students complete the following steps:
+
+Click the ‘Add submission’ button to bring up the online text editor page.
+Type the relevant text into the text editor, or paste from a previously written file.
+Click ‘Save Changes’.
+There should now be a Last modified date and the first 100 characters entered will also be displayed. Depending on how the assignment is setup the status will either read ‘Submitted for grading’ - in which case no further action is need, or ‘Draft (not submitted)’.
+
+If changes are required, click on ‘Edit my submission’.
+Once ready to submit, click ‘Submit assignment’.
+Note that once the assignment is 'submitted’ no further changes are allowed.
+
+
+Online text entered
+
+Submitting assignment
+Submission comments
+If enabled by the administrator, there may be a section where students can leave submission comments.
+
+
+Student comments
+How do teachers grade assignments?
+When students have submitted their assignments, they can be accessed by clicking on the assignment activity. This will bring up the Grading Summary page.
+
+The Grading Summary page displays a summary of the assignment, including; number of participants, number of drafts, number of submitted assignments, due date and time remaining.
+
+Clicking 'Grade' will take you to the first student in the list so you can start grading individually. If you wish to grade several assignments, clicking Save and Show next will take you to the next submission.
+
+saveandshownext.png
+Clicking 'View all submissions' will take you to the grading table where you see all students.
+
+The Grading Table contains columns of information about the student, the status of their submission, a link to grade their submission, a link to each submission and feedback comments and files (if enabled).
+
+Filtering submissions
+The status filter allows you to filter submissions so you can, for example, quickly see which students have not submitted yet.
+
+New feature
+in Moodle 5.0!In 5.0 onwards, you can also filter by graded submissions.
+
+500statusfilter.png
+
+Allocating submissions to markers
+If you need to divide submissions between more than one person, you can apply groups to the assignment and let markers know which group(s) to mark. Note that because group membership is not itself anonymised, this may make anonymised submissions that bit less anonymous, though as long as the groups aren't very small this should be acceptable.
+
+An alternative is to use marking allocation - this allows anyone with a teacher role to allocate one marker to each submission. This works particularly well if marking is allocated by subject specialism.
+
+Submission status
+If you will be assigning grades to student work, you may want to take note of the submission status before you begin the marking process. If you have required students click the Submit button, you may find that some submissions are still marked as Draft (not submitted), meaning the student has either uploaded a file(s) or entered some text, but has not clicked ‘Submit assignment’.
+
+If it's after the due date and you are about to commencing marking that you use ‘Prevent submission changes’ to stop students from making changes to their assignment. You can do this one by one by using the icon in the Edit column.
+
+Or you can select two or more students by putting a tick in the select column and going to 'Lock submissions’ from the With selected menu under the grading table.
+
+Likewise you can also revert a student's submission to draft if they have uploaded the incorrect file. Instead of selecting ‘Prevent submission changes’ select ‘Revert the submission to draft’, or place ticks against selected students and choose 'Revert the submission to draft status' from the With selected menu under the grading table.
+
+
+Submission statuses
+
+Prevent submission changes dropdown
+
+Lock submissions
+
+Revert to draft
+
+Revert to draft status
+If the submission setting 'Grant attempts' is set to 'Automatically' or 'Automatically until pass', the submission is automatically unlocked when the grade is saved. Similarly, if 'Grant attempts' is set to Manually, when a teacher selects 'Allow another attempt, the submission is unlocked.
+
+Overriding assignment deadlines
+A teacher can override a deadline for an individual or group from More > Overrides on the assignment page with the Boost theme, or from Assignment administration with other themes.
+
+When adding overrides for a group, it is possible to have one group override trump another. This is achieved by moving the override up/down on the group overrides page:
+
+AssignGroupOverrides.png
+In this situation, a student in both groups (e.g. Frodo Baggins) will have the override from "The Council of Elrond" applied. By pressing the arrow icons on the right, the override for "The Fellowship" can be moved to the top of the list, and will have higher precedence.
+
+Note also that if there exists a user override for a student, it will always take precedence over any group overrides.
+
+Granting extensions
+If an assignment has a deadline, a teacher can grant individual or group assignment extensions by selecting the Edit link next to a particular student or group.
+
+To grant an extension, open the assignment
+Click on "View all submissions"
+Locate the student who is to be allowed to submit after the "Cut-off date"
+Click on the adjacent "Edit" drop down menu and select "Grant extension"
+grantextension0.png
+Set the extension date and time. The student's or group's name is also shown on this screen.
+grantextension.png
+Click on "Save changes".
+Quick grading
+Quick grading allows you to enter numeric grades directly into the grading table, bypassing the more detailed grading interface. Please note:
+
+if you want to give feedback, you need to use the more detailed Grade interface.
+Quick grading is incompatible with advanced grading e.g. Rubrics, and is not recommended when there are multiple markers.
+Submission comments are a two-way private conversation between a student and staff and are visible to students immediately i.e. markers use the grading interface to give feedback, not the submission comments.
+To access the Quick Grading interface, from the Grading Summary page click 'View all submissions'; the Grading Table displays. Scroll to bottom of the page to configure Options, and check the box for 'Quick grading'. While you're down there, you can also set the number of assignments to display per page, filter the assignments e.g. to see who has not submitted, unmarked assignments, etc.
+
+When you are ready to Quick Grade:
+
+You can enter grades directly into the grading table.
+Scroll to the bottom of the grading table and click 'Save all quick grading changes'
+A confirmation displays.
+Grading individual submissions
+If you have enabled File Feedback in the Assignment settings and wish to upload either the marked student assignment, a completed text based feedback document or audio feedback, click on the green tick in the Grade column (or use the icon in the Edit column and select Grade).
+
+This brings you to the Student Grading Page where you can give grades, feedback comments and feedback files (if enabled in the Assignment settings). You can use drag and drop to upload feedback files.
+
+
+Green tick
+
+Grading
+
+Feedback files
+Annotating submissions
+If the student has uploaded a PDF, docx or odt file, or if you set 'Comment inline' for an online text submission, then their submission will be displayed on the grading screen, allowing you to annotate it (requires Ghostscript for PDF and unoconv for docx and odt files), using a variety of tools, stamps (if uploaded by the admin) and comments which may be saved to a comments bank. When the annotations are complete, clicking to save the changes will result in it being displayed to the student as part of their feedback.
+
+'Rotate' icons let you change the orientation of an uploaded document if the student submitted it in landscape mode for example.
+
+
+
+
+Annotating a student's submission
+Comments may be added and then saved in a quick list for future use (1) Click the paper/magnifying glass icon to the right of the page selector to filter comments you have already added to the work(2):
+
+In the Search comments pop-up window, enter the term you would like to search for in the Filter comments... box.
+Clicking on the comment will take you to the part of the paper where that comment has been added.
+
+1.Saving and re-using comments
+
+2. Accessing comments
+Note: To ensure that comments display to students as the marker intends, do instruct students to download the annotated PDF rather than just previewing it. Preview sometimes displays comments in a way which obscures the original text.
+
+The review panel and / or the grading panel may be collapsed by clicking the icons at the bottom right of the screen.
+
+CollapseReviewPanel.png
+Controlling when to notify students of graded work
+Notifying as you mark
+If you need to notify individual students, one by one, as you mark, the Notify students checkbox is available when grading individual submissions. Choose Yes to notify the student immediately or No to grade without notifying the student. Assuming you are not hiding grades in the ways outlined below, a notification will be sent.
+
+New feature
+in Moodle 5.0!Students can receive notifications via web, email, mobile or SMS (new in 5.0), depending on which notification plugins are enabled on the site. For details, see Notifications.
+
+assignment feedback
+
+Keeping grades hidden until a release date
+Assessors often decide to hide grades and feedback until marking is complete and finalised, and then release them all at once. There are two alternatives for this.
+
+Hide the item in the Grader Report. This is convenient if there are few markers and you have decided a provision date for releasing the marks and feedback.
+Or enable Use marking workflow in the Assignment's settings. This way is best where there are many markers, and/or you don't have a provisional date to release marks and feedback.
+Examples of Marking workflow
+One marker, Marker, wants to release all grades at the same time
+
+Marker enables "Use marking workflow".
+Marker marks each submission and transitions the grading to "Marking completed" as each submission is graded.
+Marker then uses the batch operations to transition all grades to "Released" at the same time.
+Multiple markers,
+
+Marker enables "Use marking workflow".
+Marker marks each submission and transitions the grading to "Marking completed" as each submission is graded.
+Marker then uses the batch operations to transition all grades to "Released" at the same time.
+Offline marking - downloading and uploading multiple grades and feedback files
+If you don't have an internet connection or prefer to grade outside Moodle, you can do so (including with anonymous submissions). These easy stages explained below:
+
+Download the submissions
+Download the spreadsheet (grading worksheet) to record grades.
+Grade and annotate (if applicable) the submitted work.
+Upload the completed grading worksheet.
+Upload the annotated submissions (if applicable).
+Note:You cannot upload marks and feedback to Moodle if you have enabled Rubrics or Marking Guides.
+
+Before you start, enable the multiple file upload settings
+Go to the settings of that assignment. For Feedback types, ensure that the Moodle Assignment settings, Feedback comments, Feedback files, and Offline grading worksheet are ticked.
+
+Downloading student submissions
+You can download a zip file containing all of the assignment submissions by selecting ‘Download all submissions’ from the 'Grading actions' menu at the top of the grading table, or in the settings menu.
+
+File submissions will be downloaded in the format uploaded by the student. Online text submissions will be downloaded as html files. Each file in the zip will be named with the student first and last name followed by a unique identifier (not the user ID number).
+
+If each submission is more than a single file, then submissions may be downloaded in folders by ticking the option 'Download submissions in folders' (below the grading table). Each submission is put in a separate folder, with the folder structure kept for any subfolders, and files are not renamed. Each folder will be named with the student first and last name followed by a unique identifier (not the user ID number).
+
+You can also download selected assignment submissions (rather than all of them) by selecting the ones you want and then choosing 'With selected....Download selected submissions'.
+
+Download the Grading Worksheet to record grades
+Next, to download the spreadsheet in which you'll enter the grades and brief comments, return to the Moodle Assignment page and from its Grading action drop-down menu choose Download grading worksheet and save that file (keep its csv file format).
+Note: Helpfully that downloaded worksheet will contain any existing grades and summary comments which have already been given for that assignment i.e. if marking has already started. However, to see pre-existing comments fully you may need to set your spreadsheet to 'wrap text' within cells.
+
+Grade and annotate (if applicable) the submitted work
+After downloading the submissions and the grading worksheet:
+
+Open a downloaded assignment file to assess it.
+Open the csv file in a spreadsheet editor e.g. Excel.
+For that student's record (if anonymous, a number corresponding to the submission file name will display), enter grades in the Grade column and summary comments in the Feedback comments column for each student.
+Leave the other data untouched unless you know exactly what you're doing.
+Repeat as needed.
+Save the csv file.
+Note: Take care to enter data in the correct column of the spreadsheet.
+
+If you are annotating the submissions to return to students as feedback:
+
+Open a downloaded submission.
+Carry out your annotations.
+Save it in its original place i.e. the folder corresponding to that student.
+Repeat as needed.
+If you have separate feedback files to upload to students:
+
+Save these within that student's folder.
+You can give students multiple feedback files in this way e.g. annotations on their work along with a separate pro forma.
+Note: Don't change the name or location of the folder - Moodle needs this information to allocate the files correctly.
+
+Compress (zip) all the feedback files:
+
+Locate the folder containing the feedback files in Moodle, select them all (Ctrl+A within the folder), then zip them:
+Windows: Right click one of the selected files and Send to > Compressed (zipped) folder.
+Mac: Right Click (or Ctrl+click) one of the selected files and click Compress.
+They are now ready for upload (see below).
+Upload the completed grading worksheet
+When you are ready to upload grades and summary feedback:
+
+Click on the assignment name on the Moodle course homepage to access the summary page and click View/grade all submissions.
+From the Grading action drop-down menu choose Upload grading worksheet.
+Click Choose a file... and upload the grading worksheet to Moodle, or drag the csv file to the arrow and wait for the file name to appear in the box.
+There is a checkbox to overwrite records that have been modified more recently in Moodle than in the spreadsheet - only check this if you want to spreadsheet to overwrite all Moodle records, including ones made more recently than the spreadsheet.
+Click Upload grading worksheet; a Confirmation box displays the students grades and feedback that will be imported - check this carefully.
+If you are ready to proceed, click Confirm; a summary of updates displays.
+Click Continue.
+Upload feedback files (if applicable)
+Click on the assignment name on the Moodle course homepage to access the summary page and click View/grade all submissions.
+From the Grading action drop-down menu choose Upload multiple feedback files in a zip.
+Click Choose a file... and upload the zipped assignments file to Moodle, or drag the compressed/zipped file to the arrow and wait for the file name to appear in the box.
+Click Import feedback file(s).
+The Confirmation box will list all the feedback files and student names that will be imported.
+Click Confirm; the next screen summarises the changes.
+Click Continue﻿.
+From the page containing the Grading Table, you can check your feedback files by enabling Quick grading (see Options at the bottom of that page) and scrolling horizontally, if needed.
+For an assignment with no file submissions, see the discussion upload feedback files without student file submissions for details of what to do.
+
+Give the same feedback file to multiple students
+If you have high level feedback you want to give to an entire cohort, it is generally a good idea to give this feedback in the context of the assignment, rather than e.g. separately via a Forum. Moodle allows you to select some or all students and attach a single, common feedback file to their assignment feedback. This common feedback will appear to each student along with any other individual feedback files you have prepared for each.
+
+Prepare the single file of feedback.
+Click on the link to the Assignment; its summary page displays.
+Click View all submissions; the assignment's Grading Table displays.
+Use the checkboxes to select all or some students to receive the feedback (you may first prefer to configure the Grading Table to show as many students as possible on a single page).
+Underneath the Grading Table click the With selected... menu, choose Send feedback files, then click Go; a page displays a list of selected students above a file upload area.
+Upload the file of feedback you prepapred, or drag it to the arrow and wait for the file name to appear in the box.
+Click Send feedback files; the Grading Table displays again.
+Check your file is in place by scrolling horizontally to the Feedback files column.
+Keeping records (archiving, exporting, backing up)
+When students unenrol from a Moodle area, their records become invisible through the Gradebook interface. In order to have the information to hand, departments or course teaching teams may need systems in place to keep their own records for the data retention period required in their particular context. There are two separate procedures for exporting student submissions and marks.
+
+To export marks (with or without feedback):
+
+Go to your course administration block and click Grades.
+From the Grader Report Settings block, select Export; a menu displays.
+From the menu, if you need easy viewing and running calculations you probably want to select one of the spreadsheet formats; a page of export settings loads
+Use the Visible Groups pulldown menu to limit the export to specific groups, as required
+In Options, you indicate whether feedback comments are included
+In Grade Items To Be Included lists you can, if required, omit particular Activities from the report
+When you've finished with the settings, click on Submit; a preview of your export displays
+Click on Download to export to the format you chose, and save the file.
+To download the original student submissions:
+
+In your course area, click the link to the Assignment whose submissions you want to download.
+Click on the link to View/Grade all submissions; the Grading Table will load.
+Click the link to 'Download all submissions' and save the file.
+Tips and Tricks
+Want to use an Assignment activity again in another Moodle site? Use the backup and restore options.
+Want to use an Assignment activity in another course you teach? Use the Import function in the course administration block.
+Moodle will sometimes appear not to be uploading a resubmitted assignment - you seem to be downloading the original assignment. This is a cache issue, in short, go to "Tools > Clear Recent History" in Firefox or "Tools > Delete Browsing History > Delete Temporary Files" in Windows Explorer. The newer file will then appear.
+See also
+Examples from Mount Orange demo site
+Teacher view of a PDF assignment which can be annotated inline.Log in with username 'teacher'.
+Teacher view of allocated markers and marking workflow status. Log in with username 'teacher'.
+Student view of an assignment. Log in with username 'student'. Scroll down to see the rubric and feedback.
+Student view of a student submission statement Log in with username 'student'.
+Student view of group assignment grading screen Log in with username 'student'.
+Teacher view of a group assignment grading screen Log in with username 'teacher'.
+Teacher view of Anonymous submissions grading screen Log in with username 'teacher'.
+Categories: AssignmentNew features
+Tools
+In other languages
+This page was last edited on 5 August 2025, at 13:22.
+Content is available under GNU General Public License unless otherwise noted.
+Privacy
+About Moodle Docs
+Disclaimers
+Accessibility statement
+Powered by MediaWiki
+
+# Model instructions
+
+I'll pass you Moodle help texts and input ids from the assignment activity. Based on the teacher prompt, give suggestions on how to populate the input fields. You can ask follow-up questions from the user if needed.
+
+Output style is like this:
+
+{
+    "domelements": [
+        {
+            "id": "id_name",
+            "name": "name",
+            "new_value": "",
+            "explanation": ""
+        },
+
+"new_value" is the new value that you suggest, and "explanation" is the reasoning shown to the user.
+
+Do not suggest settings that depend on other course contexts that you are not aware of, unless the teacher provides this information. Only output values for fields that need changing.
+
+# DOM structure, current values & help strings
+
+{
+    "formelements": [
+        {
+            "id": "id_name",
+            "name": "name",
+            "type": "text",
+            "current_value": "",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_introeditor",
+            "name": "introeditor[text]",
+            "type": "textarea",
+            "current_value": "",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_showdescription",
+            "name": "showdescription",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "If enabled, the description above will be displayed on the course page just below the link to the activity or resource.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_activityeditor",
+            "name": "activityeditor[text]",
+            "type": "textarea",
+            "current_value": "",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_submissionattachments",
+            "name": "submissionattachments",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "Tick the box to only show files on the submission page. Otherwise, files will be shown on both the assignment and submission pages.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_allowsubmissionsfromdate_enabled",
+            "name": "allowsubmissionsfromdate[enabled]",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_allowsubmissionsfromdate_day",
+            "name": "allowsubmissionsfromdate[day]",
+            "type": "select",
+            "current_value": "2",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_allowsubmissionsfromdate_month",
+            "name": "allowsubmissionsfromdate[month]",
+            "type": "select",
+            "current_value": "9",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_allowsubmissionsfromdate_year",
+            "name": "allowsubmissionsfromdate[year]",
+            "type": "select",
+            "current_value": "2025",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_allowsubmissionsfromdate_hour",
+            "name": "allowsubmissionsfromdate[hour]",
+            "type": "select",
+            "current_value": "14",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_allowsubmissionsfromdate_minute",
+            "name": "allowsubmissionsfromdate[minute]",
+            "type": "select",
+            "current_value": "45",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_duedate_enabled",
+            "name": "duedate[enabled]",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_duedate_day",
+            "name": "duedate[day]",
+            "type": "select",
+            "current_value": "2",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_duedate_month",
+            "name": "duedate[month]",
+            "type": "select",
+            "current_value": "9",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_duedate_year",
+            "name": "duedate[year]",
+            "type": "select",
+            "current_value": "2025",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_duedate_hour",
+            "name": "duedate[hour]",
+            "type": "select",
+            "current_value": "14",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_duedate_minute",
+            "name": "duedate[minute]",
+            "type": "select",
+            "current_value": "45",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_cutoffdate_enabled",
+            "name": "cutoffdate[enabled]",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_cutoffdate_day",
+            "name": "cutoffdate[day]",
+            "type": "select",
+            "current_value": "2",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_cutoffdate_month",
+            "name": "cutoffdate[month]",
+            "type": "select",
+            "current_value": "9",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_cutoffdate_year",
+            "name": "cutoffdate[year]",
+            "type": "select",
+            "current_value": "2025",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_cutoffdate_hour",
+            "name": "cutoffdate[hour]",
+            "type": "select",
+            "current_value": "14",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_cutoffdate_minute",
+            "name": "cutoffdate[minute]",
+            "type": "select",
+            "current_value": "45",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_gradingduedate_enabled",
+            "name": "gradingduedate[enabled]",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_gradingduedate_day",
+            "name": "gradingduedate[day]",
+            "type": "select",
+            "current_value": "16",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_gradingduedate_month",
+            "name": "gradingduedate[month]",
+            "type": "select",
+            "current_value": "9",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_gradingduedate_year",
+            "name": "gradingduedate[year]",
+            "type": "select",
+            "current_value": "2025",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_gradingduedate_hour",
+            "name": "gradingduedate[hour]",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_gradingduedate_minute",
+            "name": "gradingduedate[minute]",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_alwaysshowdescription",
+            "name": "alwaysshowdescription",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "If disabled, the assignment description above will only become visible to students on the \"Allow submissions from\" date.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_assignsubmission_mbsaudio_enabled",
+            "name": "assignsubmission_mbsaudio_enabled",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "If enabled, students are able to record rich audio directly in the browser or upload an audio file for their submission.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_assignsubmission_file_enabled",
+            "name": "assignsubmission_file_enabled",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "If enabled, students are able to record rich audio directly in the browser or upload an audio file for their submission.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_assignsubmission_onlinetext_enabled",
+            "name": "assignsubmission_onlinetext_enabled",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "If enabled, students are able to record rich audio directly in the browser or upload an audio file for their submission.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_assignsubmission_file_maxfiles",
+            "name": "assignsubmission_file_maxfiles",
+            "type": "select",
+            "current_value": "20",
+            "helptext": "If file submissions are enabled, each student will be able to upload up to this number of files for their submission.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_assignsubmission_file_maxsizebytes",
+            "name": "assignsubmission_file_maxsizebytes",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "Files uploaded by students may be up to this size.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_assignsubmission_file_filetypes",
+            "name": "assignsubmission_file_filetypes[filetypes]",
+            "type": "text",
+            "current_value": "",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_assignsubmission_onlinetext_wordlimit",
+            "name": "assignsubmission_onlinetext_wordlimit",
+            "type": "text",
+            "current_value": "",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_assignsubmission_onlinetext_wordlimit_enabled",
+            "name": "assignsubmission_onlinetext_wordlimit_enabled",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_assignfeedback_comments_enabled",
+            "name": "assignfeedback_comments_enabled",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "If enabled, the marker can leave feedback comments for each submission.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_assignfeedback_editpdf_enabled",
+            "name": "assignfeedback_editpdf_enabled",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "If enabled, the marker can leave feedback comments for each submission.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_assignfeedback_file_enabled",
+            "name": "assignfeedback_file_enabled",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "If enabled, the marker can leave feedback comments for each submission.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_assignfeedback_offline_enabled",
+            "name": "assignfeedback_offline_enabled",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "If enabled, the marker can leave feedback comments for each submission.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_assignfeedback_comments_commentinline",
+            "name": "assignfeedback_comments_commentinline",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "If enabled, the submission text will be copied into the feedback comment field during grading, making it easier to comment inline (using a different colour, perhaps) or to edit the original text.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_submissiondrafts",
+            "name": "submissiondrafts",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "Should students have a submit button to indicate when they have finished making changes to their submission and it is ready for grading?\n ",
+            "active": 1
+        },
+        {
+            "id": "id_requiresubmissionstatement",
+            "name": "requiresubmissionstatement",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "Require that students accept the submission statement for all submissions to this assignment.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_maxattempts",
+            "name": "maxattempts",
+            "type": "select",
+            "current_value": "1",
+            "helptext": "The maximum number of submission attempts that can be made by a student. After this number has been reached, the submission can no longer be reopened.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_attemptreopenmethod",
+            "name": "attemptreopenmethod",
+            "type": "select",
+            "current_value": "untilpass",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_teamsubmission",
+            "name": "teamsubmission",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "If enabled, students will be divided into groups based on the default set of groups or a custom grouping. A group submission will be shared among group members and all members of the group will see each others' changes to the submission. Note: You cannot change this setting if there are submissions already.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_preventsubmissionnotingroup",
+            "name": "preventsubmissionnotingroup",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "If enabled, users who are not members of a group will be unable to make submissions.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_requireallteammemberssubmit",
+            "name": "requireallteammemberssubmit",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "This setting must be used together with the 'Require students to click the submit button' in Submission settings.\n\nIf enabled, all group members must click the submit button for the group submission to be considered as submitted. If disabled, any group member can click the submit button.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_teamsubmissiongroupingid",
+            "name": "teamsubmissiongroupingid",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "This is the grouping that the assignment will use to find groups for student groups. If not set, the default set of groups will be used.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_sendnotifications",
+            "name": "sendnotifications",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "If enabled, graders (usually teachers) receive a message whenever a student submits an assignment, early, on time and late. Message methods are configurable.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_sendlatenotifications",
+            "name": "sendlatenotifications",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "If enabled, graders (usually teachers) receive a message whenever a student submits an assignment late. Message methods are configurable.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_sendstudentnotifications",
+            "name": "sendstudentnotifications",
+            "type": "select",
+            "current_value": "1",
+            "helptext": "When grading each student, should 'Notify student' be ticked by default?\n ",
+            "active": 1
+        },
+        {
+            "id": "id_grade_modgrade_type",
+            "name": "grade[modgrade_type]",
+            "type": "select",
+            "current_value": "point",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_grade_modgrade_scale",
+            "name": "grade[modgrade_scale]",
+            "type": "select",
+            "current_value": "5",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_grade_modgrade_point",
+            "name": "grade[modgrade_point]",
+            "type": "text",
+            "current_value": "100",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_advancedgradingmethod_submissions",
+            "name": "advancedgradingmethod_submissions",
+            "type": "select",
+            "current_value": "",
+            "helptext": "Choose the advanced grading method that should be used for calculating grades in the given context.\n\nTo disable advanced grading and switch back to the default grading mechanism, choose 'Simple direct grading'.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_gradecat",
+            "name": "gradecat",
+            "type": "select",
+            "current_value": "104",
+            "helptext": "This setting controls the category in which this activity's grades are placed in the gradebook.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_gradepass",
+            "name": "gradepass",
+            "type": "text",
+            "current_value": "",
+            "helptext": "This setting determines the minimum grade required to pass. The value is used in activity and course completion, and in the gradebook, where pass grades are highlighted in green and fail grades in red.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_blindmarking",
+            "name": "blindmarking",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "Anonymous submissions hide the identity of students from markers. Anonymous submission settings will be locked once a submission or grade has been made in relation to this assignment.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_hidegrader",
+            "name": "hidegrader",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "If enabled, the identity of any user who grades an assignment submission is not shown, so students can't see who marked their work.\n\nNote that this setting has no effect on the comments box on the grading page.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_markingworkflow",
+            "name": "markingworkflow",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "If enabled, marks will go through a series of workflow stages before being released to students. This allows for multiple rounds of marking and allows marks to be released to all students at the same time.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_markingallocation",
+            "name": "markingallocation",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "If enabled together with marking workflow, markers can be allocated to particular students.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_markinganonymous",
+            "name": "markinganonymous",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "If enabled together with anonymous submissions and marking workflow, it allows partial release of grades while marking anonymously.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_visible",
+            "name": "visible",
+            "type": "select",
+            "current_value": "1",
+            "helptext": "\nShow on course page: Available to students (subject to any access restrictions which may be set).\nHide on course page: Not available to students.\nMake available but don't show on course page: Available to students if you provide a link. Activities will still appear in the gradebook and other reports.\n\n ",
+            "active": 1
+        },
+        {
+            "id": "id_cmidnumber",
+            "name": "cmidnumber",
+            "type": "text",
+            "current_value": "",
+            "helptext": "Setting an ID number provides a way of identifying the activity or resource for purposes such as grade calculation or custom reporting. Otherwise the field may be left blank.\n\nFor gradable activities, the ID number can also be set in the gradebook, though it can only be edited on the activity settings page.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_lang",
+            "name": "lang",
+            "type": "select",
+            "current_value": "",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_downloadcontent",
+            "name": "downloadcontent",
+            "type": "select",
+            "current_value": "1",
+            "helptext": "Should this activity or resource be included in the zip file of course content available for download? File, Folder, Page and Label can be fully downloaded. For all other activities and resources, only the name and description are downloaded. This option requires download course content to be enabled in the course settings.\n\nThe setting has no effect on mobile app content download for offline usage.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_groupmode",
+            "name": "groupmode",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "\nNo groups\nSeparate groups: Students are divided into groups and can only see their group's work.\nVisible groups: Students are divided into groups, but can see the work of other groups.\n\n\nThe group mode set at course level is the default mode for all activities. If the group mode is forced at course level, it can't be changed in an activity.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_groupingid",
+            "name": "groupingid",
+            "type": "select",
+            "current_value": "0",
+            "helptext": "A grouping is a collection of groups within a course. If a grouping is selected, students assigned to groups within the grouping will be able to work together.\n ",
+            "active": 1
+        },
+        {
+            "id": "id_availabilityconditionsjson",
+            "name": "availabilityconditionsjson",
+            "type": "textarea",
+            "current_value": "",
+            "helptext": "",
+            "active": 1
+        },
+        {
+            "id": "id_coursecontentnotification",
+            "name": "coursecontentnotification",
+            "type": "checkbox",
+            "current_value": "1",
+            "helptext": "Tick the box to notify course participants about this new or changed activity or resource. Only users who can access the activity or resource will receive the notification.\n ",
+            "active": 1
+        }
+    ]
+}
+
+# Teacher input
+
+I need a simple essay return assignment that's graded from 0–5
