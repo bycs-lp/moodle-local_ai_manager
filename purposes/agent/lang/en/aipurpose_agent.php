@@ -23,8 +23,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['pluginname'] = 'Ai-Agent';
-$string['privacy:metadata'] = 'The local ai_manager purpose subplugin "Ai-Agent" does not store any personal data.';
-$string['purposedescription'] = 'The purpose "Ai-Agent" is being used by to assist the user by filling in forms.';
-$string['requestcount'] = 'Ai-Agent requests';
+$string['pluginname'] = 'Agent';
+$string['privacy:metadata'] = 'The local ai_manager purpose subplugin "Agent" does not store any personal data.';
+$string['purposedescription'] = 'The purpose "Agent" is being used by to assist the user by filling in forms.';
+$string['requestcount'] = 'agent requests';
 $string['requestcount_shortened'] = 'agent';

@@ -68,20 +68,20 @@ class purpose extends base_purpose {
 
         // Add formelement options.
         $formelementoptionsjson = json_encode(['formelements' => $this->sanitizedoptions['agentoptions']['formelements']]);
-        $formatedprompt = str_replace('{{formelementsjson}}', $formelementoptionsjson, $genericprompt);
+        $formattedprompt = str_replace('{{formelementsjson}}', $formelementoptionsjson, $genericprompt);
 
         // TODO: Add the moodle doc pages or information from other sources.
         $docpagelink = page_get_doc_link_path($PAGE);
 
         // TODO: make the next line usable for other modtypes than assignment.
         if (!empty($this->sanitizedoptions['agentoptions']['pageid'])) {
-            $formatedprompt = str_replace('{{pageid}}', $this->sanitizedoptions['agentoptions']['pageid'], $formatedprompt);
+            $formattedprompt = str_replace('{{pageid}}', $this->sanitizedoptions['agentoptions']['pageid'], $formattedprompt);
         }
 
         // Replace the teacherinput.
-        $formatedprompt = str_replace('{{teacherinput}}', $prompttext, $formatedprompt);
+        $formattedprompt = str_replace('{{teacherinput}}', $prompttext, $formattedprompt);
 
-        return $formatedprompt;
+        return $formattedprompt;
     }
 
     /**
