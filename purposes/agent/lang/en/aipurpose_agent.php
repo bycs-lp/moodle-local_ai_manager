@@ -23,6 +23,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['errorresponse'] = 'Sorry, I am not able to assist you.';
 $string['pluginname'] = 'Agent';
 $string['privacy:metadata'] = 'The local ai_manager purpose subplugin "Agent" does not store any personal data.';
 $string['purposedescription'] = 'The purpose "Agent" is being used by to assist the user by filling in forms.';
