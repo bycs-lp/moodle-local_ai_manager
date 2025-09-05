@@ -215,7 +215,7 @@ class userinfo {
      * @return bool if the user has confirmed the terms of use
      */
     public function is_confirmed(): bool {
-        return $this->confirmed;
+        return !empty(get_config('local_ai_manager', 'requireconfirmtou')) ? $this->confirmed : true;
     }
 
     /**

@@ -52,35 +52,16 @@ $PAGE->set_secondary_navigation(false);
 $configmanager = \core\di::get(\local_ai_manager\local\config_manager::class);
 $userinfo = new \local_ai_manager\local\userinfo($USER->id);
 
-$legalroles = explode(',', get_config('local_ai_manager', 'legalroles'));
-// If the user has at least one of the defined roles he/she will have to consent the data processing.
-$userhaslegalrole =
-        array_reduce($legalroles,
-                fn($acc, $cur) => $acc || user_has_role_assignment($USER->id, $cur, \context_system::instance()->id));
-$dataprocessing = get_config('local_ai_manager', 'dataprocessing') ?: '';
-$showdataprocessing = $userhaslegalrole && !empty($dataprocessing);
-
 $termsofuse = get_config('local_ai_manager', 'termsofuse') ?: '';
-$termsofuselegal = get_config('local_ai_manager', 'termsofuselegal') ?: '';
-if (!empty($termsofuselegal) && $userhaslegalrole) {
-    $termsofuse = $termsofuselegal;
-}
+
 $showtermsofuse = !empty($termsofuse);
 $confirmaiusageform =
-        new confirm_ai_usage_form(null, ['showtermsofuse' => $showtermsofuse, 'showdataprocessing' => $showdataprocessing]);
+        new confirm_ai_usage_form(null, ['showtermsofuse' => $showtermsofuse]);
 
 if ($confirmaiusageform->is_cancelled()) {
     redirect('/my');
 } else if ($data = $confirmaiusageform->get_data()) {
-    if (!empty($data->confirmtou)) {
-        if (property_exists($data, 'dataprocessing')) {
-            $userinfo->set_confirmed(!empty($data->dataprocessing));
-        } else {
-            $userinfo->set_confirmed(true);
-        }
-    } else {
-        $userinfo->set_confirmed(false);
-    }
+    $userinfo->set_confirmed(!empty($data->confirmtou));
 
     $userinfo->store();
     redirect($PAGE->url, get_string('confirmationstatuschanged', 'local_ai_manager'));
@@ -92,14 +73,10 @@ $templatecontext['showtermsofuse'] = $showtermsofuse;
 if ($showtermsofuse) {
     $templatecontext['termsofuse'] = $termsofuse;
 }
-$templatecontext['showdataprocessing'] = $showdataprocessing;
-if ($showdataprocessing) {
-    $templatecontext['dataprocessing'] = $dataprocessing;
-}
 
 echo $OUTPUT->render_from_template('local_ai_manager/confirm_ai_usage', $templatecontext);
 
-$confirmaiusageform->set_data(['dataprocessing' => $userinfo->is_confirmed(), 'confirmtou' => $userinfo->is_confirmed()]);
+$confirmaiusageform->set_data(['confirmtou' => $userinfo->is_confirmed()]);
 $confirmaiusageform->display();
 
 echo $OUTPUT->footer();

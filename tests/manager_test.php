@@ -74,6 +74,8 @@ final class manager_test extends \advanced_testcase {
         // Set locked and confirmed value based on the $configuration.
         $userinfo = new userinfo($user->id);
         $userinfo->set_locked($configuration['locked']);
+        // We only test the case when the confirmation setting is enabled.
+        set_config('requireconfirmtou', 1, 'local_ai_manager');
         $userinfo->set_confirmed($configuration['confirmed']);
 
         $userinfo->set_scope($configuration['scopecourses'] ? userinfo::SCOPE_COURSES_ONLY : userinfo::SCOPE_EVERYWHERE);
