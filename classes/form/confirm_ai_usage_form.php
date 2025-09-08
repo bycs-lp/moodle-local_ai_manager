@@ -37,20 +37,11 @@ class confirm_ai_usage_form extends \moodleform {
     public function definition() {
         $mform = &$this->_form;
         $showtermsofuse = &$this->_customdata['showtermsofuse'];
-        $showdataprocessing = &$this->_customdata['showdataprocessing'];
-
-        if (!$showtermsofuse && $showdataprocessing) {
-            // We do not support data processing consent without terms of use.
-            throw new \coding_exception('You need to specify terms of use if you want to make users consent to data processing.');
-        }
 
         $confirmtoustring = $showtermsofuse ? get_string('confirmtermsofuse', 'local_ai_manager') :
                 get_string('unlockaitools', 'local_ai_manager');
 
         $mform->addElement('advcheckbox', 'confirmtou', $confirmtoustring);
-        if ($showdataprocessing) {
-            $mform->addElement('advcheckbox', 'dataprocessing', get_string('consentdataprocessing', 'local_ai_manager'));
-        }
 
         $this->add_action_buttons(false, get_string('confirm', 'local_ai_manager'));
     }
@@ -62,22 +53,10 @@ class confirm_ai_usage_form extends \moodleform {
         $userinfo = new userinfo($USER->id);
         if (!$userinfo->is_confirmed()) {
             // The user tries to confirm.
-            if (array_key_exists('dataprocessing', $data) && empty($data['dataprocessing'])) {
-                $errors['dataprocessing'] = get_string('error_consentdataprocessing', 'local_ai_manager');
-            }
             if (empty($data['confirmtou'])) {
                 $errors['confirmtou'] = get_string('error_confirmtermsofuse', 'local_ai_manager');
             }
-        } else {
-            // The user already has confirmed and tries to revoke the confirmation.
-            // He/she will only be able to revoke both or none.
-            if (empty($data['dataprocessing']) && !empty($data['confirmtou'])) {
-                $errors['confirmtou'] = get_string('error_revokebothconfirmations', 'local_ai_manager');
-            } else if (!empty($data['dataprocessing']) && empty($data['confirmtou'])) {
-                $errors['dataprocessing'] = get_string('error_revokebothconfirmations', 'local_ai_manager');
-            }
         }
-
         return $errors;
     }
 

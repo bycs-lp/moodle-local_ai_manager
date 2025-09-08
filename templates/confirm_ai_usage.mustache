@@ -21,15 +21,28 @@
 
     Example context (json):
     {
-        "termsofuse": "This are the terms of use which you need to accept"
+        "termsofuse": "This are the terms of use which you need to accept",
+        "showtermsofuse": true,
+        "confirmationrequired": true
     }
 }}
 <div class="local_ai_manager-confirm_ai_usage mt-0 mb-5">
     <div class="text-center">
-        <h2 class="p-2 mb-0 pb-0">{{#str}} userconfirmation_headline, local_ai_manager {{/str}}</h2>
-        {{> local_ai_manager/termsofuse }}
-        {{^showtermsofuse}}
-            <p>{{#str}}privacy_terms_missing_enable_anyway, local_ai_manager{{/str}}</p>
-        {{/showtermsofuse}}
+            <h2>{{#str}} userconfirmation_headline, local_ai_manager {{/str}}</h2>
+        {{#confirmationrequired}}
+            {{> local_ai_manager/termsofuse }}
+            {{^showtermsofuse}}
+                <p>{{#str}}privacy_terms_missing_enable_anyway, local_ai_manager{{/str}}</p>
+            {{/showtermsofuse}}
+        {{/confirmationrequired}}
+        {{^confirmationrequired}}
+            <div class="alert alert-info mt-5"><strong>{{#str}}confirmationnotrequired, local_ai_manager{{/str}}</strong></div>
+            <div class="mt-5 text-center">
+                {{#showtermsofuse}}
+                    <a class="btn btn-primary m-2" href="{{wwwroot}}/local/ai_manager/ai_info.php">{{#str}}toinfopage, local_ai_manager{{/str}}</a>
+                {{/showtermsofuse}}
+                <a class="btn btn-secondary m-2" href="{{wwwroot}}/my">{{#str}}backtodashboard, local_ai_manager{{/str}}</a>
+            </div>
+        {{/confirmationrequired}}
     </div>
 </div>

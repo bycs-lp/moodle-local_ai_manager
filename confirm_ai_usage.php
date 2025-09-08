@@ -53,6 +53,8 @@ $configmanager = \core\di::get(\local_ai_manager\local\config_manager::class);
 $userinfo = new \local_ai_manager\local\userinfo($USER->id);
 
 $termsofuse = get_config('local_ai_manager', 'termsofuse') ?: '';
+$confirmationrequired = get_config('local_ai_manager', 'requireconfirmtou');
+
 
 $showtermsofuse = !empty($termsofuse);
 $confirmaiusageform =
@@ -73,10 +75,15 @@ $templatecontext['showtermsofuse'] = $showtermsofuse;
 if ($showtermsofuse) {
     $templatecontext['termsofuse'] = $termsofuse;
 }
+$templatecontext['confirmationrequired'] = $confirmationrequired;
 
 echo $OUTPUT->render_from_template('local_ai_manager/confirm_ai_usage', $templatecontext);
 
-$confirmaiusageform->set_data(['confirmtou' => $userinfo->is_confirmed()]);
-$confirmaiusageform->display();
+if ($confirmationrequired) {
+    $confirmaiusageform->set_data(['confirmtou' => $userinfo->is_confirmed()]);
+    $confirmaiusageform->display();
+}
 
 echo $OUTPUT->footer();
+
+
