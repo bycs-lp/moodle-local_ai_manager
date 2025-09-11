@@ -61,8 +61,11 @@ class admin_setting_configdate extends \admin_setting {
             $defaultinfo = 0;
         }
 
-        if (!is_array($data)) {
+        if (!is_array($data) && !empty($data)) {
             $data = usergetdate($data);
+        }
+        if (empty($data)) {
+            $data = usergetdate(time());
         }
 
         $yearnow = intval(userdate(time(), '%Y'));

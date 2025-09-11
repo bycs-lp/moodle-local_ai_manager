@@ -52,11 +52,21 @@ $PAGE->set_secondary_navigation(false);
 $configmanager = \core\di::get(\local_ai_manager\local\config_manager::class);
 $userinfo = new \local_ai_manager\local\userinfo($USER->id);
 
-$legalroles = explode(',', get_config('local_ai_manager', 'legalroles'));
-// If the user has at least one of the defined roles he/she will have to consent the data processing.
-$userhaslegalrole =
-        array_reduce($legalroles,
-                fn($acc, $cur) => $acc || user_has_role_assignment($USER->id, $cur, \context_system::instance()->id));
+$legalroles = get_config('local_ai_manager', 'legalroles');
+if (empty($legalroles)) {
+    $userhaslegalrole = false;
+} else {
+    $legalroles = array_filter(array_map('trim', explode(',', $legalroles)), 'is_numeric');
+    // If the user has at least one of the defined roles he/she will have to consent the data processing.
+    $userhaslegalrole = false;
+    $systemcontextid = \context_system::instance()->id;
+    foreach ($legalroles as $roleid) {
+        if (!empty($roleid) && user_has_role_assignment($USER->id, $roleid, $systemcontextid)) {
+            $userhaslegalrole = true;
+            break;
+        }
+    }
+}
 $dataprocessing = get_config('local_ai_manager', 'dataprocessing') ?: '';
 $showdataprocessing = $userhaslegalrole && !empty($dataprocessing);
 
