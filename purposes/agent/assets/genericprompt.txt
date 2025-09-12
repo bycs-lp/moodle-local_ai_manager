@@ -42,6 +42,9 @@ In addition to formelements, the JSON has another key called "chatoutput". All y
 
 {{formelementsjson}}
 
+# Page documentation
+
+{{docs}}
+
 # Teacher input
 {{teacherinput}}
-

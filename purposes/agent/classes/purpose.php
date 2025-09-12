@@ -70,6 +70,25 @@ class purpose extends base_purpose {
         $formelementoptionsjson = json_encode(['formelements' => $this->sanitizedoptions['agentoptions']['formelements']]);
         $formattedprompt = str_replace('{{formelementsjson}}', $formelementoptionsjson, $genericprompt);
 
+        // Process pagedock URLs and extract documentation content
+        $docs = '';
+        if (isset($this->sanitizedoptions['agentoptions']['pagedock']) &&
+            is_array($this->sanitizedoptions['agentoptions']['pagedock'])) {
+
+            foreach ($this->sanitizedoptions['agentoptions']['pagedock'] as $doclink) {
+                if (isset($doclink['url'])) {
+                    $content = $this->fetch_documentation_content($doclink['url']);
+                    if (!empty($content)) {
+                        $context = isset($doclink['context']) ? $doclink['context'] : 'Documentation';
+                        $docs .= "\n\n=== {$context} ===\n" . $content . "\n";
+                    }
+                }
+            }
+        }
+
+        // Add documentation content to prompt
+        $formattedprompt = str_replace('{{docs}}', $docs, $formattedprompt);
+
         // TODO: Add the moodle doc pages or information from other sources.
         $docpagelink = page_get_doc_link_path($PAGE);
 
@@ -82,6 +101,116 @@ class purpose extends base_purpose {
         $formattedprompt = str_replace('{{teacherinput}}', $prompttext, $formattedprompt);
 
         return $formattedprompt;
+    }
+
+    /**
+     * Fetch documentation content from URL using cURL
+     *
+     * @param string $url The URL to fetch content from
+     * @return string The extracted content or empty string on failure
+     */
+    protected function fetch_documentation_content(string $url): string {
+        // Initialize cURL
+        $ch = curl_init();
+
+        // Set cURL options
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 5,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_USERAGENT => 'Moodle AI Agent Bot 1.0',
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+
+        // Execute cURL request
+        $html = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        // Check if request was successful
+        if ($html === false || $httpCode !== 200) {
+            return '';
+        }
+
+        // Parse the HTML and extract content
+        return $this->extract_content_from_html($html, $url);
+    }
+
+    /**
+     * Extract content from HTML based on the domain
+     *
+     * @param string $html The HTML content
+     * @param string $url The original URL for domain checking
+     * @return string The extracted content
+     */
+    protected function extract_content_from_html(string $html, string $url): string {
+        // Create DOMDocument to parse HTML
+        $dom = new \DOMDocument();
+
+        // Suppress warnings for malformed HTML
+        libxml_use_internal_errors(true);
+        $dom->loadHTML($html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+
+        $content = '';
+
+        // Check if URL is from docs.moodle.org
+        if (strpos($url, 'docs.moodle.org') !== false) {
+            // Try to find bodyContent div for Moodle documentation
+            $xpath = new \DOMXPath($dom);
+            $bodyContentNodes = $xpath->query('//div[@id="bodyContent"]');
+
+            if ($bodyContentNodes->length > 0) {
+                $content = $this->get_text_content($bodyContentNodes->item(0));
+            } else {
+                // Fallback: try other common content selectors
+                $selectors = ['#content', '.mw-parser-output', 'main', 'article', 'body'];
+                foreach ($selectors as $selector) {
+                    $nodes = $xpath->query('//*[@id="' . substr($selector, 1) . '"]');
+                    if ($nodes->length > 0) {
+                        $content = $this->get_text_content($nodes->item(0));
+                        break;
+                    }
+                }
+            }
+        } else {
+            // For other domains, return the entire DOM as string
+            $content = $dom->textContent;
+        }
+
+        // Clean up the content
+        $content = preg_replace('/\s+/', ' ', $content); // Replace multiple whitespace with single space
+        $content = trim($content);
+
+        // Limit content length to prevent prompt from becoming too large
+        if (strlen($content) > 5000) {
+            $content = substr($content, 0, 5000) . '...';
+        }
+
+        return $content;
+    }
+
+    /**
+     * Extract text content from a DOM node, excluding script and style elements
+     *
+     * @param \DOMNode $node The DOM node to extract text from
+     * @return string The extracted text content
+     */
+    protected function get_text_content(\DOMNode $node): string {
+        $xpath = new \DOMXPath($node->ownerDocument);
+
+        // Remove script and style elements
+        $elementsToRemove = $xpath->query('.//script | .//style | .//nav | .//footer', $node);
+        foreach ($elementsToRemove as $element) {
+            if ($element->parentNode) {
+                $element->parentNode->removeChild($element);
+            }
+        }
+
+        return $node->textContent ?? '';
     }
 
     /**
