@@ -15,17 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for local_ai_manager.
+ * Lang strings for aipurpose_agent - EN.
  *
- * @package    local_ai_manager
+ * @package    aipurpose_agent
  * @copyright  ISB Bayern, 2024
- * @author     Dr. Peter Mayer
+ * @author     Andreas Wagner
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2025082901;
-$plugin->requires = 2025041400;
-$plugin->release = '2.1';
-$plugin->component = 'local_ai_manager';
-$plugin->maturity = MATURITY_BETA;
+$string['errorresponse'] = 'Sorry, I am not able to assist you.';
+$string['pluginname'] = 'Agent';
+$string['privacy:metadata'] = 'The local ai_manager purpose subplugin "Agent" does not store any personal data.';
+$string['purposedescription'] = 'The purpose "Agent" is being used by to assist the user by filling in forms.';
+$string['requestcount'] = 'agent requests';
+$string['requestcount_shortened'] = 'agent';
