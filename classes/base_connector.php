@@ -50,6 +50,11 @@ abstract class base_connector {
     /**
      * Define available models.
      *
+     * IMPORTANT: You will have to define a key for every purpose. If your connector should not support
+     * certain purposes, return an empty array for this purpose.
+     *
+     * A unit test in base_connector_test class will check if you implemented all existing purposes.
+     *
      * @return array names of the available models
      */
     abstract public function get_models_by_purpose(): array;
