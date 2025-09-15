@@ -17,6 +17,7 @@
 namespace aitool_imagen;
 
 use core\http_client;
+use core_plugin_manager;
 use Firebase\JWT\JWT;
 use local_ai_manager\base_connector;
 use local_ai_manager\base_instance;
@@ -45,9 +46,18 @@ class connector extends base_connector {
 
     #[\Override]
     public function get_models_by_purpose(): array {
-        return [
-                'imggen' => ['imagen-3.0-generate-002'],
+        $modelsbypurpose = [];
+        $purposeplugins = array_keys(core_plugin_manager::instance()->get_installed_plugins('aipurpose'));
+        foreach ($purposeplugins as $purposeplugin) {
+            $modelsbypurpose[$purposeplugin] = [];
+        }
+        $modelsbypurpose['imggen'] = [
+                'imagen-3.0-generate-002',
+                'imagen-4.0-generate-001',
+                'imagen-4.0-ultra-generate-001',
+                'imagen-4.0-fast-generate-001',
         ];
+        return $modelsbypurpose;
     }
 
     #[\Override]
