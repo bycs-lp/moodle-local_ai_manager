@@ -76,6 +76,7 @@ class connector extends base_connector {
                 'feedback' => $models,
                 'singleprompt' => $models,
                 'translate' => $models,
+                'tts' => [],
                 'itt' => $visionmodels,
                 'imggen' => $imggenmodels,
                 'questiongeneration' => $models,

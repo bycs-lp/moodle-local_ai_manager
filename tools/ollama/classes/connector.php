@@ -45,6 +45,8 @@ class connector extends \local_ai_manager\base_connector {
                 'feedback' => $textmodels,
                 'singleprompt' => $textmodels,
                 'translate' => $textmodels,
+                'tts' => [],
+                'imggen' => [],
                 'itt' => $visionmodels,
                 'questiongeneration' => $textmodels,
         ];
