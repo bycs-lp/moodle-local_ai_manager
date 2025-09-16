@@ -33,6 +33,14 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class ai_manager_utils_test extends \advanced_testcase {
+    #[\Override]
+    protected function setUp(): void {
+        parent::setUp();
+        // We disable the hook here, so we have a defined setup for this unit test.
+        // The hook callbacks should be tested wherever the callback is being implemented.
+        $this->redirectHook(\local_ai_manager\hook\userinfo_extend::class, fn() => null);
+        $this->redirectHook(\local_ai_manager\hook\custom_tenant::class, fn() => null);
+    }
 
     /**
      * Tests the method get_next_free_itemid.
