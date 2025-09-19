@@ -52,7 +52,7 @@ class aitool_option_azure {
 
         // We leave the endpoint empty on creation, because it depends if azure is being used or not.
         $mform->setDefault('endpoint', '');
-        $mform->freeze('endpoint');
+        // $mform->freeze('endpoint');
 
         if (!$showmodel) {
             $mform->hideIf('model', 'azure_enabled', 'eq', 1);

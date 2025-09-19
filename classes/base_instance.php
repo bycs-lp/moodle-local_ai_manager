@@ -500,7 +500,7 @@ class base_instance {
         // That we have a valid connector here is being ensured by edit_instance.php.
         $mform->setDefault('connector', $connector);
         $mform->freeze('connector');
-
+        
         $mform->addElement('text', 'endpoint', get_string('endpoint', 'local_ai_manager'), $textelementparams);
         $mform->setType('endpoint', PARAM_URL);
 

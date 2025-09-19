@@ -36,7 +36,7 @@ class connector extends \local_ai_manager\base_connector {
     #[\Override]
     public function get_models_by_purpose(): array {
         $chatgptmodels =
-                ['gpt-3.5-turbo', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'];
+                ['gpt-3.5-turbo', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini', 'text-embedding-3-small', 'text-embedding-3-large'];
         return [
                 'chat' => $chatgptmodels,
                 'feedback' => $chatgptmodels,
@@ -44,6 +44,9 @@ class connector extends \local_ai_manager\base_connector {
                 'translate' => $chatgptmodels,
                 'itt' => ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o3', 'o4-mini'],
                 'questiongeneration' => $chatgptmodels,
+                'embedding' =>['text-embedding-3-small', 'text-embedding-3-large'],
+                'rag' => $chatgptmodels,
+
         ];
     }
 
@@ -60,7 +63,14 @@ class connector extends \local_ai_manager\base_connector {
         */
         // phpcs:enable moodle.Commenting.TodoComment.MissingInfoInline
         $content = json_decode($result->getContents(), true);
-
+                $purpose = $requestoptions->get_purpose()->get_plugin_name();
+        if ($purpose === 'embedding') {
+            return prompt_response::create_from_result(
+                    $content['model'],
+                    new usage(0, 0, 0),
+                    implode(",", $content['data'][0]['embedding'])
+            );
+        }
         return prompt_response::create_from_result(
                 $content['model'],
                 new usage(
@@ -74,6 +84,27 @@ class connector extends \local_ai_manager\base_connector {
     #[\Override]
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
         $options = $requestoptions->get_options();
+        $purpose = $requestoptions->get_purpose()->get_plugin_name();
+        if ($purpose === 'embedding') {
+            return $this->get_embedding_prompt_data($prompttext, $options);
+        }
+        return $this->get_chat_prompt_data($prompttext, $options);
+    }
+    /**
+     * Returns the prompt data for an embedding request.
+     * !! THIS IS BREAKING A DEGREE OF ENCAPSULATION BY NEEDING TO KNOW ABOUT THE PURPOSE !!
+     */
+    protected function get_embedding_prompt_data(string $prompttext, array $options): array {
+        return [
+                'input' => $prompttext,
+                'model' => $this->get_instance()->get_model(),
+                'encoding_format' => 'float',
+        ];
+    }
+    /**
+     * This is the "original" chat prompt data function, which is used for all purposes except embedding.
+     */
+    protected function get_chat_prompt_data(string $prompttext, array $options): array {
         $messages = [];
         if (array_key_exists('conversationcontext', $options)) {
             foreach ($options['conversationcontext'] as $message) {
