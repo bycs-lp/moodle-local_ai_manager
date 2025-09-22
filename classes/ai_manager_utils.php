@@ -101,7 +101,7 @@ class ai_manager_utils {
      * @param int $userid the id of the user to retrieve the prompts
      * @param int $time the time since when the prompts should be retrieved
      * @return array complex structured array containing the prompts
-     * @see \local_ai_manager\external\get_prompts .
+     * @see \local_ai_manager\external\get_prompts
      *
      */
     public static function get_structured_entries_by_context(int $contextid, int $userid = 0, int $time = 0): array {
