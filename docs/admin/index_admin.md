@@ -2,7 +2,25 @@
 
 # 1 Architecture
 
-[comment]: # (TODO: write!)
+The plugin suite around the plugin `local_ai_manager` provides integration of AI functionalities into a moodle platform.
+
+Core: The heart of the plugin suite is `local_ai_manager`. It provides...
+- ... API functions to allow frontend plugins to use AI functionalities.
+- ... a configuration tool for allowing a tenant manager/admin to configure the AI functionalities including rate limiting, (un)locking of users, limiting access to users based on scope, assigning internal roles, view statistics and more.
+- ... widgets that can be included in the frontend plugins.
+- ... a modular architecture that allows configuring different AI services.
+
+The flow for every AI system interaction is:
+```
+-> Frontend plugin
+  -> call the AI manager with a purpose (can be done via JS or PHP)
+    -> selected purpose subplugin defines, checks, and sanitizes options passed alone
+      -> purpose passes information to the connector (AI tool)
+        -> connector implements the specific API call to the external AI system
+          -> connector calls external AI system and retrieves information
+            -> purpose sanitizes/manipulates output
+              -> output is being passed back to the frontend plugin
+```
 
 ## 2.1 Tenant support
 

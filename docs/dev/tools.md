@@ -49,7 +49,9 @@ To understand what methods need to be overwritten, here comes a description of e
 
   Each connector plugin needs to declare which models are available and usable for which purposes and which purposes this connector plugin supports. It has to return an associative array where the key is the purpose (e.g., 'imggen') and the value is an array of model names supported for that purpose, see the other connectors for examples.
 
-  The information given here is for example needed for the configuration interface: An instance with a model "dall-e-3" (an image generation model) for example won't be assignable to the purpose *singleprompt* in the purpose configuration page if the array part for *singleprompt' does not contain "dall-e-3": `'singleprompt' => ['gpt-4o']`
+  The information given here is for example needed for the configuration interface: An instance with a model "dall-e-3" (an image generation model) for example won't be assignable to the purpose *singleprompt* in the purpose configuration page if the array part for *singleprompt' does not contain "dall-e-3": `'singleprompt' => ['gpt-4o']`.
+
+  **Important note: You MUST have a key for every purpose available! If you do not want your connector to be available for a purpose, declare this by using `'singleprompt' => []` for example.** A unit test in local_ai_manager makes sure all connector plugins implement all purposes in the described way.
 
 - `get_prompt_data(string $prompttext, \local_ai_manager\request_options $requestoptions): array` (**abstract function, needs to be implemented**)
 
