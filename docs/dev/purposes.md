@@ -2,7 +2,7 @@
 
 ## 2.1 General information (also for non-developers)
 
-Whenever a call to an external AI system is being made, you need to specify which purpose you want to use.
+Whenever a call to an external AI system is being made, you need to specify which purpose you want to use. A purpose basically acts as a proxy between the frontend plugins and the connector plugins.
 
 Currently implemented purposes are *chat*, *feedback*, *imggen* (image generation), *itt* (image to text), *questiongeneration*, *singleprompt*, $translate*, *tts* (text to speech). Every interaction with an external AI system needs to define which purpose it wants to use.
 
