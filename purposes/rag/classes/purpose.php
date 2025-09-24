@@ -40,11 +40,28 @@ class purpose extends base_purpose {
     #[\Override]
     public function get_additional_request_options(array $options): array {
         
-        return [];
+        return [
+            'action' => $options['action'] ?? 'retrieve',
+        ];
     }
 
-//    #[\Override]
-//    public function get_additional_purpose_options(): array {
-//        return ['conversationcontext' => base_purpose::PARAM_ARRAY];
-//    }
+   #[\Override]
+   public function get_additional_purpose_options(): array {
+        $sharedopts =  [
+            'action' => PARAM_TEXT,
+            'topk' => PARAM_INT,
+        ];
+        $modeopts = [];
+        
+        return $sharedopts + $modeopts;
+   }
+
+   /**
+    * Override to constrain the results to the original JSON (generally).
+    */
+   #[\Override]
+   public function format_output(string $output): string
+   {
+       return $output;
+   }
 }

@@ -50,7 +50,7 @@ class connector extends \local_ai_manager\base_connector {
             'verify' => !empty(get_config('local_ai_manager', 'verifyssl')),
         ]);
 
-        $action = $data['action'] ?? '';
+        $action = $requestoptions->get_options()['action'] ?? 'retrieve';
         $payloadfunc = "get_payload_$action";
         $options['headers'] = $this->get_headers();
         $options['body'] = json_encode($this->$payloadfunc($data));
@@ -196,10 +196,11 @@ class connector extends \local_ai_manager\base_connector {
 
     #[\Override]
     public function execute_prompt_completion(StreamInterface $result, request_options $requestoptions): prompt_response {
-
+        debugging("connector::execute_prompt_completion");
         print_r($result);
         print_r($requestoptions);
-        $content = (string)$result->getContents();
+        $content = $result->getContents();
+        var_dump($content);
         return prompt_response::create_from_result(
             $this->instance->get_model(),
             new usage(1.0),
@@ -211,10 +212,16 @@ class connector extends \local_ai_manager\base_connector {
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
         print_r($prompttext);
         print_r($requestoptions);
-
-        $prompt = json_decode($prompttext, true);
+        $prompt['action'] = $requestoptions->get_options()['action'] ?? 'retrieve';
+        if ($prompt['action'] === 'retrieve') {
+            $prompt['content'] = $prompttext;
+            $prompt['topk'] = $requestoptions->get_options()['topk'] ?? 1;
+        }
+        if ($prompt['action'] === 'store') {
+            $prompt += json_decode($prompttext, true);
+        }
+        
         print_r($prompt);
-
         return $prompt;
     }
 }
