@@ -63,6 +63,7 @@ $string['backtodashboard'] = 'Back to dashboard';
 $string['basicsettings'] = 'Basic settings';
 $string['basicsettingsdesc'] = 'Configure basic settings for the AI manager plugin';
 $string['cachedef_googleauth'] = 'Cache for Google OAuth2 access token';
+$string['cachedef_textembeddingmodels'] = 'Cache vector embeddings for content.';
 $string['changeconfirmstate'] = 'Change confirmation of terms of use';
 $string['changelockstate'] = 'Change lock status';
 $string['changescope'] = 'Change usage scope';
