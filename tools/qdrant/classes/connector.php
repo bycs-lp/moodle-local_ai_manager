@@ -85,14 +85,6 @@ class connector extends \local_ai_manager\base_connector {
     protected function get_payload_retrieve($data): array {
         $embedding = $this->get_embedding($data);
         $payload = [
-            // 'query' => [
-            //     $this->get_vector_name() => array_map(
-            //         function($item) { 
-            //             return (float)$item; 
-            //         }, 
-            //         $embedding
-            //     )
-            // ],
             'using' => $this->get_vector_name(),
             'query' => array_map(
                 function($item) { 
@@ -119,8 +111,11 @@ class connector extends \local_ai_manager\base_connector {
                     'id' => "{$id}",
                     'vector' => [
                         $this->get_vector_name() => array_map(
-                            function($item) { return (float)$item; }, explode(',', $embedding)
-                            )
+                            function($item) { 
+                                return (float)$item; 
+                            }, 
+                            $embedding
+                        )
                     ],
                     'payload' => $data['metadata'] ?? new \stdClass(),
                 ]
