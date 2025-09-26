@@ -18,13 +18,33 @@
  * Lang strings for aipurpose_rag - EN.
  *
  * @package    aipurpose_rag
- * @copyright  ISB Bayern, 2024
- * @author     Dr. Peter Mayer
+ * @copyright  University of Strathclyde, 2025
+ * @author     Michael Hughes
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 $string['pluginname'] = 'RAG';
-$string['privacy:metadata'] = 'The local ai_manager purpose subplugin "Chat" does not store any personal data.';
-$string['purposedescription'] = 'The purpose "Chat" is being used by tools that need to interact with the external AI system via a chat-like interface, it for example supports the sending of messages in different roles (system, user, ...).';
-$string['requestcount'] = 'chat requests';
-$string['requestcount_shortened'] = 'chat';
+$string['privacy:metadata'] = 'The local ai_manager purpose subplugin "RAG" does not store any personal data.';
+$string['purposedescription'] = 'The purpose "RAG" is used for Retrieval Augmented Generation, providing content from Moodle to AI systems to improve their responses with contextual knowledge.';
+$string['requestcount'] = 'RAG requests';
+$string['requestcount_shortened'] = 'RAG';
+
+// RAG Indexer strings
+$string['indexer'] = 'RAG Indexer';
+$string['indexer_desc'] = 'Index content from Moodle for use with Retrieval Augmented Generation (RAG)';
+$string['enableindexing'] = 'Enable RAG indexing';
+$string['enableindexing_desc'] = 'When enabled, content from Moodle will be indexed for use with RAG';
+$string['indexingschedule'] = 'RAG indexing schedule';
+$string['indexingschedule_desc'] = 'How often to run the RAG indexer task';
+$string['indexer_status'] = 'RAG indexing status';
+$string['indexer_status_desc'] = 'Current status of the RAG indexer';
+$string['lastrun'] = 'Last indexing run';
+$string['documentcount'] = 'Documents indexed';
+$string['error_indexing'] = 'Error during RAG indexing: {$a}';
+$string['indexing_success'] = 'RAG indexing completed successfully';
+$string['indexing_partial'] = 'RAG indexing completed partially';
+$string['indexing_empty'] = 'No documents were indexed';
+
+// Scheduled task strings
+$string['indexertask'] = 'RAG Content Indexer';
+$string['indexertask_desc'] = 'Indexes content from across the site for use with Retrieval Augmented Generation (RAG)';

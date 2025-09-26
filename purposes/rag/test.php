@@ -35,7 +35,7 @@ $PAGE->set_context($context);
 
 $PAGE->set_heading($SITE->fullname);
 echo $OUTPUT->header();
-
+$output = [];
 $manager = new \local_ai_manager\manager('rag');
 echo \html_writer::start_tag('pre');
 $action = optional_param('action', '', PARAM_ALPHA);
@@ -66,8 +66,8 @@ if ($action == "store") {
 }
 if ($action == "fetch") {
     // Test 2 retrive a doc.
-    $output = [];
-    $testvalues = ["Test Document", 'random'];
+    
+    $testvalues = ["page"];
     foreach($testvalues as $retrieveprompt) {
         $retrieveoptions = [
             'action' => 'retrieve',
@@ -79,17 +79,23 @@ if ($action == "fetch") {
             $context->id,
             $retrieveoptions
         );
+        var_dump($retrieveresponse);
+        if ($retrieveresponse->get_code() != 200) {
+            $output[] = "Error: " . $retrieveresponse->get_errormessage();
+            continue;
+        }
         $retrieveresult = json_decode($retrieveresponse->get_content());
         
         $results = $retrieveresult->result->points;
-        $docs = array_map(function($r) use ($retrieveprompt) {
-            return "\"{$retrieveprompt}\": {$r->payload->title} ({$r->score})";
-        }, $results);
+        var_dump($results);
+        // $docs = array_map(function($r) use ($retrieveprompt) {
+        //     return "\"{$retrieveprompt}\": {$r->payload->title} ({$r->score})";
+        // }, $results);
         // Append $docs to $output
-        $output = array_merge($output, $docs);
+        // $output = array_merge($output, $docs);
     }
 
 }
 echo \html_writer::end_tag('pre');
-echo \html_writer::alist($output);
+// echo \html_writer::alist($output);
 echo $OUTPUT->footer();

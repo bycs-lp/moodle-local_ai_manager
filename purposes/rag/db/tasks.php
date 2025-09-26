@@ -15,17 +15,23 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for aipurpose_rag.
+ * Definition of RAG purpose scheduled tasks.
  *
  * @package    aipurpose_rag
- * @copyright  ISB Bayern, 2024
- * @author     Dr. Peter Mayer
+ * @copyright  2025 University Of Strathclyde <learning-technologies@strath.ac.uk>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2025092601;
-$plugin->requires = 2023042403;
-$plugin->release = '0.0.2';
-$plugin->component = 'aipurpose_rag';
-$plugin->maturity = MATURITY_ALPHA;
+$tasks = array(
+    array(
+        'classname' => '\aipurpose_rag\task\indexer_task',
+        'blocking' => 0,
+        'minute' => '*/30',  // Run every 30 minutes
+        'hour' => '*',
+        'day' => '*',
+        'month' => '*',
+        'dayofweek' => '*'
+    ),
+);
