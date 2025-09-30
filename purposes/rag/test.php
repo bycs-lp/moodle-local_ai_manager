@@ -91,6 +91,9 @@ if ($action == "fetch") {
                 $title = $r->payload->title ?? 'No Title';
                 echo "Result: {$title} ({$r->score})\n";
                 echo "Content: {$r->payload->content}\n";
+                echo "Metadata: \n";
+                echo print_r($r->payload->metadata, true)."\n";
+                // echo print_r($r->payload, true)."\n";
             }
         }
         
