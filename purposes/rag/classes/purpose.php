@@ -40,9 +40,6 @@ class purpose extends base_purpose {
     #[\Override]
     public function get_additional_request_options(array $options): array {
         return $options;
-        // return [
-        //     'action' => $options['action'] ?? 'retrieve',
-        // ];
     }
 
    #[\Override]

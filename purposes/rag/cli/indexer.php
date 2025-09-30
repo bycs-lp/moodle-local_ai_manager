@@ -96,7 +96,7 @@ try {
         echo "✓ Task name: " . $task->get_name() . "\n";
         echo "✓ Enabled: " . ($task->get_disabled() ? 'No' : 'Yes') . "\n";
         echo "✓ Schedule: " . $task->get_minute() . " " . $task->get_hour() . " " . 
-             $task->get_day() . " " . $task->get_month() . " " . $task->get_dayofweek() . "\n";
+             $task->get_day() . " " . $task->get_month() . " " . $task->get_day_of_week() . "\n";
         if ($task->get_last_run_time()) {
             echo "✓ Last run: " . userdate($task->get_last_run_time()) . "\n";
         } else {

@@ -125,15 +125,7 @@ class manager {
         }
 
         try {
-            if ($this->purpose->get_plugin_name() == 'rag') {
-                echo "RAG presanitise:";
-                var_dump($requestoptions);
-            }
             $requestoptions->sanitize_options();
-            if ($this->purpose->get_plugin_name() == 'rag') {
-                echo "RAG postsanitise:";
-                var_dump($requestoptions);
-            }
         } catch (\Exception $exception) {
             return prompt_response::create_from_error(
                 400,
@@ -217,12 +209,6 @@ class manager {
         $promptdata = $this->connector->get_prompt_data($prompttext, $requestoptions);
         $starttime = microtime(true);
         try {
-            if ($this->purpose->get_plugin_name() == 'rag') {
-                echo "RAG request Prompt data: ";
-                var_dump($promptdata);
-                echo "RAG request options: ";
-                var_dump($requestoptions);
-            }
             $requestresult = $this->connector->make_request($promptdata, $requestoptions);
         } catch (\Exception $exception) {
             // This hopefully very rarely happens, because we catch exceptions already inside the make_request method.
@@ -244,15 +230,8 @@ class manager {
             get_ai_response_failed::create_from_prompt_response($promptdata, $promptresponse, $duration)->trigger();
             return $promptresponse;
         }
-        if ($this->purpose->get_plugin_name() == 'rag') {
-            echo "RAG request result: ";
-            var_dump($requestresult);
-        }
         $promptcompletion = $this->connector->execute_prompt_completion($requestresult->get_response(), $requestoptions);
-        if ($this->purpose->get_plugin_name() == 'rag') {
-            echo "RAG prompt completion: ";
-            var_dump($promptcompletion);
-        }   
+  
         if (!empty($promptcompletion->get_errormessage())) {
             get_ai_response_failed::create_from_prompt_response($promptdata, $promptcompletion, $duration)->trigger();
             return $promptcompletion;

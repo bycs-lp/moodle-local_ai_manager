@@ -197,7 +197,6 @@ class indexer_manager {
         }
 
         $anydocs = false;
-        debugging('Starting RAG indexing');
 
         // Loop through each search area
         foreach ($searchareas as $areaid => $searcharea) {
@@ -205,13 +204,11 @@ class indexer_manager {
             
             // Check time limit
             if ($stopat && time() >= $stopat) {
-                debugging('Time limit reached, stopping indexing');
                 break;
             }
 
             // Start time for this area
             $areastart = time();
-            debugging('Processing ' . $areaid);
 
             // Get the start time for indexing
             if ($fullindex) {
@@ -228,7 +225,6 @@ class indexer_manager {
             // Add a delay buffer to avoid race conditions
             $endtime = time() - self::INDEXING_DELAY;
             if ($endtime <= $startfrom) {
-                debugging('No new content to index');
                 continue;
             }
 
@@ -236,11 +232,9 @@ class indexer_manager {
             try {
                 $records = $searcharea->get_recordset_by_timestamp($startfrom);
                 if (!$records->valid()) {
-                    debugging('No new content to index for this area');
                     continue;
                 }
             } catch (\Exception $e) {
-                debugging('Exception getting documents: ' . $e->getMessage());
                 continue;
             }
 
@@ -304,13 +298,11 @@ class indexer_manager {
                         $docstoadd = [];
                     }
                 } catch (\Exception $e) {
-                    debugging('Exception processing document: ' . $e->getMessage());
                     continue;
                 }
 
                 // Check time limit again
                 if ($stopat && time() >= $stopat) {
-                    debugging('Time limit reached, stopping area indexing');
                     break;
                 }
             }
@@ -332,14 +324,6 @@ class indexer_manager {
             // Record the time taken to index this area
             $timetaken = time() - $areastart;
             set_config('lastindexruntime' . $areaid, $timetaken, 'aipurpose_rag');
-
-            debugging("Processed $numrecords records, $numdocs documents indexed in {$timetaken}s");
-        }
-
-        if ($anydocs) {
-            debugging('RAG indexing completed successfully');
-        } else {
-            debugging('No documents indexed');
         }
 
         return $anydocs;
@@ -366,7 +350,6 @@ class indexer_manager {
             // Process each document through the AI manager with "store" action
             foreach ($documents as $document) {
                 if (empty($document['content'])) {
-                    debugging('Skipping empty document ID ' . $document['title']);
                     continue;
                 }
                 $options = [
@@ -381,19 +364,14 @@ class indexer_manager {
                         'modified' => $document['modified']
                     ]
                 ];
-                echo "document:";
-                var_dump($document);
-                echo "options:";
-                var_dump($options);
                 $response = $ragmanager->perform_request(
                     $document['content'],
                     'aipurpose_rag',
                     $syscontext->id,
                     $options
                 );
-                var_dump($response);
                 if ($response->get_code() !== 200) {
-                    debugging('Error storing document ID ' . $document['id'] . ': ' . $response->get_errormessage());
+                    // Could log error if needed
                 } else {
                     if ($progress) {
                         $progress->update_progress();
@@ -403,7 +381,6 @@ class indexer_manager {
             
             return true;
         } catch (\Exception $e) {
-            debugging('Exception storing documents: ' . $e->getMessage());
             return false;
         }
     }

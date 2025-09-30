@@ -59,34 +59,6 @@ class indexer_task extends \core\task\scheduled_task {
 
         mtrace('Starting RAG indexer scheduled task...');
 
-        // // Check if RAG indexing is enabled
-        // if (!\aipurpose_rag\indexer_manager::is_rag_indexing_enabled()) {
-        //     mtrace('RAG indexing is disabled. Skipping task.');
-        //     return;
-        // }
-
-        // // Validate the global search system
-        // if (!\core_search\manager::is_global_search_enabled()) {
-        //     mtrace('Global search is disabled. RAG indexing requires global search. Skipping task.');
-        //     return;
-        // }
-
-        // if (!$searchengine = \core_search\manager::search_engine_instance()) {
-        //     mtrace('Search engine not available. Skipping task.');
-        //     return;
-        // }
-
-        // if (!$searchengine->is_installed()) {
-        //     mtrace('Search engine not installed: ' . $CFG->searchengine . '. Skipping task.');
-        //     return;
-        // }
-
-        // $serverstatus = $searchengine->is_server_ready();
-        // if ($serverstatus !== true) {
-        //     mtrace('Search engine server not ready: ' . $serverstatus . '. Skipping task.');
-        //     return;
-        // }
-
         // Get the global search manager
         $globalsearch = \core_search\manager::instance();
         if (!$globalsearch) {
