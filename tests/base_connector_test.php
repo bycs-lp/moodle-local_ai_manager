@@ -32,7 +32,7 @@ final class base_connector_test extends \advanced_testcase {
     /**
      * Test if all connector plugins implement a model definition for each existing purpose.
      *
-     * @covers \local_ai_manager\base_purpose::get_models_by_purpose
+     * @covers       \local_ai_manager\base_purpose::get_models_by_purpose
      * @dataProvider get_models_by_purpose_all_purposes_exist_provider
      */
     public function test_get_models_by_purpose_all_purposes_exist(string $purpose): void {
@@ -44,6 +44,27 @@ final class base_connector_test extends \advanced_testcase {
                 $this->fail('The connector "' . $connector . '" does not implement a definition for purpose "' . $purpose
                         . '" in the method \local_ai_manager\base_connector::get_models_by_purpose. Please add one.'
                         . ' If no models should be defined for a purpose, implement it with an empty array.');
+            }
+        }
+    }
+
+    /**
+     * Test if connector plugins do not implement a definition for a non-existing purpose.
+     *
+     * @covers \local_ai_manager\base_purpose::get_models_by_purpose
+     */
+    public function test_get_models_by_purpose_no_wrong_purposes(): void {
+        $existingpurposes = array_keys(core_plugin_manager::instance()->get_installed_plugins('aipurpose'));
+        $connectorfactory = \core\di::get(connector_factory::class);
+        foreach (core_plugin_manager::instance()->get_installed_plugins('aitool') as $connector => $version) {
+            $connectorinstance = $connectorfactory->get_connector_by_connectorname($connector);
+            $definedpurposes = array_keys($connectorinstance->get_models_by_purpose());
+            foreach ($definedpurposes as $definedpurpose) {
+                if (!in_array($definedpurpose, $existingpurposes)) {
+                    $this->fail('The connector "' . $connector . '" defines a purpose "' . $definedpurpose
+                            . '" which is not installed. '
+                            . 'Please remove it from the method \local_ai_manager\base_connector::get_models_by_purpose.');
+                }
             }
         }
     }
