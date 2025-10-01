@@ -16,18 +16,13 @@
 
 namespace aitool_imagen;
 
-use core\http_client;
-use core_plugin_manager;
-use Firebase\JWT\JWT;
 use local_ai_manager\base_connector;
-use local_ai_manager\base_instance;
 use local_ai_manager\base_purpose;
 use local_ai_manager\local\aitool_option_vertexai_authhandler;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\request_response;
 use local_ai_manager\local\unit;
 use local_ai_manager\local\usage;
-use local_ai_manager\manager;
 use local_ai_manager\request_options;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Message\StreamInterface;

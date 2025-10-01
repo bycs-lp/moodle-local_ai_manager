@@ -17,7 +17,6 @@
 namespace aitool_googlesynthesize;
 
 use core\http_client;
-use core_plugin_manager;
 use local_ai_manager\base_purpose;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\request_response;

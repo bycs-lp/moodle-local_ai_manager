@@ -16,9 +16,7 @@
 
 namespace aitool_openaitts;
 
-use core_plugin_manager;
 use local_ai_manager\base_purpose;
-use local_ai_manager\local\aitool_option_azure;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\unit;
 use local_ai_manager\local\usage;
