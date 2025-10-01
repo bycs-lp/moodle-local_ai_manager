@@ -42,6 +42,30 @@ class base_purpose {
     }
 
     /**
+     * Helper function that returns an array with purposes.
+     *
+     * The returned array has all installed purposes as keys and an empty array as value so that single purpose keys can be
+     * overridden by the purpose subplugins to define which purposes they want to support.
+     *
+     * The array has the form:
+     * [
+     *     'chat' => [],
+     *     'feedback' => [],
+     *     ... all other installed purposes ...
+     * ]
+     *
+     * @return array the array with names of all installed purposes as keys and empty arrays as values
+     */
+    public static function get_installed_purposes_array(): array {
+        $installedpurposes = array_keys(core_plugin_manager::instance()->get_installed_plugins('aipurpose'));
+        $purposearray = [];
+        foreach ($installedpurposes as $installedpurpose) {
+            $purposearray[$installedpurpose] = [];
+        }
+        return $purposearray;
+    }
+
+    /**
      * Getter for the request options.
      *
      * @param array $options the current options which can be filtered/manipulated etc.

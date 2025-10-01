@@ -21,6 +21,7 @@ use core_plugin_manager;
 use Firebase\JWT\JWT;
 use local_ai_manager\base_connector;
 use local_ai_manager\base_instance;
+use local_ai_manager\base_purpose;
 use local_ai_manager\local\aitool_option_vertexai_authhandler;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\request_response;
@@ -46,11 +47,7 @@ class connector extends base_connector {
 
     #[\Override]
     public function get_models_by_purpose(): array {
-        $modelsbypurpose = [];
-        $purposeplugins = array_keys(core_plugin_manager::instance()->get_installed_plugins('aipurpose'));
-        foreach ($purposeplugins as $purposeplugin) {
-            $modelsbypurpose[$purposeplugin] = [];
-        }
+        $modelsbypurpose = base_purpose::get_installed_purposes_array();
         $modelsbypurpose['imggen'] = [
                 'imagen-3.0-generate-002',
                 'imagen-4.0-generate-001',

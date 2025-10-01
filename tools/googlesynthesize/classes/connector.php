@@ -18,6 +18,7 @@ namespace aitool_googlesynthesize;
 
 use core\http_client;
 use core_plugin_manager;
+use local_ai_manager\base_purpose;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\request_response;
 use local_ai_manager\local\unit;
@@ -38,11 +39,7 @@ class connector extends \local_ai_manager\base_connector {
 
     #[\Override]
     public function get_models_by_purpose(): array {
-        $modelsbypurpose = [];
-        $purposeplugins = array_keys(core_plugin_manager::instance()->get_installed_plugins('aipurpose'));
-        foreach ($purposeplugins as $purposeplugin) {
-            $modelsbypurpose[$purposeplugin] = [];
-        }
+        $modelsbypurpose = base_purpose::get_installed_purposes_array();
         $modelsbypurpose['tts'] = ['googletts'];
         return $modelsbypurpose;
     }
