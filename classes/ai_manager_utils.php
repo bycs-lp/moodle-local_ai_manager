@@ -430,8 +430,6 @@ class ai_manager_utils {
 
         $userinfo = new userinfo($user->id);
         $context = context::instance_by_id($contextid);
-
-        // MBS-10354: last HIDDEN-check first.
         if ($userinfo->get_scope() === userinfo::SCOPE_COURSES_ONLY) {
             $parentcoursecontext = self::find_closest_parent_course_context($context);
             if (is_null($parentcoursecontext)) {
@@ -439,7 +437,7 @@ class ai_manager_utils {
                 return $availability;
             }
         }
-
+        // From here on the checks that cause the state "disabled" are being performed.
         if ($userinfo->is_locked()) {
             $availability['available'] = self::AVAILABILITY_DISABLED;
             $availability['errormessage'] = get_string('error_http403blocked', 'local_ai_manager');
