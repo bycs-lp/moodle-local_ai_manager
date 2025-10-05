@@ -389,6 +389,15 @@ final class ai_manager_utils_test extends \advanced_testcase {
         $userinfo->store();
         $availability = ai_manager_utils::get_ai_config($user, SYSCONTEXTID, null, ['chat'])['availability'];
         $this->assertEquals($availability['available'], ai_manager_utils::AVAILABILITY_HIDDEN);
+
+        // MBS-10354: Case: HIDDEN before DISABLED, if both is the case.
+        $userinfo->set_locked(true);
+        $userinfo->set_scope(userinfo::SCOPE_COURSES_ONLY);
+        $userinfo->store();
+        $availability = ai_manager_utils::get_ai_config($user, SYSCONTEXTID, null, ['chat'])['availability'];
+        $this->assertSame(ai_manager_utils::AVAILABILITY_HIDDEN, $availability['available']);
+        $userinfo->set_locked(false);
+
         $userinfo->set_scope(userinfo::SCOPE_EVERYWHERE);
         $userinfo->store();
     }
