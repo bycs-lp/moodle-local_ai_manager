@@ -431,7 +431,7 @@ class ai_manager_utils {
         $userinfo = new userinfo($user->id);
         $context = context::instance_by_id($contextid);
 
-        // MBS-10354: last HIDDEN-check first
+        // MBS-10354: last HIDDEN-check first.
         if ($userinfo->get_scope() === userinfo::SCOPE_COURSES_ONLY) {
             $parentcoursecontext = self::find_closest_parent_course_context($context);
             if (is_null($parentcoursecontext)) {
