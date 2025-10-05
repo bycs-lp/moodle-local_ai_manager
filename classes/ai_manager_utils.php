@@ -455,8 +455,6 @@ class ai_manager_utils {
             return $availability;
         }
 
-
-
         return $availability;
     }
 
