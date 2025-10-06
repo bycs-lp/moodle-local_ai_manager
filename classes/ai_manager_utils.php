@@ -437,6 +437,7 @@ class ai_manager_utils {
                 return $availability;
             }
         }
+
         // From here on the checks that cause the state "disabled" are being performed.
         if ($userinfo->is_locked()) {
             $availability['available'] = self::AVAILABILITY_DISABLED;
