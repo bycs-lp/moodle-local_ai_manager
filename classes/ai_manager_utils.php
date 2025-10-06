@@ -477,7 +477,7 @@ class ai_manager_utils {
         $purposes = [];
         $purposeconfig = $configmanager->get_purpose_config($userinfo->get_role());
         $factory = \core\di::get(\local_ai_manager\local\connector_factory::class);
-        foreach (array_keys(core_plugin_manager::instance()->get_installed_plugins('aipurpose')) as $purpose) {
+        foreach (array_keys(core_plugin_manager::instance()->get_enabled_plugins('aipurpose')) as $purpose) {
             if (!in_array($purpose, $selectedpurposes)) {
                 continue;
             }
