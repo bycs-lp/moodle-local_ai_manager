@@ -404,7 +404,8 @@ final class ai_manager_utils_test extends \advanced_testcase {
 
         $userinfo->set_confirmed(false);
         $userinfo->set_scope(userinfo::SCOPE_COURSES_ONLY);
-        $userinfo->store(); $availability = ai_manager_utils::get_ai_config($user, SYSCONTEXTID, null, ['chat'])['availability'];
+        $userinfo->store();
+        $availability = ai_manager_utils::get_ai_config($user, SYSCONTEXTID, null, ['chat'])['availability'];
         $this->assertEquals(ai_manager_utils::AVAILABILITY_HIDDEN, $availability['available']);
         $userinfo->set_confirmed(true);
         $userinfo->set_scope(userinfo::SCOPE_EVERYWHERE);
