@@ -378,6 +378,20 @@ final class ai_manager_utils_test extends \advanced_testcase {
         $userinfo->set_scope(userinfo::SCOPE_EVERYWHERE);
         $userinfo->store();
 
+        $userinfo->set_locked(true);
+        $userinfo->store();
+        $availability = ai_manager_utils::get_ai_config($user, $blockcontextid, null, ['chat'])['availability'];
+        $this->assertEquals($availability['available'], ai_manager_utils::AVAILABILITY_DISABLED);
+        $userinfo->set_locked(false);
+        $userinfo->store();
+
+        $userinfo->set_confirmed(false);
+        $userinfo->store();
+        $availability = ai_manager_utils::get_ai_config($user, $blockcontextid, null, ['chat'])['availability'];
+        $this->assertEquals($availability['available'], ai_manager_utils::AVAILABILITY_DISABLED);
+        $userinfo->set_confirmed(true);
+        $userinfo->store();
+
         // Checks that cause the state "hidden" should win over checks that cause the state "disabled" if both checks apply.
         $userinfo->set_locked(true);
         $userinfo->set_scope(userinfo::SCOPE_COURSES_ONLY);
@@ -388,27 +402,12 @@ final class ai_manager_utils_test extends \advanced_testcase {
         $userinfo->set_scope(userinfo::SCOPE_EVERYWHERE);
         $userinfo->store();
 
-        // Checks that cause the state "hidden" should win over that cause the state "disabled" if terms of use are not confirmed.
         $userinfo->set_confirmed(false);
         $userinfo->set_scope(userinfo::SCOPE_COURSES_ONLY);
         $userinfo->store(); $availability = ai_manager_utils::get_ai_config($user, SYSCONTEXTID, null, ['chat'])['availability'];
         $this->assertEquals(ai_manager_utils::AVAILABILITY_HIDDEN, $availability['available']);
         $userinfo->set_confirmed(true);
         $userinfo->set_scope(userinfo::SCOPE_EVERYWHERE);
-        $userinfo->store();
-
-        $userinfo->set_locked(true);
-        $userinfo->store();
-        $availability = ai_manager_utils::get_ai_config($user, $blockcontextid, null, ['chat'])['availability'];
-        $this->assertEquals($availability['available'], ai_manager_utils::AVAILABILITY_DISABLED);
-        $userinfo->set_locked(false);
-        $userinfo->store();
-
-        $userinfo->set_confirmed(false);
-        $userinfo->store();
-        $availability = ai_manager_utils::get_ai_config($user, $blockcontextid, null, ['chat'])['availability'];
-        $this->assertEquals($availability['available'], ai_manager_utils::AVAILABILITY_DISABLED);
-        $userinfo->set_confirmed(true);
         $userinfo->store();
     }
 
