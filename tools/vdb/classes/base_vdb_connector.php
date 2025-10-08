@@ -84,12 +84,18 @@ abstract class base_vdb_connector extends base_connector {
 
         return $this->make_vdb_request($data, $requestoptions, $action);
     }
-
+    /**
+     * Conform the contents of the response to a standard format.
+     */
+    protected function conform_contents(string $content, request_options $requestoptions): string {
+        // Default implementation does nothing, override in subclasses if needed
+        return $content;
+    }
     #[\Override]
     public function execute_prompt_completion(StreamInterface $result, request_options $requestoptions): prompt_response {
-        $content = $result->getContents();
-        // We'll assume that we get JSON back
+        $content = $result->getContents();  // Pass this to underlying implementation to convert to a conformed response.
         $content = json_decode($content, true);
+        // We'll assume that we get a JSON string back, so we need to convert to a useful object/array.
         if ($content === null) {
             return prompt_response::create_from_error(
                 500,
@@ -97,6 +103,7 @@ abstract class base_vdb_connector extends base_connector {
                 'The response from the VDB was not valid JSON'
             );
         }
+        $content = $this->conform_contents($content, $requestoptions);
         $content = $this->apply_guard_rails($content, $requestoptions);
         return prompt_response::create_from_result(
             $this->instance->get_model(),

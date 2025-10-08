@@ -164,6 +164,9 @@ class connector extends \local_ai_manager\base_connector {
         return true;
     }
 
+    // protected function apply_guard_rails($content, request_options $requestoptions) {
+    // }
+
     #[\Override]
     protected function get_headers(): array {
         $headers = parent::get_headers();
