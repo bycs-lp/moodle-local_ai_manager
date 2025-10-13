@@ -38,12 +38,15 @@ class submit_query extends external_api {
      */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
-                'purpose' => new external_value(PARAM_TEXT, 'The purpose of the prompt.', VALUE_REQUIRED),
-                'prompt' => new external_value(PARAM_RAW, 'The prompt', VALUE_REQUIRED),
-                'component' => new external_value(PARAM_ALPHANUMEXT, 'The component name', VALUE_REQUIRED),
-                'contextid' => new external_value(PARAM_INT, 'The context id of the context from which the request is being done',
-                        VALUE_REQUIRED),
-                'options' => new external_value(PARAM_RAW, 'Options object JSON stringified', VALUE_DEFAULT, ''),
+            'purpose' => new external_value(PARAM_TEXT, 'The purpose of the prompt.', VALUE_REQUIRED),
+            'prompt' => new external_value(PARAM_RAW, 'The prompt', VALUE_REQUIRED),
+            'component' => new external_value(PARAM_ALPHANUMEXT, 'The component name', VALUE_REQUIRED),
+            'contextid' => new external_value(
+                PARAM_INT,
+                'The context id of the context from which the request is being done',
+                VALUE_REQUIRED
+            ),
+            'options' => new external_value(PARAM_RAW, 'Options object JSON stringified', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -57,17 +60,17 @@ class submit_query extends external_api {
      */
     public static function execute(string $purpose, string $prompt, string $component, int $contextid, string $options): array {
         [
-                'purpose' => $purpose,
-                'prompt' => $prompt,
-                'component' => $component,
-                'contextid' => $contextid,
-                'options' => $options,
+            'purpose' => $purpose,
+            'prompt' => $prompt,
+            'component' => $component,
+            'contextid' => $contextid,
+            'options' => $options,
         ] = self::validate_parameters(self::execute_parameters(), [
-                'purpose' => $purpose,
-                'prompt' => $prompt,
-                'component' => $component,
-                'contextid' => $contextid,
-                'options' => $options,
+            'purpose' => $purpose,
+            'prompt' => $prompt,
+            'component' => $component,
+            'contextid' => $contextid,
+            'options' => $options,
         ]);
         if (!empty($options)) {
             $options = json_decode($options, true);
@@ -109,12 +112,12 @@ class submit_query extends external_api {
      */
     public static function execute_returns(): external_single_structure {
         return new external_single_structure(
-                [
-                        'code' => new external_value(PARAM_INT, 'Return code of process.'),
-                        'string' => new external_value(PARAM_TEXT, 'Return string of process.'),
-                        'result' => new external_value(PARAM_RAW, 'The query result'),
-                ],
-                'Result of a query'
+            [
+                'code' => new external_value(PARAM_INT, 'Return code of process.'),
+                'string' => new external_value(PARAM_TEXT, 'Return string of process.'),
+                'result' => new external_value(PARAM_RAW, 'The query result'),
+            ],
+            'Result of a query'
         );
     }
 }

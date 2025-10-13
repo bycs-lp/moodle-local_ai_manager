@@ -25,7 +25,6 @@ namespace local_ai_manager\hook;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class purpose_usage_test extends \advanced_testcase {
-
     /**
      * Tests the get_purposes_usage_info method which rewrites the structure of the array.
      *
@@ -39,25 +38,28 @@ final class purpose_usage_test extends \advanced_testcase {
         $hook->add_purpose_usage_description('chat', 'testcomponent1', 'testcomponent1 description second place chat');
         $hook->add_purpose_usage_description('chat', 'testcomponent2', 'testcomponent2 description first place chat');
         $hook->add_purpose_usage_description('chat', 'testcomponent2', 'testcomponent2 description second place chat');
-        $hook->add_purpose_usage_description('translate', 'testcomponent1',
-                'description of the first place for translating');
+        $hook->add_purpose_usage_description(
+            'translate',
+            'testcomponent1',
+            'description of the first place for translating'
+        );
 
         $expected = [
-                'chat' => [
-                        'testcomponent1' => [
-                                'testcomponent1 description first place chat',
-                                'testcomponent1 description second place chat',
-                        ],
-                        'testcomponent2' => [
-                                'testcomponent2 description first place chat',
-                                'testcomponent2 description second place chat',
-                        ],
+            'chat' => [
+                'testcomponent1' => [
+                    'testcomponent1 description first place chat',
+                    'testcomponent1 description second place chat',
                 ],
-                'translate' => [
-                        'testcomponent1' => [
-                                'description of the first place for translating',
-                        ],
+                'testcomponent2' => [
+                    'testcomponent2 description first place chat',
+                    'testcomponent2 description second place chat',
                 ],
+            ],
+            'translate' => [
+                'testcomponent1' => [
+                    'description of the first place for translating',
+                ],
+            ],
         ];
         $this->assertEquals($expected, $hook->get_purposes_usage_info());
     }

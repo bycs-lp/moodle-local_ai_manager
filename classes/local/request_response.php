@@ -27,7 +27,6 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class request_response {
-
     /** @var StreamInterface The response object containing the response stream */
     private StreamInterface $response;
 
@@ -129,8 +128,12 @@ class request_response {
      * @param ?StreamInterface $rawresponse the raw response object, or null if not available
      * @return request_response the request_response object containing all information about the error
      */
-    public static function create_from_error(int $code, string $errormessage, string $debuginfo,
-            ?StreamInterface $rawresponse = null): request_response {
+    public static function create_from_error(
+        int $code,
+        string $errormessage,
+        string $debuginfo,
+        ?StreamInterface $rawresponse = null
+    ): request_response {
         $requestresponse = new self();
         $requestresponse->set_code($code);
         $requestresponse->set_errormessage($errormessage);

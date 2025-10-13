@@ -34,7 +34,6 @@ require_once($CFG->libdir . '/tablelib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class statistics_overview_table extends table_sql {
-
     /**
      * Constructor.
      *
@@ -42,8 +41,8 @@ class statistics_overview_table extends table_sql {
      * @param moodle_url $baseurl the base url where this table is being rendered
      */
     public function __construct(
-            string $uniqid,
-            moodle_url $baseurl
+        string $uniqid,
+        moodle_url $baseurl
     ) {
         parent::__construct($uniqid);
         $this->set_attribute('id', $uniqid);
@@ -51,9 +50,9 @@ class statistics_overview_table extends table_sql {
         // Define the list of columns to show.
         $columns = ['modelinfo', 'requestcount', 'userusage'];
         $headers = [
-                get_string('model', 'local_ai_manager'),
-                get_string('request_count', 'local_ai_manager'),
-                get_string('usage', 'local_ai_manager'),
+            get_string('model', 'local_ai_manager'),
+            get_string('request_count', 'local_ai_manager'),
+            get_string('usage', 'local_ai_manager'),
         ];
         $this->define_columns($columns);
         // Define the titles of columns to show in header.
@@ -67,8 +66,9 @@ class statistics_overview_table extends table_sql {
         $params = ['tenant' => $tenant->get_sql_identifier()];
         $this->set_sql($fields, $from, $where, $params);
         $this->set_count_sql(
-                "SELECT COUNT(DISTINCT modelinfo) FROM {local_ai_manager_request_log} WHERE tenant = :tenant",
-                $params);
+            "SELECT COUNT(DISTINCT modelinfo) FROM {local_ai_manager_request_log} WHERE tenant = :tenant",
+            $params
+        );
 
         parent::setup();
     }
@@ -92,5 +92,4 @@ class statistics_overview_table extends table_sql {
         }
         return null;
     }
-
 }

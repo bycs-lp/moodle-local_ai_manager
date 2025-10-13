@@ -31,7 +31,6 @@ use local_ai_manager\local\userinfo;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class purpose_test extends \advanced_testcase {
-
     /**
      * Makes sure that all connector plugins that declare themselves compatible with the itt purpose also define allowed mimetypes.
      *
@@ -56,8 +55,10 @@ final class purpose_test extends \advanced_testcase {
                     $newinstance->set_model($model);
                     $newinstance->store();
                     $configmanager = \core\di::get(config_manager::class);
-                    $configmanager->set_config(base_purpose::get_purpose_tool_config_key('itt', userinfo::ROLE_BASIC),
-                            $newinstance->get_id());
+                    $configmanager->set_config(
+                        base_purpose::get_purpose_tool_config_key('itt', userinfo::ROLE_BASIC),
+                        $newinstance->get_id()
+                    );
                     $connector = $connectorfactory->get_connector_by_purpose('itt', userinfo::ROLE_BASIC);
                     if (!empty($connector->allowed_mimetypes())) {
                         $empty = false;

@@ -38,12 +38,16 @@ class get_ai_info extends external_api {
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([
-                'tenant' => new external_value(PARAM_TEXT,
-                        'The tenant identifier, only useful to add if the user has access to multiple tenants',
-                        VALUE_DEFAULT,
-                        null),
-        ]);
+        return new external_function_parameters(
+            [
+                'tenant' => new external_value(
+                    PARAM_TEXT,
+                    'The tenant identifier, only useful to add if the user has access to multiple tenants',
+                    VALUE_DEFAULT,
+                    null
+                ),
+            ]
+        );
     }
 
     /**
@@ -54,11 +58,12 @@ class get_ai_info extends external_api {
      */
     public static function execute(?string $tenant = null): array {
         [
+            'tenant' => $tenant,
+        ] = self::validate_parameters(
+            self::execute_parameters(),
+            [
                 'tenant' => $tenant,
-        ] = self::validate_parameters(self::execute_parameters(),
-                [
-                        'tenant' => $tenant,
-                ]
+            ]
         );
         $context = \context_system::instance();
         self::validate_context($context);
@@ -74,17 +79,17 @@ class get_ai_info extends external_api {
     public static function execute_returns(): external_single_structure {
         $singlestructuredefinition = [];
         $singlestructuredefinition['tools'] = new external_multiple_structure(
-                new external_single_structure([
-                        'name' => new external_value(PARAM_TEXT, 'Name of the AI tool', VALUE_REQUIRED),
-                        'addurl' => new external_value(PARAM_RAW, 'URL to add an instance', VALUE_REQUIRED),
-                ])
+            new external_single_structure([
+                'name' => new external_value(PARAM_TEXT, 'Name of the AI tool', VALUE_REQUIRED),
+                'addurl' => new external_value(PARAM_RAW, 'URL to add an instance', VALUE_REQUIRED),
+            ])
         );
 
         $singlestructuredefinition['aiwarningurl'] =
-                new external_value(PARAM_URL, 'The URL which should be shown to the user to warn about AI results', VALUE_REQUIRED);
+            new external_value(PARAM_URL, 'The URL which should be shown to the user to warn about AI results', VALUE_REQUIRED);
         return new external_single_structure(
-                $singlestructuredefinition,
-                'Object containing general information about the AI manager'
+            $singlestructuredefinition,
+            'Object containing general information about the AI manager'
         );
     }
 }

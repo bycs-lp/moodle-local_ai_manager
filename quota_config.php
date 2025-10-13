@@ -54,12 +54,13 @@ if ($quotaconfigform->is_cancelled()) {
     redirect($returnurl);
 } else if ($data = $quotaconfigform->get_data()) {
     foreach (base_purpose::get_all_purposes() as $purpose) {
-
         foreach ([$purpose . '_max_requests_basic', $purpose . '_max_requests_extended'] as $configkey) {
             if (property_exists($data, $configkey)) {
                 // Negative values are interpreted as unlimited requests.
-                $configmanager->set_config($configkey,
-                        intval($data->{$configkey}) >= 0 ? intval($data->{$configkey}) : userusage::UNLIMITED_REQUESTS_PER_USER);
+                $configmanager->set_config(
+                    $configkey,
+                    intval($data->{$configkey}) >= 0 ? intval($data->{$configkey}) : userusage::UNLIMITED_REQUESTS_PER_USER
+                );
             } else {
                 $configmanager->unset_config($configkey);
             }

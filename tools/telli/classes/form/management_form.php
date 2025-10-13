@@ -30,7 +30,6 @@ require_once($CFG->libdir . '/formslib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class management_form extends \moodleform {
-
     #[\Override]
     public function definition() {
         $mform = &$this->_form;
@@ -58,5 +57,4 @@ class management_form extends \moodleform {
 
         return $errors;
     }
-
 }

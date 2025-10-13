@@ -30,7 +30,6 @@ use local_ai_manager\plugininfo\aitool;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector_factory {
-
     /** @var base_purpose $purpose the purpose object */
     private base_purpose $purpose;
 
@@ -46,8 +45,8 @@ class connector_factory {
      * @param config_manager $configmanager the config manager of the currently used tenant
      */
     public function __construct(
-            /** @var config_manager $configmanager the config manager of the currently used tenant */
-            private readonly config_manager $configmanager
+        /** @var config_manager $configmanager the config manager of the currently used tenant */
+        private readonly config_manager $configmanager
     ) {
     }
 

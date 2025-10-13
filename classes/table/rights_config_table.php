@@ -42,7 +42,6 @@ require_once($CFG->libdir . '/tablelib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class rights_config_table extends table_sql implements dynamic {
-
     /** @var tenant The tenant for which the table is being rendered. */
     private tenant $tenant;
 
@@ -64,19 +63,23 @@ class rights_config_table extends table_sql implements dynamic {
         $this->tenant = $SESSION->local_ai_manager_tenant;
 
         $this->set_attribute('id', $this->uniqueid);
-        $this->define_baseurl(new moodle_url('/local/ai_manager/rights_config.php',
-                ['tenant' => $this->tenant->get_identifier()]));;
+        $this->define_baseurl(
+            new moodle_url(
+                '/local/ai_manager/rights_config.php',
+                ['tenant' => $this->tenant->get_identifier()]
+            )
+        );
         // Define the list of columns to show.
         $this->columnnames = ['checkbox', 'lastname', 'firstname', 'role', 'locked', 'scope'];
         $checkboxheader = html_writer::div('', 'rights-table-selection_info', ['id' => 'rights-table-selection_info']);
         $checkboxheader .= html_writer::empty_tag('input', ['type' => 'checkbox', 'id' => 'rights-table-selectall_checkbox']);
         $this->headernames = [
-                $checkboxheader,
-                get_string('lastname'),
-                get_string('firstname'),
-                get_string('role', 'local_ai_manager'),
-                get_string('locked', 'local_ai_manager'),
-                get_string('scope', 'local_ai_manager'),
+            $checkboxheader,
+            get_string('lastname'),
+            get_string('firstname'),
+            get_string('role', 'local_ai_manager'),
+            get_string('locked', 'local_ai_manager'),
+            get_string('scope', 'local_ai_manager'),
         ];
 
         $this->no_sorting('checkbox');
@@ -109,13 +112,13 @@ class rights_config_table extends table_sql implements dynamic {
 
         $fields = 'u.id as id, lastname, firstname, role, locked, ui.confirmed, ui.scope';
         $from =
-                '{user} u LEFT JOIN {local_ai_manager_userinfo} ui ON u.id = ui.userid';
+            '{user} u LEFT JOIN {local_ai_manager_userinfo} ui ON u.id = ui.userid';
         $where = 'u.deleted != 1 AND u.suspended != 1 AND ' . $tenantfield . ' = :tenant';
 
         $params = ['tenant' => $this->tenant->get_sql_identifier()];
 
         $usertableextend =
-                new usertable_extend($this->tenant, $this->columnnames, $this->headernames, $fields, $from, $where, $params);
+            new usertable_extend($this->tenant, $this->columnnames, $this->headernames, $fields, $from, $where, $params);
         \core\di::get(\core\hook\manager::class)->dispatch($usertableextend);
 
         $this->define_columns($usertableextend->get_columns());
@@ -150,8 +153,8 @@ class rights_config_table extends table_sql implements dynamic {
             $rolefilterids = $rolefilter->get_filter_values();
             if (!empty($rolefilterids)) {
                 $rolefiltersql = "SELECT u.id as userid, ui.role as role FROM {user} u "
-                        . "LEFT JOIN {local_ai_manager_userinfo} ui ON u.id = ui.userid "
-                        . "WHERE u.deleted <> 1 AND u.suspended <> 1 AND " . $tenantfield . " = :tenant";
+                    . "LEFT JOIN {local_ai_manager_userinfo} ui ON u.id = ui.userid "
+                    . "WHERE u.deleted <> 1 AND u.suspended <> 1 AND " . $tenantfield . " = :tenant";
                 $rolefilterparams = ['tenant' => $this->tenant->get_sql_identifier()];
                 $records = $DB->get_records_sql($rolefiltersql, $rolefilterparams);
                 $roleuserids = [];
@@ -213,8 +216,10 @@ class rights_config_table extends table_sql implements dynamic {
             if ($i !== 0) {
                 if ($filterset->get_join_type() === \core\output\datafilter::JOINTYPE_ANY) {
                     $filtersql .= ' OR ';
-                } else if ($filterset->get_join_type() === \core\output\datafilter::JOINTYPE_ALL ||
-                        $filterset->get_join_type() === \core\output\datafilter::JOINTYPE_NONE) {
+                } else if (
+                    $filterset->get_join_type() === \core\output\datafilter::JOINTYPE_ALL ||
+                    $filterset->get_join_type() === \core\output\datafilter::JOINTYPE_NONE
+                ) {
                     $filtersql .= ' AND ';
                 }
             }
@@ -228,15 +233,20 @@ class rights_config_table extends table_sql implements dynamic {
             $filtersql = ' AND (' . $filtersql . ')';
         }
 
-        $this->set_sql($usertableextend->get_fields(), $usertableextend->get_from(),
-                $usertableextend->get_where() . $filtersql . ' GROUP BY u.id, role, locked, ui.confirmed, ui.scope',
-                array_merge($usertableextend->get_params(), $filterparams));
+        $this->set_sql(
+            $usertableextend->get_fields(),
+            $usertableextend->get_from(),
+            $usertableextend->get_where() . $filtersql . ' GROUP BY u.id, role, locked, ui.confirmed, ui.scope',
+            array_merge($usertableextend->get_params(), $filterparams)
+        );
 
         // We need to use this because we are using "GROUP BY" which is not being expected by the sql table.
-        $this->set_count_sql("SELECT COUNT(*) FROM (SELECT " . $usertableextend->get_fields() . " FROM "
-                . $usertableextend->get_from() . " WHERE " . $usertableextend->get_where() . $filtersql .
-                " GROUP BY u.id, role, locked, ui.confirmed, ui.scope) AS subquery",
-                array_merge($usertableextend->get_params(), $filterparams));
+        $this->set_count_sql(
+            "SELECT COUNT(*) FROM (SELECT " . $usertableextend->get_fields() . " FROM "
+            . $usertableextend->get_from() . " WHERE " . $usertableextend->get_where() . $filtersql .
+            " GROUP BY u.id, role, locked, ui.confirmed, ui.scope) AS subquery",
+            array_merge($usertableextend->get_params(), $filterparams)
+        );
     }
 
     /**
@@ -294,10 +304,10 @@ class rights_config_table extends table_sql implements dynamic {
         switch ($scope) {
             case userinfo::SCOPE_EVERYWHERE:
                 return '<i class="fa fa-globe local_ai_manager-green" title="' .
-                        get_string('scope_everywhere', 'local_ai_manager') . '"></i>';
+                    get_string('scope_everywhere', 'local_ai_manager') . '"></i>';
             case userinfo::SCOPE_COURSES_ONLY:
                 return '<i class="fa fa-graduation-cap local_ai_manager-red" title="' .
-                        get_string('scope_courses', 'local_ai_manager') . '"></i>';
+                    get_string('scope_courses', 'local_ai_manager') . '"></i>';
             default:
                 // Should not happen.
                 return 'No scope';
@@ -342,7 +352,11 @@ class rights_config_table extends table_sql implements dynamic {
     #[\Override]
     public function guess_base_url(): void {
         // We already do this in the constructor, but it's required to overwrite this for dynamic table usage.
-        $this->define_baseurl(new moodle_url('/local/ai_manager/rights_config.php',
-                ['tenant' => $this->tenant->get_identifier()]));;
+        $this->define_baseurl(
+            new moodle_url(
+                '/local/ai_manager/rights_config.php',
+                ['tenant' => $this->tenant->get_identifier()]
+            )
+        );
     }
 }

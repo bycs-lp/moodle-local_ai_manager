@@ -32,7 +32,6 @@ use local_ai_manager\local\userinfo;
 #[\core\attribute\label('Allows plugins to override the behavior of the userinfo class.')]
 #[\core\attribute\tags('local_ai_manager')]
 class userinfo_extend {
-
     /** @var ?int Stores the default role in the hook object */
     private ?int $defaultrole = null;
 
@@ -42,8 +41,8 @@ class userinfo_extend {
      * @param int $userid the id of the user to determine the default role for
      */
     public function __construct(
-            /** @var int $userid the id of the user to determine the default role for */
-            private int $userid
+        /** @var int $userid the id of the user to determine the default role for */
+        private int $userid
     ) {
     }
 

@@ -30,7 +30,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class instance extends base_instance {
-
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
         $globalapikey = get_config('aitool_telli', 'globalapikey');
@@ -65,7 +64,6 @@ class instance extends base_instance {
             $this->set_endpoint('');
         }
         $this->set_customfield1($temperature);
-
     }
 
     #[\Override]

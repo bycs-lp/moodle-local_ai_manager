@@ -35,7 +35,6 @@ require_once($CFG->libdir . '/formslib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class quota_config_form extends \moodleform {
-
     /**
      * Form definition.
      */
@@ -48,39 +47,42 @@ class quota_config_form extends \moodleform {
         $mform->setType('tenant', PARAM_ALPHANUM);
 
         $mform->addElement(
-                'header',
-                'general_user_config_settings_header',
-                get_string('general_user_settings', 'local_ai_manager')
+            'header',
+            'general_user_config_settings_header',
+            get_string('general_user_settings', 'local_ai_manager')
         );
 
         $mform->addElement(
-                'duration',
-                'max_requests_period',
-                get_string('max_request_time_window', 'local_ai_manager'),
-                ['units' => [HOURSECS, DAYSECS, WEEKSECS]]
+            'duration',
+            'max_requests_period',
+            get_string('max_request_time_window', 'local_ai_manager'),
+            ['units' => [HOURSECS, DAYSECS, WEEKSECS]]
         );
         $mform->setType('max_requests_period', PARAM_INT);
         $mform->setDefault('max_requests_period', userusage::MAX_REQUESTS_DEFAULT_PERIOD);
 
         foreach (base_purpose::get_all_purposes() as $purpose) {
             $mform->addElement(
-                    'header',
-                    $purpose . '_purpose_config_header',
-                    get_string('max_requests_purpose_heading', 'local_ai_manager',
-                            get_string('pluginname', 'aipurpose_' . $purpose))
+                'header',
+                $purpose . '_purpose_config_header',
+                get_string(
+                    'max_requests_purpose_heading',
+                    'local_ai_manager',
+                    get_string('pluginname', 'aipurpose_' . $purpose)
+                )
             );
             $mform->addElement(
-                    'text',
-                    $purpose . '_max_requests_basic',
-                    get_string('max_requests_purpose', 'local_ai_manager', get_string('role_basic', 'local_ai_manager'))
+                'text',
+                $purpose . '_max_requests_basic',
+                get_string('max_requests_purpose', 'local_ai_manager', get_string('role_basic', 'local_ai_manager'))
             );
             $mform->setType($purpose . '_max_requests_basic', PARAM_INT);
             $mform->setDefault($purpose . '_max_requests_basic', userusage::MAX_REQUESTS_DEFAULT_ROLE_BASE);
 
             $mform->addElement(
-                    'text',
-                    $purpose . '_max_requests_extended',
-                    get_string('max_requests_purpose', 'local_ai_manager', get_string('role_extended', 'local_ai_manager'))
+                'text',
+                $purpose . '_max_requests_extended',
+                get_string('max_requests_purpose', 'local_ai_manager', get_string('role_extended', 'local_ai_manager'))
             );
             $mform->setType($purpose . '_max_requests_extended', PARAM_INT);
             $mform->setDefault($purpose . '_max_requests_extended', userusage::MAX_REQUESTS_DEFAULT_ROLE_EXTENDED);

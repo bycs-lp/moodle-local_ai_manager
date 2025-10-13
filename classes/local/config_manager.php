@@ -27,7 +27,6 @@ use local_ai_manager\base_purpose;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class config_manager {
-
     /** @var array $config the array which stores the configuration of the current tenant */
     private array $config = [];
 
@@ -38,7 +37,7 @@ class config_manager {
      */
     public function __construct(
         /** @var tenant $tenant the tenant for which the config manager should manage the configuration */
-            private readonly tenant $tenant
+        private readonly tenant $tenant
     ) {
         $this->load_config();
     }
@@ -101,11 +100,12 @@ class config_manager {
         if (empty($this->tenant->get_identifier())) {
             return;
         }
-        $DB->delete_records('local_ai_manager_config',
-                [
-                        'tenant' => $this->tenant->get_identifier(),
-                        'configkey' => $configkey,
-                ]
+        $DB->delete_records(
+            'local_ai_manager_config',
+            [
+                'tenant' => $this->tenant->get_identifier(),
+                'configkey' => $configkey,
+            ]
         );
         $this->load_config();
     }
@@ -140,8 +140,10 @@ class config_manager {
         // phpcs:disable moodle.Commenting.TodoComment.MissingInfoInline
         // TODO Eventually do a validation of which config keys are allowed.
         // phpcs:enable moodle.Commenting.TodoComment.MissingInfoInline
-        $configrecord = $DB->get_record('local_ai_manager_config',
-                ['configkey' => $configkey, 'tenant' => $this->tenant->get_identifier()]);
+        $configrecord = $DB->get_record(
+            'local_ai_manager_config',
+            ['configkey' => $configkey, 'tenant' => $this->tenant->get_identifier()]
+        );
         if ($configrecord) {
             $configrecord->configvalue = $configvalue;
             $DB->update_record('local_ai_manager_config', $configrecord);

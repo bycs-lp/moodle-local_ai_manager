@@ -38,15 +38,21 @@ class vertex_cache_status extends external_api {
      * @return external_function_parameters
      */
     public static function execute_parameters(): external_function_parameters {
-        return new external_function_parameters([
-                'serviceaccountinfo' => new external_value(PARAM_RAW,
-                        'The JSON string containing the service account information of the used Google Account',
-                        VALUE_REQUIRED),
-                'newstatus' => new external_value(PARAM_BOOL,
-                        'The status to which the caching config should be set to',
-                        VALUE_DEFAULT,
-                        null),
-        ]);
+        return new external_function_parameters(
+            [
+                'serviceaccountinfo' => new external_value(
+                    PARAM_RAW,
+                    'The JSON string containing the service account information of the used Google Account',
+                    VALUE_REQUIRED
+                ),
+                'newstatus' => new external_value(
+                    PARAM_BOOL,
+                    'The status to which the caching config should be set to',
+                    VALUE_DEFAULT,
+                    null
+                ),
+            ]
+        );
     }
 
     /**
@@ -58,13 +64,15 @@ class vertex_cache_status extends external_api {
     public static function execute(string $serviceaccountinfo, ?bool $newstatus = null): array {
         global $USER;
         [
+            'serviceaccountinfo' => $serviceaccountinfo,
+            'newstatus' => $newstatus,
+        ] = self::validate_parameters(
+            self::execute_parameters(),
+            [
                 'serviceaccountinfo' => $serviceaccountinfo,
                 'newstatus' => $newstatus,
-        ] = self::validate_parameters(self::execute_parameters(),
-                [
-                        'serviceaccountinfo' => $serviceaccountinfo,
-                        'newstatus' => $newstatus,
-                ]);
+            ]
+        );
         $tenant = userinfo::get_tenant_for_user($USER->id);
         $context = $tenant->get_context();
         self::validate_context($context);
@@ -78,7 +86,7 @@ class vertex_cache_status extends external_api {
                 return ['code' => 500, 'error' => $exception->getMessage()];
             }
             return $cachingchangeresult ? ['code' => 200, 'cachingstatus' => $newstatus] :
-                    ['code' => 500, 'error' => 'COULD NOT SET THE CACHING STATUS'];
+                ['code' => 500, 'error' => 'COULD NOT SET THE CACHING STATUS'];
         } else {
             // Variable $newstatus is null, so we just want to query and return the result.
             try {
@@ -97,16 +105,24 @@ class vertex_cache_status extends external_api {
      */
     public static function execute_returns(): external_single_structure {
         $singlestructuredefinition = [];
-        $singlestructuredefinition['code'] = new external_value(PARAM_INT,
-                'Status code of the request',
-                VALUE_REQUIRED);
-        $singlestructuredefinition['cachingEnabled'] = new external_value(PARAM_BOOL,
-                'If the Google Vertex AI cache is enabled', VALUE_OPTIONAL);
-        $singlestructuredefinition['error'] = new external_value(PARAM_TEXT,
-                'Error message if there is an error', VALUE_OPTIONAL);
+        $singlestructuredefinition['code'] = new external_value(
+            PARAM_INT,
+            'Status code of the request',
+            VALUE_REQUIRED
+        );
+        $singlestructuredefinition['cachingEnabled'] = new external_value(
+            PARAM_BOOL,
+            'If the Google Vertex AI cache is enabled',
+            VALUE_OPTIONAL
+        );
+        $singlestructuredefinition['error'] = new external_value(
+            PARAM_TEXT,
+            'Error message if there is an error',
+            VALUE_OPTIONAL
+        );
         return new external_single_structure(
-                $singlestructuredefinition,
-                'Object containing the tools configured for each purpose'
+            $singlestructuredefinition,
+            'Object containing the tools configured for each purpose'
         );
     }
 }

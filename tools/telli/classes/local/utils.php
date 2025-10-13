@@ -29,7 +29,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class utils {
-
     /**
      * Helper function to retrieve usage and model info data from the Telli API.
      *
@@ -41,12 +40,12 @@ class utils {
         $client = new http_client([
             // We intentionally do not use the global local_ai_manager timeout setting, because here
             // we are not requesting any AI processing, but just query information from the API endpoints.
-                'timeout' => 10,
+            'timeout' => 10,
         ]);
 
         $options['headers'] = [
-                'Authorization' => 'Bearer ' . $apikey,
-                'Content-Type' => 'application/json;charset=utf-8',
+            'Authorization' => 'Bearer ' . $apikey,
+            'Content-Type' => 'application/json;charset=utf-8',
         ];
 
         if (!str_ends_with($baseurl, '/')) {
@@ -63,9 +62,13 @@ class utils {
         if ($response->getStatusCode() === 200) {
             $usagereturn = $response->getBody()->getContents();
         } else {
-            throw new \moodle_exception('err_apiresult', 'aitool_telli', '',
-                    get_string('statuscode', 'aitool_telli') . ': ' . $response->getStatusCode() . ': ' .
-                    $response->getReasonPhrase());
+            throw new \moodle_exception(
+                'err_apiresult',
+                'aitool_telli',
+                '',
+                get_string('statuscode', 'aitool_telli') . ': ' . $response->getStatusCode() . ': ' .
+                $response->getReasonPhrase()
+            );
         }
 
         $modelsendpoint = $baseurl . 'v1/models';
@@ -78,8 +81,12 @@ class utils {
         if ($response->getStatusCode() === 200) {
             $modelsreturn = $response->getBody()->getContents();
         } else {
-            throw new \moodle_exception('err_apiresult', 'aitool_telli', '',
-                    get_string('statuscode', 'aitool_telli') . $response->getStatusCode() . ': ' . $response->getReasonPhrase());
+            throw new \moodle_exception(
+                'err_apiresult',
+                'aitool_telli',
+                '',
+                get_string('statuscode', 'aitool_telli') . $response->getStatusCode() . ': ' . $response->getReasonPhrase()
+            );
         }
 
         $return = new stdClass();

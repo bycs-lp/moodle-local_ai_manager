@@ -45,9 +45,10 @@ $managementform = new management_form(null);
 if ($managementform->is_cancelled()) {
     redirect(new moodle_url('/admin/settings.php', ['section' => 'aitoolpluginsmanagement']));
 } else if ($data = $managementform->get_data()) {
-
-    $apiinfo = utils::get_api_info(optional_param('apikey', '', PARAM_TEXT),
-            optional_param('baseurl', '', PARAM_URL));
+    $apiinfo = utils::get_api_info(
+        optional_param('apikey', '', PARAM_TEXT),
+        optional_param('baseurl', '', PARAM_URL)
+    );
 
     echo $OUTPUT->header();
 
@@ -55,17 +56,21 @@ if ($managementform->is_cancelled()) {
 
     echo html_writer::tag('hr', '', ['class' => 'mt-5 mb-5']);
 
-    echo $OUTPUT->render_from_template('aitool_telli/management',
-            [
-                    'usagejson' => json_encode(json_decode($apiinfo->usage),
-                            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                    'modelsjson' => json_encode(json_decode($apiinfo->models),
-                            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            ]
+    echo $OUTPUT->render_from_template(
+        'aitool_telli/management',
+        [
+            'usagejson' => json_encode(
+                json_decode($apiinfo->usage),
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ),
+            'modelsjson' => json_encode(
+                json_decode($apiinfo->models),
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ),
+        ]
     );
 
     echo $OUTPUT->footer();
-
 } else {
     echo $OUTPUT->header();
     $managementform->display();

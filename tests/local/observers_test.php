@@ -26,7 +26,6 @@ namespace local_ai_manager\local;
  * @covers    \local_ai_manager\local\observers
  */
 final class observers_test extends \advanced_testcase {
-
     /**
      * Tests the event handler for the {@see user_deleted} event.
      *
@@ -49,7 +48,7 @@ final class observers_test extends \advanced_testcase {
         $connectorfactory = \core\di::get(connector_factory::class);
         $chatpurpose = $connectorfactory->get_purpose_by_purpose_string('chat');
         $chatuserusage = new userusage($chatpurpose, $user->id);
-        $chatuserusage->set_currentusage(60.0);;
+        $chatuserusage->set_currentusage(60.0);
         $chatuserusage->store();
         // Reload to verify we have a real DB record.
         $chatuserusage->load();

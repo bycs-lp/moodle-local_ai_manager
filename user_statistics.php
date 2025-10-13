@@ -42,16 +42,16 @@ echo $OUTPUT->header();
 $tenantnavbar = new tenantnavbar('user_statistics.php');
 echo $OUTPUT->render($tenantnavbar);
 
-
 echo $OUTPUT->heading(get_string('userstatistics', 'local_ai_manager'), 2, 'text-center pb-3');
 if (!empty($purpose)) {
     echo $OUTPUT->heading(get_string('purpose', 'local_ai_manager') . ': '
-            . get_string('pluginname', 'aipurpose_' . $purpose), 4, 'text-center');
+        . get_string('pluginname', 'aipurpose_' . $purpose), 4, 'text-center');
 }
 
-$recordscount =
-        $DB->count_records_sql("SELECT COUNT(*) FROM {local_ai_manager_request_log} WHERE tenant = :tenant",
-                ['tenant' => $tenant->get_sql_identifier()]);
+$recordscount = $DB->count_records_sql(
+    "SELECT COUNT(*) FROM {local_ai_manager_request_log} WHERE tenant = :tenant",
+    ['tenant' => $tenant->get_sql_identifier()]
+);
 
 if ($recordscount !== 0) {
     $uniqid = 'statistics-table-users-all-purposes';

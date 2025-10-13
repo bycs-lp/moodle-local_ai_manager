@@ -39,7 +39,6 @@ require_once($CFG->libdir . '/tablelib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class userstats_table extends table_sql implements dynamic {
-
     /** @var bool if the names of the user should be shown (otherwise they will be anonymized). */
     private bool $shownames;
 
@@ -52,7 +51,7 @@ class userstats_table extends table_sql implements dynamic {
      * @param string $uniqid a unique id for the table to use
      */
     public function __construct(
-            string $uniqid,
+        string $uniqid,
     ) {
         global $SESSION;
         parent::__construct($uniqid);
@@ -61,15 +60,17 @@ class userstats_table extends table_sql implements dynamic {
         $this->set_attribute('id', $uniqid);
         $purpose = $SESSION->local_ai_manager_statistics_purpose ?? null;
         $baseurl = empty($purpose)
-                ? new moodle_url('/local/ai_manager/user_statisticss.php', ['tenant' => $tenant->get_identifier()])
-                : new moodle_url('/local/ai_manager/purpose_statistics.php',
-                        ['tenant' => $tenant->get_identifier(), 'purpose' => $purpose]);
+            ? new moodle_url('/local/ai_manager/user_statisticss.php', ['tenant' => $tenant->get_identifier()])
+            : new moodle_url(
+                '/local/ai_manager/purpose_statistics.php',
+                ['tenant' => $tenant->get_identifier(), 'purpose' => $purpose]
+            );
         $this->define_baseurl($baseurl);
         // Define the list of columns to show.
         $columns = ['lastname', 'firstname'];
         $headers = [
-                get_string('lastname'),
-                get_string('firstname'),
+            get_string('lastname'),
+            get_string('firstname'),
         ];
         if (has_capability('local/ai_manager:viewusage', $tenant->get_context())) {
             $columns[] = 'requestcount';
@@ -81,8 +82,15 @@ class userstats_table extends table_sql implements dynamic {
                     So for now we hardcode the purposes assuming they are stable in terms of which units their connectors are using.
                 */
                 // phpcs:enable moodle.Commenting.TodoComment.MissingInfoInline
-                if (in_array($purpose, array_filter(base_purpose::get_all_purposes(),
-                        fn($purposecandidate) => !in_array($purposecandidate, ['imggen', 'tts'])))) {
+                if (
+                    in_array(
+                        $purpose,
+                        array_filter(
+                            base_purpose::get_all_purposes(),
+                            fn($purposecandidate) => !in_array($purposecandidate, ['imggen', 'tts'])
+                        )
+                    )
+                ) {
                     $columns[] = 'tokens';
                     $headers[] = unit::TOKEN->to_string();
                 }
@@ -98,16 +106,16 @@ class userstats_table extends table_sql implements dynamic {
         if (!empty($purpose)) {
             $fields = 'u.id as id, lastname, firstname, COUNT(value) AS requestcount, SUM(value) AS tokens';
             $from = '{local_ai_manager_request_log} rl '
-                    . 'LEFT JOIN {user} u ON u.id = rl.userid';
+                . 'LEFT JOIN {user} u ON u.id = rl.userid';
             $where = 'rl.tenant = :tenant AND purpose = :purpose GROUP BY u.id, lastname, firstname';
             $params = [
-                    'tenant' => $tenant->get_sql_identifier(),
-                    'purpose' => $purpose,
+                'tenant' => $tenant->get_sql_identifier(),
+                'purpose' => $purpose,
             ];
             $this->set_count_sql(
-                    "SELECT COUNT(DISTINCT userid) FROM {local_ai_manager_request_log}"
-                    . " WHERE tenant = :tenant AND purpose = :purpose",
-                    $params
+                "SELECT COUNT(DISTINCT userid) FROM {local_ai_manager_request_log}"
+                . " WHERE tenant = :tenant AND purpose = :purpose",
+                $params
             );
         } else {
             $fields = 'u.id as id, lastname, firstname, COUNT(value) AS requestcount';
@@ -115,8 +123,8 @@ class userstats_table extends table_sql implements dynamic {
             $where = 'rl.tenant = :tenant GROUP BY u.id, lastname, firstname';
             $params = ['tenant' => $tenant->get_sql_identifier()];
             $this->set_count_sql(
-                    "SELECT COUNT(DISTINCT userid) FROM {local_ai_manager_request_log} WHERE tenant = :tenant",
-                    $params
+                "SELECT COUNT(DISTINCT userid) FROM {local_ai_manager_request_log} WHERE tenant = :tenant",
+                $params
             );
         }
         $this->set_sql($fields, $from, $where, $params);
@@ -137,8 +145,10 @@ class userstats_table extends table_sql implements dynamic {
      */
     public function col_lastname(stdClass $value): string {
         $userhasprivilegedrole = is_siteadmin($value->id) ||
-                array_reduce($this->privilegedroles,
-                        fn($acc, $cur) => $acc || user_has_role_assignment($value->id, $cur, SYSCONTEXTID));
+            array_reduce(
+                $this->privilegedroles,
+                fn($acc, $cur) => $acc || user_has_role_assignment($value->id, $cur, SYSCONTEXTID)
+            );
         if (is_siteadmin() || ($this->shownames && !$userhasprivilegedrole)) {
             return $value->lastname;
         } else {
@@ -154,8 +164,10 @@ class userstats_table extends table_sql implements dynamic {
      */
     public function col_firstname(stdClass $value): string {
         $userhasprivilegedrole = is_siteadmin($value->id) ||
-                array_reduce($this->privilegedroles,
-                        fn($acc, $cur) => $acc || user_has_role_assignment($value->id, $cur, SYSCONTEXTID));
+            array_reduce(
+                $this->privilegedroles,
+                fn($acc, $cur) => $acc || user_has_role_assignment($value->id, $cur, SYSCONTEXTID)
+            );
         if (is_siteadmin() || ($this->shownames && !$userhasprivilegedrole)) {
             return $value->firstname;
         } else {
@@ -190,9 +202,11 @@ class userstats_table extends table_sql implements dynamic {
         // We already do this in the constructor, but it's required to overwrite this for dynamic table usage.
         $tenant = \core\di::get(tenant::class);
         $baseurl = empty($purpose)
-                ? new moodle_url('/local/ai_manager/user_statisticss.php', ['tenant' => $tenant->get_identifier()])
-                : new moodle_url('/local/ai_manager/purpose_statistics.php',
-                        ['tenant' => $tenant->get_identifier(), 'purpose' => $purpose]);
+            ? new moodle_url('/local/ai_manager/user_statisticss.php', ['tenant' => $tenant->get_identifier()])
+            : new moodle_url(
+                '/local/ai_manager/purpose_statistics.php',
+                ['tenant' => $tenant->get_identifier(), 'purpose' => $purpose]
+            );
         $this->define_baseurl($baseurl);
     }
 }

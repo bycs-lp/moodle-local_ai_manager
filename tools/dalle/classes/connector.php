@@ -35,7 +35,6 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends base_connector {
-
     #[\Override]
     public function get_models_by_purpose(): array {
         $modelsbypurpose = base_purpose::get_installed_purposes_array();
@@ -48,11 +47,13 @@ class connector extends base_connector {
         $options = $requestoptions->get_options();
         $defaultimagesize = $this->instance->get_model() === 'dall-e-2' ? '256x256' : '1024x1024';
         $parameters = [
-                'prompt' => $prompttext,
-                'size' => empty($options['sizes'][0]) ? $defaultimagesize : $options['sizes'][0],
+            'prompt' => $prompttext,
+            'size' => empty($options['sizes'][0]) ? $defaultimagesize : $options['sizes'][0],
         ];
-        if ($this->instance->get_model() !== 'gpt-image-1' &&
-                $this->instance->get_model() !== aitool_option_azure::get_azure_model_name('gpt-image-1')) {
+        if (
+            $this->instance->get_model() !== 'gpt-image-1'
+            && $this->instance->get_model() !== aitool_option_azure::get_azure_model_name('gpt-image-1')
+        ) {
             // Only dalle models support this parameter, because gpt-image-1 will always return base64 string anyways.
             $parameters['response_format'] = 'b64_json';
         }
@@ -89,19 +90,19 @@ class connector extends base_connector {
         $content = json_decode($result->getContents(), true);
         $fs = get_file_storage();
         $fileinfo = [
-                'contextid' => \context_user::instance($USER->id)->id,
-                'component' => 'user',
-                'filearea' => 'draft',
-                'itemid' => $options['itemid'],
-                'filepath' => '/',
-                'filename' => $options['filename'],
+            'contextid' => \context_user::instance($USER->id)->id,
+            'component' => 'user',
+            'filearea' => 'draft',
+            'itemid' => $options['itemid'],
+            'filepath' => '/',
+            'filename' => $options['filename'],
         ];
         $file = $fs->create_file_from_string($fileinfo, base64_decode($content['data'][0]['b64_json']));
 
         $filepath = \moodle_url::make_draftfile_url(
-                $file->get_itemid(),
-                $file->get_filepath(),
-                $file->get_filename()
+            $file->get_itemid(),
+            $file->get_filepath(),
+            $file->get_filename()
         )->out();
 
         return prompt_response::create_from_result($this->instance->get_model(), new usage(1.0), $filepath);
@@ -114,17 +115,17 @@ class connector extends base_connector {
             case 'dall-e-3':
             case aitool_option_azure::get_azure_model_name('dalle'):
                 $options['sizes'] = [
-                        ['key' => '1024x1024', 'displayname' => get_string('squared', 'local_ai_manager') . ' (1024px x 1024px)'],
-                        ['key' => '1792x1024', 'displayname' => get_string('landscape', 'local_ai_manager') . ' (1792px x 1024px)'],
-                        ['key' => '1024x1792', 'displayname' => get_string('portrait', 'local_ai_manager') . ' (1024px x 1792px)'],
+                    ['key' => '1024x1024', 'displayname' => get_string('squared', 'local_ai_manager') . ' (1024px x 1024px)'],
+                    ['key' => '1792x1024', 'displayname' => get_string('landscape', 'local_ai_manager') . ' (1792px x 1024px)'],
+                    ['key' => '1024x1792', 'displayname' => get_string('portrait', 'local_ai_manager') . ' (1024px x 1792px)'],
                 ];
                 break;
             case 'gpt-image-1':
             case aitool_option_azure::get_azure_model_name('gpt-image-1'):
                 $options['sizes'] = [
-                        ['key' => '1024x1024', 'displayname' => get_string('squared', 'local_ai_manager') . ' (1024px x 1024px)'],
-                        ['key' => '1536x1024', 'displayname' => get_string('landscape', 'local_ai_manager') . ' (1536px x 1024px)'],
-                        ['key' => '1024x1536', 'displayname' => get_string('portrait', 'local_ai_manager') . ' (1024px x 1536px)'],
+                    ['key' => '1024x1024', 'displayname' => get_string('squared', 'local_ai_manager') . ' (1024px x 1024px)'],
+                    ['key' => '1536x1024', 'displayname' => get_string('landscape', 'local_ai_manager') . ' (1536px x 1024px)'],
+                    ['key' => '1024x1536', 'displayname' => get_string('portrait', 'local_ai_manager') . ' (1024px x 1536px)'],
                 ];
                 break;
             default:
@@ -140,8 +141,11 @@ class connector extends base_connector {
             case 400:
                 if (method_exists($exception, 'getResponse') && !empty($exception->getResponse())) {
                     $responsebody = json_decode($exception->getResponse()->getBody()->getContents());
-                    if (property_exists($responsebody, 'error') && property_exists($responsebody->error, 'code')
-                            && $responsebody->error->code === 'content_policy_violation') {
+                    if (
+                        property_exists($responsebody, 'error')
+                        && property_exists($responsebody->error, 'code')
+                        && $responsebody->error->code === 'content_policy_violation'
+                    ) {
                         $message = get_string('err_contentpolicyviolation', 'aitool_dalle');
                     }
                 }

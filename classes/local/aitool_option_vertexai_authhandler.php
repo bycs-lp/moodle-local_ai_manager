@@ -29,15 +29,14 @@ use Psr\Http\Client\ClientExceptionInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class aitool_option_vertexai_authhandler {
-
     /**
      * Constructor for the auth handler.
      */
     public function __construct(
         /** @var int The ID of the instance being used. Will be used as key for the cache handling. */
-            private readonly int $instanceid,
-            /** @var string The serviceaccountinfo stringified JSON */
-            private readonly string $serviceaccountinfo
+        private readonly int $instanceid,
+        /** @var string The serviceaccountinfo stringified JSON */
+        private readonly string $serviceaccountinfo
     ) {
     }
 
@@ -55,21 +54,21 @@ class aitool_option_vertexai_authhandler {
         $privatekey = $serviceaccountinfo->private_key;
         $clientemail = $serviceaccountinfo->client_email;
         $jwtpayload = [
-                'iss' => $clientemail,
-                'sub' => $clientemail,
-                'scope' => 'https://www.googleapis.com/auth/cloud-platform',
-                'aud' => 'https://oauth2.googleapis.com/token',
-                'iat' => $clock->time(),
-                'exp' => $clock->time() + HOURSECS,
+            'iss' => $clientemail,
+            'sub' => $clientemail,
+            'scope' => 'https://www.googleapis.com/auth/cloud-platform',
+            'aud' => 'https://oauth2.googleapis.com/token',
+            'iat' => $clock->time(),
+            'exp' => $clock->time() + HOURSECS,
         ];
         $jwt = JWT::encode($jwtpayload, $privatekey, 'RS256', null, ['kid' => $kid]);
 
         $client = new http_client([
-                'timeout' => get_config('local_ai_manager', 'requesttimeout'),
+            'timeout' => get_config('local_ai_manager', 'requesttimeout'),
         ]);
         $options['query'] = [
-                'assertion' => $jwt,
-                'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'assertion' => $jwt,
+            'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
         ];
 
         try {
@@ -87,14 +86,14 @@ class aitool_option_vertexai_authhandler {
                 return ['error' => 'Response does not contain "access_token" key'];
             }
             return [
-                    'access_token' => $content['access_token'],
+                'access_token' => $content['access_token'],
                 // We set the expiry time of the access token and reduce it by 10 seconds to avoid some errors caused
                 // by different clocks on different servers, latency etc.
-                    'expires' => $clock->time() + intval($content['expires_in']) - 10,
+                'expires' => $clock->time() + intval($content['expires_in']) - 10,
             ];
         } else {
             return ['error' => 'Response status code is not OK 200, but ' . $response->getStatusCode() . ': ' .
-                    $response->getBody()->getContents()];
+                $response->getBody()->getContents()];
         }
     }
 
@@ -178,21 +177,28 @@ class aitool_option_vertexai_authhandler {
      */
     public function get_google_cache_status(): bool {
         $client = new http_client([
-                'timeout' => get_config('local_ai_manager', 'requesttimeout'),
+            'timeout' => get_config('local_ai_manager', 'requesttimeout'),
         ]);
 
         $options['headers'] = [
-                'Authorization' => 'Bearer ' . $this->get_access_token(),
+            'Authorization' => 'Bearer ' . $this->get_access_token(),
         ];
 
         $serviceaccountinfo = json_decode($this->serviceaccountinfo);
         $projectid = trim($serviceaccountinfo->project_id);
 
-        $response = $client->get('https://europe-north1-aiplatform.googleapis.com/v1beta1/projects/' . $projectid . '/cacheConfig',
-                $options);
+        $response = $client->get(
+            'https://europe-north1-aiplatform.googleapis.com/v1beta1/projects/' . $projectid . '/cacheConfig',
+            $options
+        );
         if ($response->getStatusCode() !== 200) {
-            throw new \moodle_exception('exception_retrievingcachestatus', 'local_ai_manager', '', '',
-                    $response->getBody()->getContents());
+            throw new \moodle_exception(
+                'exception_retrievingcachestatus',
+                'local_ai_manager',
+                '',
+                '',
+                $response->getBody()->getContents()
+            );
         } else {
             $result = json_decode($response->getBody()->getContents(), true);
             return !array_key_exists('disableCache', $result);
@@ -207,24 +213,26 @@ class aitool_option_vertexai_authhandler {
      */
     public function set_google_cache_status(bool $status): bool {
         $client = new http_client([
-                'timeout' => get_config('local_ai_manager', 'requesttimeout'),
+            'timeout' => get_config('local_ai_manager', 'requesttimeout'),
         ]);
         $options['headers'] = [
-                'Authorization' => 'Bearer ' . $this->get_access_token(),
+            'Authorization' => 'Bearer ' . $this->get_access_token(),
         ];
 
         $serviceaccountinfo = json_decode($this->serviceaccountinfo);
         $projectid = trim($serviceaccountinfo->project_id);
 
         $data = [
-                'name' => 'projects/' . $projectid . '/cacheConfig',
-                'disableCache' => !$status,
+            'name' => 'projects/' . $projectid . '/cacheConfig',
+            'disableCache' => !$status,
         ];
 
         $options['body'] = json_encode($data);
 
-        $response = $client->patch('https://europe-west3-aiplatform.googleapis.com/v1beta1/projects/' . $projectid . '/cacheConfig',
-                $options);
+        $response = $client->patch(
+            'https://europe-west3-aiplatform.googleapis.com/v1beta1/projects/' . $projectid . '/cacheConfig',
+            $options
+        );
         return $response->getStatusCode() === 200;
     }
 }

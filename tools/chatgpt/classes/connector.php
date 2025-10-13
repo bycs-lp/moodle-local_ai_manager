@@ -32,20 +32,19 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends \local_ai_manager\base_connector {
-
     #[\Override]
     public function get_models_by_purpose(): array {
         $chatgptmodels =
-                ['gpt-3.5-turbo', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'];
+            ['gpt-3.5-turbo', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'];
         return [
-                'chat' => $chatgptmodels,
-                'feedback' => $chatgptmodels,
-                'singleprompt' => $chatgptmodels,
-                'translate' => $chatgptmodels,
-                'tts' => [],
-                'imggen' => [],
-                'itt' => ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o3', 'o4-mini'],
-                'questiongeneration' => $chatgptmodels,
+            'chat' => $chatgptmodels,
+            'feedback' => $chatgptmodels,
+            'singleprompt' => $chatgptmodels,
+            'translate' => $chatgptmodels,
+            'tts' => [],
+            'imggen' => [],
+            'itt' => ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o3', 'o4-mini'],
+            'questiongeneration' => $chatgptmodels,
         ];
     }
 
@@ -64,12 +63,13 @@ class connector extends \local_ai_manager\base_connector {
         $content = json_decode($result->getContents(), true);
 
         return prompt_response::create_from_result(
-                $content['model'],
-                new usage(
-                        (float) $content['usage']['total_tokens'],
-                        (float) $content['usage']['prompt_tokens'],
-                        (float) $content['usage']['completion_tokens']),
-                $content['choices'][0]['message']['content']
+            $content['model'],
+            new usage(
+                (float) $content['usage']['total_tokens'],
+                (float) $content['usage']['prompt_tokens'],
+                (float) $content['usage']['completion_tokens']
+            ),
+            $content['choices'][0]['message']['content']
         );
     }
 
@@ -93,33 +93,33 @@ class connector extends \local_ai_manager\base_connector {
                         throw new \moodle_exception('exception_badmessageformat', 'local_ai_manager');
                 }
                 $messages[] = [
-                        'role' => $role,
-                        'content' => $message['message'],
+                    'role' => $role,
+                    'content' => $message['message'],
                 ];
             }
             $messages[] = ['role' => 'user', 'content' => $prompttext];
         } else if (array_key_exists('image', $options)) {
             $messages[] = [
-                    'role' => 'user',
-                    'content' => [
-                            [
-                                    'type' => 'text',
-                                    'text' => $prompttext,
-                            ],
-                            [
-                                    'type' => 'image_url',
-                                    'image_url' => [
-                                            'url' => $options['image'],
-                                    ],
-                            ],
+                'role' => 'user',
+                'content' => [
+                    [
+                        'type' => 'text',
+                        'text' => $prompttext,
                     ],
+                    [
+                        'type' => 'image_url',
+                        'image_url' => [
+                            'url' => $options['image'],
+                        ],
+                    ],
+                ],
             ];
         } else {
             $messages[] = ['role' => 'user', 'content' => $prompttext];
         }
 
         $parameters = [
-                'messages' => $messages,
+            'messages' => $messages,
         ];
         if (!in_array($this->get_instance()->get_model(), ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'])) {
             $parameters['temperature'] = $this->instance->get_temperature();
@@ -165,10 +165,16 @@ class connector extends \local_ai_manager\base_connector {
         $message = '';
         switch ($code) {
             case 400:
-                if (method_exists($exception, 'getResponse') && !empty($exception->getResponse())) {
+                if (
+                    method_exists($exception, 'getResponse')
+                    && !empty($exception->getResponse())
+                ) {
                     $responsebody = json_decode($exception->getResponse()->getBody()->getContents());
-                    if (property_exists($responsebody, 'error') && property_exists($responsebody->error, 'code')
-                            && $responsebody->error->code === 'content_filter') {
+                    if (
+                        property_exists($responsebody, 'error')
+                        && property_exists($responsebody->error, 'code')
+                        && $responsebody->error->code === 'content_filter'
+                    ) {
                         $message = get_string('err_contentfilter', 'aitool_chatgpt');
                     }
                 }

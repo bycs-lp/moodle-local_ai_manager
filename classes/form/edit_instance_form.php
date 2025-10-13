@@ -33,7 +33,6 @@ require_once($CFG->libdir . '/formslib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class edit_instance_form extends \moodleform {
-
     /** @var base_instance the connector instance to edit */
     private base_instance $connectorinstance;
 
@@ -53,7 +52,6 @@ class edit_instance_form extends \moodleform {
         $this->connectorinstance->edit_form_definition($mform, $this->_customdata);
 
         $this->add_action_buttons();
-
     }
 
     /**

@@ -29,7 +29,6 @@ use local_ai_manager\local\tenant;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class usertable_filter implements \Psr\EventDispatcher\StoppableEventInterface {
-
     /** @var array associative array for providing filter options to the filter component of the rights config table */
     private array $filteroptions = [];
 
@@ -51,7 +50,7 @@ class usertable_filter implements \Psr\EventDispatcher\StoppableEventInterface {
      */
     public function __construct(
         /** @var tenant $tenant the tenant for which the user table is being shown */
-            private tenant $tenant
+        private tenant $tenant
     ) {
     }
 

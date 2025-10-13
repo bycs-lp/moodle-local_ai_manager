@@ -31,24 +31,23 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends \local_ai_manager\base_connector {
-
     #[\Override]
     public function get_models_by_purpose(): array {
         $visionmodels =
-                ['llava-llama3', 'llava-phi3', 'granite-3.2-vision', 'bakllava', 'moondream', 'llama3.2-vision', 'llama4', 'gemma3',
-                        'qwen2.5vl', 'mistral-small3.1'];
+            ['llava-llama3', 'llava-phi3', 'granite-3.2-vision', 'bakllava', 'moondream', 'llama3.2-vision', 'llama4', 'gemma3',
+                'qwen2.5vl', 'mistral-small3.1'];
         $textmodels =
-                ['gemma', 'gemma3', 'llama3', 'llama3.1', 'llama3.2-vision', 'llama3.3', 'llama4', 'phi4', 'mistral',
-                        'mistral-small3.1', 'codellama', 'qwen', 'mixtral', 'dolphin-mixtral', 'tinyllama'];
+            ['gemma', 'gemma3', 'llama3', 'llama3.1', 'llama3.2-vision', 'llama3.3', 'llama4', 'phi4', 'mistral',
+                'mistral-small3.1', 'codellama', 'qwen', 'mixtral', 'dolphin-mixtral', 'tinyllama'];
         return [
-                'chat' => $textmodels,
-                'feedback' => $textmodels,
-                'singleprompt' => $textmodels,
-                'translate' => $textmodels,
-                'tts' => [],
-                'imggen' => [],
-                'itt' => $visionmodels,
-                'questiongeneration' => $textmodels,
+            'chat' => $textmodels,
+            'feedback' => $textmodels,
+            'singleprompt' => $textmodels,
+            'translate' => $textmodels,
+            'tts' => [],
+            'imggen' => [],
+            'itt' => $visionmodels,
+            'questiongeneration' => $textmodels,
         ];
     }
 
@@ -67,9 +66,11 @@ class connector extends \local_ai_manager\base_connector {
         $responsetokencount = isset($content['eval_count']) ? $content['eval_count'] : 0.0;
         $totaltokencount = $prompttokencount + $responsetokencount;
 
-        return prompt_response::create_from_result($content['model'],
-                new usage($totaltokencount, $prompttokencount, $prompttokencount),
-                $content['message']['content']);
+        return prompt_response::create_from_result(
+            $content['model'],
+            new usage($totaltokencount, $prompttokencount, $prompttokencount),
+            $content['message']['content']
+        );
     }
 
     #[\Override]
@@ -92,28 +93,28 @@ class connector extends \local_ai_manager\base_connector {
                         throw new \moodle_exception('exception_badmessageformat', 'local_ai_manager');
                 }
                 $messages[] = [
-                        'role' => $role,
-                        'content' => $message['message'],
+                    'role' => $role,
+                    'content' => $message['message'],
                 ];
             }
             $messages[] = ['role' => 'user', 'content' => $prompttext];
         } else if (array_key_exists('image', $options)) {
             $messages[] = [
-                    'role' => 'user',
-                    'content' => $prompttext,
-                    'images' => [explode(',', $options['image'])[1]],
+                'role' => 'user',
+                'content' => $prompttext,
+                'images' => [explode(',', $options['image'])[1]],
             ];
         } else {
             $messages[] = ['role' => 'user', 'content' => $prompttext];
         }
         $data = [
-                'model' => $this->instance->get_model(),
-                'messages' => $messages,
-                'stream' => false,
-                'keep_alive' => '60m',
-                'options' => [
-                        'temperature' => $this->instance->get_temperature(),
-                ],
+            'model' => $this->instance->get_model(),
+            'messages' => $messages,
+            'stream' => false,
+            'keep_alive' => '60m',
+            'options' => [
+                'temperature' => $this->instance->get_temperature(),
+            ],
         ];
         return $data;
     }

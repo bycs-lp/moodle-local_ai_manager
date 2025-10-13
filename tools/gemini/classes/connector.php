@@ -33,7 +33,6 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends \local_ai_manager\base_connector {
-
     /** @var string The access token to use for authentication against the Google API endpoint. */
     private string $accesstoken = '';
 
@@ -41,14 +40,14 @@ class connector extends \local_ai_manager\base_connector {
     public function get_models_by_purpose(): array {
         $textmodels = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash', 'gemini-2.0-pro'];
         return [
-                'chat' => $textmodels,
-                'feedback' => $textmodels,
-                'singleprompt' => $textmodels,
-                'translate' => $textmodels,
-                'tts' => [],
-                'imggen' => [],
-                'itt' => $textmodels,
-                'questiongeneration' => $textmodels,
+            'chat' => $textmodels,
+            'feedback' => $textmodels,
+            'singleprompt' => $textmodels,
+            'translate' => $textmodels,
+            'tts' => [],
+            'imggen' => [],
+            'itt' => $textmodels,
+            'questiongeneration' => $textmodels,
         ];
     }
 
@@ -71,12 +70,13 @@ class connector extends \local_ai_manager\base_connector {
             $textanswer .= $part['text'];
         }
         return prompt_response::create_from_result(
-                $this->instance->get_model(),
-                new usage(
-                        (float) $content['usageMetadata']['totalTokenCount'],
-                        (float) $content['usageMetadata']['promptTokenCount'],
-                        (float) $content['usageMetadata']['candidatesTokenCount']),
-                $textanswer,
+            $this->instance->get_model(),
+            new usage(
+                (float) $content['usageMetadata']['totalTokenCount'],
+                (float) $content['usageMetadata']['promptTokenCount'],
+                (float) $content['usageMetadata']['candidatesTokenCount']
+            ),
+            $textanswer,
         );
     }
 
@@ -101,46 +101,46 @@ class connector extends \local_ai_manager\base_connector {
                         throw new \moodle_exception('exception_badmessageformat', 'local_ai_manager');
                 }
                 $messages[] = [
-                        'role' => $role,
-                        'parts' => [
-                                ['text' => $message['message']],
-                        ],
+                    'role' => $role,
+                    'parts' => [
+                        ['text' => $message['message']],
+                    ],
                 ];
             }
             $messages[] = [
-                    'role' => 'user',
-                    'parts' => [
-                            ['text' => $prompttext],
-                    ],
+                'role' => 'user',
+                'parts' => [
+                    ['text' => $prompttext],
+                ],
             ];
         } else if (array_key_exists('image', $options)) {
             $messages[] = [
-                    'role' => 'user',
-                    'parts' => [
-                            ['text' => $prompttext],
-                            [
-                                    'inline_data' => [
-                                            'mime_type' => mime_content_type($options['image']),
-                                        // Gemini API expects the plain base64 encoded string,
-                                        // without the leading data url metadata.
-                                            'data' => explode(',', $options['image'])[1],
-                                    ],
-                            ],
+                'role' => 'user',
+                'parts' => [
+                    ['text' => $prompttext],
+                    [
+                        'inline_data' => [
+                            'mime_type' => mime_content_type($options['image']),
+                            // Gemini API expects the plain base64 encoded string,
+                            // without the leading data url metadata.
+                            'data' => explode(',', $options['image'])[1],
+                        ],
                     ],
+                ],
             ];
         } else {
             $messages[] = [
-                    'role' => 'user',
-                    'parts' => [
-                            ['text' => $prompttext],
-                    ],
+                'role' => 'user',
+                'parts' => [
+                    ['text' => $prompttext],
+                ],
             ];
         }
         return [
-                'contents' => $messages,
-                'generationConfig' => [
-                        'temperature' => $this->instance->get_temperature(),
-                ],
+            'contents' => $messages,
+            'generationConfig' => [
+                'temperature' => $this->instance->get_temperature(),
+            ],
         ];
     }
 
@@ -172,7 +172,7 @@ class connector extends \local_ai_manager\base_connector {
     public function make_request(array $data, request_options $requestoptions): request_response {
         if ($this->instance->get_customfield2() === instance::GOOGLE_BACKEND_VERTEXAI) {
             $vertexaiauthhandler =
-                    new aitool_option_vertexai_authhandler($this->instance->get_id(), $this->instance->get_customfield3());
+                new aitool_option_vertexai_authhandler($this->instance->get_id(), $this->instance->get_customfield3());
             try {
                 $this->accesstoken = $vertexaiauthhandler->get_access_token();
             } catch (\moodle_exception $exception) {

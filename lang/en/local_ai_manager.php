@@ -312,4 +312,3 @@ $string['vertex_nocachestatus'] = 'Click the refresh button to query the current
 $string['vertexcachestatus'] = 'Query and change Vertex AI cache status';
 $string['viewprompts'] = 'View prompts';
 $string['within'] = 'in';
-

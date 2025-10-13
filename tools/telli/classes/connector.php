@@ -34,7 +34,6 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends base_connector {
-
     /** @var base_connector The wrapped connector this connector is passing everything to. */
     private base_connector $wrappedconnector;
 

@@ -32,7 +32,6 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends \local_ai_manager\base_connector {
-
     #[\Override]
     public function get_models_by_purpose(): array {
         $modelsbypurpose = base_purpose::get_installed_purposes_array();
@@ -44,13 +43,14 @@ class connector extends \local_ai_manager\base_connector {
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
         $options = $requestoptions->get_options();
         $data = [
-                'input' => $prompttext,
-                'voice' => empty($options['voices'][0]) ? 'alloy' : $options['voices'][0],
+            'input' => $prompttext,
+            'voice' => empty($options['voices'][0]) ? 'alloy' : $options['voices'][0],
         ];
         if (
-                ($this->instance->get_model() === 'gpt-4o-mini-tts' ||
-                        instance::get_model_specific_azure_model_name($this->instance->get_model()) === 'gpt-4o-mini-tts')
-                && !empty($options['instructions'])) {
+            ($this->instance->get_model() === 'gpt-4o-mini-tts'
+                || instance::get_model_specific_azure_model_name($this->instance->get_model()) === 'gpt-4o-mini-tts')
+            && !empty($options['instructions'])
+        ) {
             $data['instructions'] = $options['instructions'];
         }
         if (!$this->instance->azure_enabled()) {
@@ -89,19 +89,19 @@ class connector extends \local_ai_manager\base_connector {
         $options = $requestoptions->get_options();
         $fs = get_file_storage();
         $fileinfo = [
-                'contextid' => \context_user::instance($USER->id)->id,
-                'component' => 'user',
-                'filearea' => 'draft',
-                'itemid' => $options['itemid'],
-                'filepath' => '/',
-                'filename' => $options['filename'],
+            'contextid' => \context_user::instance($USER->id)->id,
+            'component' => 'user',
+            'filearea' => 'draft',
+            'itemid' => $options['itemid'],
+            'filepath' => '/',
+            'filename' => $options['filename'],
         ];
         $file = $fs->create_file_from_string($fileinfo, $result);
 
         $filepath = \moodle_url::make_draftfile_url(
-                $file->get_itemid(),
-                $file->get_filepath(),
-                $file->get_filename()
+            $file->get_itemid(),
+            $file->get_filepath(),
+            $file->get_filename()
         )->out();
 
         return prompt_response::create_from_result($this->instance->get_model(), new usage(1.0), $filepath);
@@ -110,22 +110,24 @@ class connector extends \local_ai_manager\base_connector {
     #[\Override]
     public function get_available_options(): array {
         $options = [
-                'voices' => [
-                        ['key' => 'alloy', 'displayname' => 'Alloy'],
-                        ['key' => 'ash', 'displayname' => 'Ash'],
-                        ['key' => 'ballad', 'displayname' => 'Ballad'],
-                        ['key' => 'coral', 'displayname' => 'Coral'],
-                        ['key' => 'echo', 'displayname' => 'Echo'],
-                        ['key' => 'fable', 'displayname' => 'Fable'],
-                        ['key' => 'onyx', 'displayname' => 'Onyx'],
-                        ['key' => 'nova', 'displayname' => 'Nova'],
-                        ['key' => 'sage', 'displayname' => 'Sage'],
-                        ['key' => 'shimmer', 'displayname' => 'Shimmer'],
-                        ['key' => 'verse', 'displayname' => 'Verse'],
-                ],
+            'voices' => [
+                ['key' => 'alloy', 'displayname' => 'Alloy'],
+                ['key' => 'ash', 'displayname' => 'Ash'],
+                ['key' => 'ballad', 'displayname' => 'Ballad'],
+                ['key' => 'coral', 'displayname' => 'Coral'],
+                ['key' => 'echo', 'displayname' => 'Echo'],
+                ['key' => 'fable', 'displayname' => 'Fable'],
+                ['key' => 'onyx', 'displayname' => 'Onyx'],
+                ['key' => 'nova', 'displayname' => 'Nova'],
+                ['key' => 'sage', 'displayname' => 'Sage'],
+                ['key' => 'shimmer', 'displayname' => 'Shimmer'],
+                ['key' => 'verse', 'displayname' => 'Verse'],
+            ],
         ];
-        if ($this->instance->get_model() === 'gpt-4o-mini-tts'
-                || instance::extract_model_name_from_azure_model_name($this->instance->get_model()) === 'gpt-4o-mini-tts') {
+        if (
+            $this->instance->get_model() === 'gpt-4o-mini-tts'
+            || instance::extract_model_name_from_azure_model_name($this->instance->get_model()) === 'gpt-4o-mini-tts'
+        ) {
             $options['instructions'] = PARAM_TEXT;
         }
         return $options;

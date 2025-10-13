@@ -27,7 +27,6 @@ use moodle_url;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class tenant_config_output_utils {
-
     /**
      * Helper function which is being called from every tenant config (sub)page.
      *

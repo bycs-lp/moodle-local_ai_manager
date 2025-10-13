@@ -40,7 +40,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class manager_test extends \advanced_testcase {
-
     /**
      * Tests the method perform_request.
      *
@@ -87,8 +86,10 @@ final class manager_test extends \advanced_testcase {
                 $contextid = \context_course::instance($course->id)->id;
                 break;
             case 'block_in_course':
-                $block = $this->getDataGenerator()->create_block('html',
-                        ['parentcontextid' => \context_course::instance($course->id)->id]);
+                $block = $this->getDataGenerator()->create_block(
+                    'html',
+                    ['parentcontextid' => \context_course::instance($course->id)->id]
+                );
                 $contextid = \context_block::instance($block->id)->id;
                 break;
             case 'user':
@@ -98,13 +99,17 @@ final class manager_test extends \advanced_testcase {
                 $contextid = SYSCONTEXTID;
                 break;
             case 'block_systemcontext':
-                $block = $this->getDataGenerator()->create_block('html',
-                        ['parentcontextid' => SYSCONTEXTID]);
+                $block = $this->getDataGenerator()->create_block(
+                    'html',
+                    ['parentcontextid' => SYSCONTEXTID]
+                );
                 $contextid = \context_block::instance($block->id)->id;
                 break;
             case 'block_usercontext':
-                $block = $this->getDataGenerator()->create_block('html',
-                        ['parentcontextid' => \context_user::instance($user->id)->id]);
+                $block = $this->getDataGenerator()->create_block(
+                    'html',
+                    ['parentcontextid' => \context_user::instance($user->id)->id]
+                );
                 $contextid = \context_block::instance($block->id)->id;
                 break;
             default:
@@ -134,11 +139,11 @@ final class manager_test extends \advanced_testcase {
         $promptresponse = prompt_response::create_from_result('gpt-4o', $usage, $message);
 
         $chatgptconnector =
-                $this->getMockBuilder('\aitool_chatgpt\connector')->setConstructorArgs([$chatgptinstance])->getMock();
+            $this->getMockBuilder('\aitool_chatgpt\connector')->setConstructorArgs([$chatgptinstance])->getMock();
         $chatgptconnector->expects($this->any())->method('make_request')->willReturn($requestresponse);
         $chatgptconnector->expects($this->any())->method('execute_prompt_completion')->willReturn($promptresponse);
         $connectorfactory =
-                $this->getMockBuilder(connector_factory::class)->setConstructorArgs([$configmanager])->getMock();
+            $this->getMockBuilder(connector_factory::class)->setConstructorArgs([$configmanager])->getMock();
         $connectorfactory->expects($this->any())->method('get_connector_by_purpose')->willReturn($chatgptconnector);
         if ($configuration['instanceconfigured']) {
             $connectorfactory->expects($this->any())->method('get_connector_instance_by_purpose')->willReturn($chatgptinstance);
@@ -167,8 +172,8 @@ final class manager_test extends \advanced_testcase {
             // The returned content has already been sent through the format_output method of the purpose.
             // So we apply it here.
             $this->assertEquals(
-                    $result->get_content(),
-                    $connectorfactory->get_purpose_by_purpose_string('chat')->format_output($message)
+                $result->get_content(),
+                $connectorfactory->get_purpose_by_purpose_string('chat')->format_output($message)
             );
         } else {
             $this->assertEquals($result->get_errormessage(), $message);
@@ -186,106 +191,109 @@ final class manager_test extends \advanced_testcase {
      */
     public static function perform_request_provider(): array {
         $defaultoptions = [
-                'hasusecapability' => true,
-                'tenantallowed' => true,
-                'tenantenabled' => true,
-                'locked' => false,
-                'confirmed' => true,
-                'scopecourses' => false,
-                'context' => null,
+            'hasusecapability' => true,
+            'tenantallowed' => true,
+            'tenantenabled' => true,
+            'locked' => false,
+            'confirmed' => true,
+            'scopecourses' => false,
+            'context' => null,
             // That means that there are more than 0 requests. 0 requests would mean that this role is locked.
-                'maxrequests' => 10,
-                'currentusage' => 5,
-                'instanceconfigured' => true,
-                'instanceconnectorenabled' => true,
+            'maxrequests' => 10,
+            'currentusage' => 5,
+            'instanceconfigured' => true,
+            'instanceconnectorenabled' => true,
         ];
         return [
-                'everythingok' => [
-                        'configuration' => $defaultoptions,
-                        'expectedcode' => 200,
-                        'message' => 'Test result',
-                ],
-                'userhasnocapability' => [
-                        'configuration' => [...$defaultoptions, 'hasusecapability' => false],
-                        'expectedcode' => 403,
-                        'message' => get_string('error_http403nocapability', 'local_ai_manager'),
-                ],
-                'tenantnotallowed' => [
-                        'configuration' => [...$defaultoptions, 'tenantallowed' => false],
-                        'expectedcode' => 403,
-                        'message' => get_string('error_http403disabled', 'local_ai_manager'),
-                ],
-                'tenantnotenabled' => [
-                        'configuration' => [...$defaultoptions, 'tenantenabled' => false],
-                        'expectedcode' => 403,
-                        'message' => get_string('error_http403disabled', 'local_ai_manager'),
-                ],
-                'userlocked' => [
-                        'configuration' => [...$defaultoptions, 'locked' => true],
-                        'expectedcode' => 403,
-                        'message' => get_string('error_http403blocked', 'local_ai_manager'),
-                ],
-                'usernotconfirmed' => [
-                        'configuration' => [...$defaultoptions, 'confirmed' => false],
-                        'expectedcode' => 403,
-                        'message' => get_string('error_http403notconfirmed', 'local_ai_manager'),
-                ],
-                'userscopecourses_course' => [
-                        'configuration' => [...$defaultoptions, 'scopecourses' => true, 'context' => 'course'],
-                        'expectedcode' => 200,
-                        'message' => 'Test result',
-                ],
-                'userscopecourses_block_in_course' => [
-                        'configuration' => [...$defaultoptions, 'scopecourses' => true, 'context' => 'block_in_course'],
-                        'expectedcode' => 200,
-                        'message' => 'Test result',
-                ],
-                'userscopecourses_user' => [
-                        'configuration' => [...$defaultoptions, 'scopecourses' => true, 'context' => 'user'],
-                        'expectedcode' => 403,
-                        'message' => get_string('error_http403coursesonly', 'local_ai_manager'),
-                ],
-                'userscopecourses_site' => [
-                        'configuration' => [...$defaultoptions, 'scopecourses' => true, 'context' => 'site'],
-                        'expectedcode' => 403,
-                        'message' => get_string('error_http403coursesonly', 'local_ai_manager'),
-                ],
-                'userscopecourses_block_systemcontext' => [
-                        'configuration' => [...$defaultoptions, 'scopecourses' => true, 'context' => 'block_systemcontext'],
-                        'expectedcode' => 403,
-                        'message' => get_string('error_http403coursesonly', 'local_ai_manager'),
-                ],
-                'userscopecourses_block_usercontext' => [
-                    // This for example are blocks you added to your own dashboard. They have user context.
-                        'configuration' => [...$defaultoptions, 'scopecourses' => true, 'context' => 'block_usercontext'],
-                        'expectedcode' => 403,
-                        'message' => get_string('error_http403coursesonly', 'local_ai_manager'),
-                ],
-                'purposedisabledforrole' => [
-                        'configuration' => [...$defaultoptions, 'maxrequests' => 0],
-                        'expectedcode' => 403,
-                        'message' => get_string('error_http403usertype', 'local_ai_manager'),
-                ],
-                'usagelimitreached' => [
-                        'configuration' => [...$defaultoptions, 'currentusage' => $defaultoptions['maxrequests'] + 1],
-                        'expectedcode' => 429,
-                        'message' => get_string('error_http429', 'local_ai_manager',
-                                [
-                                        'count' => $defaultoptions['maxrequests'],
-                                    // This is the default value for an unlimited account.
-                                        'period' => format_time(DAYSECS),
-                                ]),
-                ],
-                'instancenotconfigured' => [
-                        'configuration' => [...$defaultoptions, 'instanceconfigured' => false],
-                        'expectedcode' => 403,
-                        'message' => get_string('error_purposenotconfigured', 'local_ai_manager'),
-                ],
-                'instanceconnectorenabled' => [
-                        'configuration' => [...$defaultoptions, 'instanceconnectorenabled' => false],
-                        'expectedcode' => 403,
-                        'message' => get_string('exception_instanceunavailable', 'local_ai_manager'),
-                ],
+            'everythingok' => [
+                'configuration' => $defaultoptions,
+                'expectedcode' => 200,
+                'message' => 'Test result',
+            ],
+            'userhasnocapability' => [
+                'configuration' => [...$defaultoptions, 'hasusecapability' => false],
+                'expectedcode' => 403,
+                'message' => get_string('error_http403nocapability', 'local_ai_manager'),
+            ],
+            'tenantnotallowed' => [
+                'configuration' => [...$defaultoptions, 'tenantallowed' => false],
+                'expectedcode' => 403,
+                'message' => get_string('error_http403disabled', 'local_ai_manager'),
+            ],
+            'tenantnotenabled' => [
+                'configuration' => [...$defaultoptions, 'tenantenabled' => false],
+                'expectedcode' => 403,
+                'message' => get_string('error_http403disabled', 'local_ai_manager'),
+            ],
+            'userlocked' => [
+                'configuration' => [...$defaultoptions, 'locked' => true],
+                'expectedcode' => 403,
+                'message' => get_string('error_http403blocked', 'local_ai_manager'),
+            ],
+            'usernotconfirmed' => [
+                'configuration' => [...$defaultoptions, 'confirmed' => false],
+                'expectedcode' => 403,
+                'message' => get_string('error_http403notconfirmed', 'local_ai_manager'),
+            ],
+            'userscopecourses_course' => [
+                'configuration' => [...$defaultoptions, 'scopecourses' => true, 'context' => 'course'],
+                'expectedcode' => 200,
+                'message' => 'Test result',
+            ],
+            'userscopecourses_block_in_course' => [
+                'configuration' => [...$defaultoptions, 'scopecourses' => true, 'context' => 'block_in_course'],
+                'expectedcode' => 200,
+                'message' => 'Test result',
+            ],
+            'userscopecourses_user' => [
+                'configuration' => [...$defaultoptions, 'scopecourses' => true, 'context' => 'user'],
+                'expectedcode' => 403,
+                'message' => get_string('error_http403coursesonly', 'local_ai_manager'),
+            ],
+            'userscopecourses_site' => [
+                'configuration' => [...$defaultoptions, 'scopecourses' => true, 'context' => 'site'],
+                'expectedcode' => 403,
+                'message' => get_string('error_http403coursesonly', 'local_ai_manager'),
+            ],
+            'userscopecourses_block_systemcontext' => [
+                'configuration' => [...$defaultoptions, 'scopecourses' => true, 'context' => 'block_systemcontext'],
+                'expectedcode' => 403,
+                'message' => get_string('error_http403coursesonly', 'local_ai_manager'),
+            ],
+            'userscopecourses_block_usercontext' => [
+                // This for example are blocks you added to your own dashboard. They have user context.
+                'configuration' => [...$defaultoptions, 'scopecourses' => true, 'context' => 'block_usercontext'],
+                'expectedcode' => 403,
+                'message' => get_string('error_http403coursesonly', 'local_ai_manager'),
+            ],
+            'purposedisabledforrole' => [
+                'configuration' => [...$defaultoptions, 'maxrequests' => 0],
+                'expectedcode' => 403,
+                'message' => get_string('error_http403usertype', 'local_ai_manager'),
+            ],
+            'usagelimitreached' => [
+                'configuration' => [...$defaultoptions, 'currentusage' => $defaultoptions['maxrequests'] + 1],
+                'expectedcode' => 429,
+                'message' => get_string(
+                    'error_http429',
+                    'local_ai_manager',
+                    [
+                        'count' => $defaultoptions['maxrequests'],
+                        // This is the default value for an unlimited account.
+                        'period' => format_time(DAYSECS),
+                    ]
+                ),
+            ],
+            'instancenotconfigured' => [
+                'configuration' => [...$defaultoptions, 'instanceconfigured' => false],
+                'expectedcode' => 403,
+                'message' => get_string('error_purposenotconfigured', 'local_ai_manager'),
+            ],
+            'instanceconnectorenabled' => [
+                'configuration' => [...$defaultoptions, 'instanceconnectorenabled' => false],
+                'expectedcode' => 403,
+                'message' => get_string('exception_instanceunavailable', 'local_ai_manager'),
+            ],
         ];
     }
 }

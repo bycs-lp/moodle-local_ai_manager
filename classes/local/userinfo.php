@@ -28,7 +28,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class userinfo {
-
     /** @var int Constant identifying the basic role */
     public const ROLE_BASIC = 1;
 
@@ -69,7 +68,7 @@ class userinfo {
      */
     public function __construct(
         /** @var int $userid The userid to create the userinfo object for */
-            private readonly int $userid
+        private readonly int $userid
     ) {
         $this->load();
     }
@@ -105,8 +104,10 @@ class userinfo {
             return $hookdefaultrole;
         }
         $tenant = \core\di::get(tenant::class);
-        if (has_capability('local/ai_manager:manage', $tenant->get_context(), $this->userid)
-                || has_capability('local/ai_manager:managetenants', \context_system::instance(), $this->userid)) {
+        if (
+            has_capability('local/ai_manager:manage', $tenant->get_context(), $this->userid)
+            || has_capability('local/ai_manager:managetenants', \context_system::instance(), $this->userid)
+        ) {
             return self::ROLE_UNLIMITED;
         } else {
             return self::ROLE_BASIC;
@@ -163,7 +164,7 @@ class userinfo {
     public function set_role(int $role): void {
         if (!in_array($role, [self::ROLE_BASIC, self::ROLE_EXTENDED, self::ROLE_UNLIMITED, self::ROLE_DEFAULT])) {
             throw new \coding_exception('Wrong role specified, use one of ROLE_BASIC, ROLE_EXTENDED,'
-                    . ' ROLE_UNLIMITED or ROLE_DEFAULT');
+                . ' ROLE_UNLIMITED or ROLE_DEFAULT');
         }
         if ($role === self::ROLE_DEFAULT) {
             $this->role = $this->get_default_role();

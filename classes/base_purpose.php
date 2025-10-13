@@ -28,7 +28,6 @@ use local_ai_manager\local\userinfo;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class base_purpose {
-
     /** @var string Constant for defining that a purpose option is an array */
     const PARAM_ARRAY = 'array';
 

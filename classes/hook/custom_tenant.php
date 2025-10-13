@@ -32,7 +32,6 @@ use local_ai_manager\local\tenant;
 #[\core\attribute\label('Allows plugins to customize the tenant being used by local_ai_manager.')]
 #[\core\attribute\tags('local_ai_manager')]
 class custom_tenant {
-
     /** @var \context the current context of the tenant */
     private \context $context;
     /** @var string the current fullname of the tenant */
@@ -45,7 +44,7 @@ class custom_tenant {
      */
     public function __construct(
         /** @var tenant The tenant instance */
-            public readonly tenant $tenant
+        public readonly tenant $tenant
     ) {
         $this->context = $this->tenant->get_defaultcontext();
         $this->fullname = $this->tenant->get_defaultfullname();

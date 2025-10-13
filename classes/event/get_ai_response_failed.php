@@ -27,7 +27,6 @@ use local_ai_manager\local\prompt_response;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class get_ai_response_failed extends \core\event\base {
-
     /**
      * Init function for this event, setting some basic attributes.
      */
@@ -61,17 +60,20 @@ class get_ai_response_failed extends \core\event\base {
      * @param prompt_response $promptresponse The object containing the information about the prompt response
      * @param float $duration The duration of the request
      */
-    public static function create_from_prompt_response(array $promptdata, prompt_response $promptresponse,
-            float $duration): \core\event\base {
+    public static function create_from_prompt_response(
+        array $promptdata,
+        prompt_response $promptresponse,
+        float $duration
+    ): \core\event\base {
         $data = [
-                'contextid' => \context_system::instance()->id,
-                'other' => [
-                        'code' => $promptresponse->get_code(),
-                        'promptdata' => json_encode($promptdata),
-                        'errormessage' => $promptresponse->get_errormessage(),
-                        'debuginfo' => $promptresponse->get_debuginfo(),
-                        'duration' => $duration,
-                ],
+            'contextid' => \context_system::instance()->id,
+            'other' => [
+                'code' => $promptresponse->get_code(),
+                'promptdata' => json_encode($promptdata),
+                'errormessage' => $promptresponse->get_errormessage(),
+                'debuginfo' => $promptresponse->get_debuginfo(),
+                'duration' => $duration,
+            ],
         ];
 
         return self::create($data);

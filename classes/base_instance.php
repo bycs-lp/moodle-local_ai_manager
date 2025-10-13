@@ -32,7 +32,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class base_instance {
-
     /** @var string the string representing that a model cannot be chosen, but is preconfigured by the external AI service */
     public const PRECONFIGURED_MODEL = 'preconfigured';
 
@@ -99,33 +98,33 @@ class base_instance {
         }
         $this->record = $record;
         [
-                $this->id,
-                $this->name,
-                $this->tenant,
-                $this->connector,
-                $this->endpoint,
-                $this->apikey,
-                $this->model,
-                $this->infolink,
-                $this->customfield1,
-                $this->customfield2,
-                $this->customfield3,
-                $this->customfield4,
-                $this->customfield5,
+            $this->id,
+            $this->name,
+            $this->tenant,
+            $this->connector,
+            $this->endpoint,
+            $this->apikey,
+            $this->model,
+            $this->infolink,
+            $this->customfield1,
+            $this->customfield2,
+            $this->customfield3,
+            $this->customfield4,
+            $this->customfield5,
         ] = [
-                $record->id,
-                $record->name,
-                $record->tenant,
-                $record->connector,
-                $record->endpoint,
-                $record->apikey,
-                $record->model,
-                $record->infolink,
-                $record->customfield1,
-                $record->customfield2,
-                $record->customfield3,
-                $record->customfield4,
-                $record->customfield5,
+            $record->id,
+            $record->name,
+            $record->tenant,
+            $record->connector,
+            $record->endpoint,
+            $record->apikey,
+            $record->model,
+            $record->infolink,
+            $record->customfield1,
+            $record->customfield2,
+            $record->customfield3,
+            $record->customfield4,
+            $record->customfield5,
         ];
     }
 
@@ -571,9 +570,11 @@ class base_instance {
         if (empty($data['name'])) {
             $errors['name'] = get_string('formvalidation_editinstance_name', 'local_ai_manager');
         }
-        if (!empty($data['endpoint'])
-                && str_starts_with($data['endpoint'], 'http://')
-                && !str_starts_with($data['endpoint'], 'https://')) {
+        if (
+            !empty($data['endpoint'])
+            && str_starts_with($data['endpoint'], 'http://')
+            && !str_starts_with($data['endpoint'], 'https://')
+        ) {
             $errors['endpoint'] = get_string('formvalidation_editinstance_endpointnossl', 'local_ai_manager');
         }
         return $errors + $this->extend_validation($data, $files);
@@ -625,7 +626,7 @@ class base_instance {
 
     /**
      * Function which determines the supported purposes based on the definitions of available models in the connector class.
-
+     *
      * @return array list of purpose names
      */
     final public function supported_purposes(): array {

@@ -31,7 +31,6 @@ use local_ai_manager\local\tenant;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class reset_user_usage extends \core\task\scheduled_task {
-
     /**
      * Clock object injected via \core\di.
      *

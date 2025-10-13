@@ -60,31 +60,59 @@ class get_purposes_usage_info extends external_api {
      */
     public static function execute_returns(): external_single_structure {
         return new external_single_structure([
-                'purposes' => new external_multiple_structure(
-                        new external_single_structure([
-                                'purposename' => new external_value(PARAM_TEXT, 'Name of the purpose', VALUE_REQUIRED),
-                                'purposedisplayname' => new external_value(PARAM_TEXT, 'Display name of the purpose',
-                                        VALUE_REQUIRED),
-                                'purposedescription' => new external_value(PARAM_RAW, 'Description of the purpose', VALUE_REQUIRED),
-                                'components' => new external_multiple_structure(
-                                        new external_single_structure([
-                                                'component' => new external_value(PARAM_TEXT, 'Name of the component',
-                                                        VALUE_REQUIRED),
-                                                'componentdisplayname' => new external_value(PARAM_TEXT,
-                                                        'Display name of the component',
-                                                        VALUE_REQUIRED),
-                                                'placedescriptions' => new external_multiple_structure(
-                                                        new external_single_structure([
-                                                                'description' => new external_value(PARAM_RAW,
-                                                                        'Description of the place',
-                                                                        VALUE_REQUIRED),
-                                                        ], 'Place description object containing only the description of the place'),
-                                                        'place descriptions', VALUE_REQUIRED),
-                                        ])
-                                        , 'Components that are using this purpose', VALUE_OPTIONAL),
-                        ], 'Purpose usage information objects', VALUE_REQUIRED),
-                        'Purposes usage information object', VALUE_REQUIRED
+            'purposes' => new external_multiple_structure(
+                new external_single_structure(
+                    [
+                        'purposename' => new external_value(PARAM_TEXT, 'Name of the purpose', VALUE_REQUIRED),
+                        'purposedisplayname' => new external_value(
+                            PARAM_TEXT,
+                            'Display name of the purpose',
+                            VALUE_REQUIRED
+                        ),
+                        'purposedescription' => new external_value(
+                            PARAM_RAW,
+                            'Description of the purpose',
+                            VALUE_REQUIRED
+                        ),
+                        'components' => new external_multiple_structure(
+                            new external_single_structure(
+                                [
+                                    'component' => new external_value(
+                                        PARAM_TEXT,
+                                        'Name of the component',
+                                        VALUE_REQUIRED
+                                    ),
+                                    'componentdisplayname' => new external_value(
+                                        PARAM_TEXT,
+                                        'Display name of the component',
+                                        VALUE_REQUIRED
+                                    ),
+                                    'placedescriptions' => new external_multiple_structure(
+                                        new external_single_structure(
+                                            [
+                                                'description' => new external_value(
+                                                    PARAM_RAW,
+                                                    'Description of the place',
+                                                    VALUE_REQUIRED
+                                                ),
+                                            ],
+                                            'Place description object containing only the description of the place'
+                                        ),
+                                        'place descriptions',
+                                        VALUE_REQUIRED
+                                    ),
+                                ]
+                            ),
+                            'Components that are using this purpose',
+                            VALUE_OPTIONAL
+                        ),
+                    ],
+                    'Purpose usage information objects',
+                    VALUE_REQUIRED
                 ),
+                'Purposes usage information object',
+                VALUE_REQUIRED
+            ),
         ]);
     }
 }

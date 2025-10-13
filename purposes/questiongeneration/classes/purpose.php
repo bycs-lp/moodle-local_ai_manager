@@ -38,7 +38,6 @@ use Locale;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class purpose extends base_purpose {
-
     #[\Override]
     public function get_additional_purpose_options(): array {
         return ['conversationcontext' => base_purpose::PARAM_ARRAY];

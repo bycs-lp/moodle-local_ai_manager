@@ -28,11 +28,9 @@ use local_ai_manager\local\tenant;
  * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-#[\core\attribute\label(
-        'Allows plugins to customize the user rights management table in the tenant config.')]
+#[\core\attribute\label('Allows plugins to customize the user rights management table in the tenant config.')]
 #[\core\attribute\tags('local_ai_manager')]
 class usertable_extend {
-
     /**
      * Constructor for the hook.
      *
@@ -46,19 +44,19 @@ class usertable_extend {
      */
     public function __construct(
         /** @var tenant $tenant the tenant object */
-            private tenant $tenant,
-            /** @var array $columns the columns array for the table */
-            private array $columns,
-            /** @var array $headers the headers array associated with the columns for the table */
-            private array $headers,
-            /** @var string $fields the database fields to select for the table */
-            private string $fields,
-            /** @var string $from the "from" clause for the DB query */
-            private string $from,
-            /** @var string $where the "where" clause for the DB query */
-            private string $where,
-            /** @var array $params the params array for the DB query */
-            private array $params
+        private tenant $tenant,
+        /** @var array $columns the columns array for the table */
+        private array $columns,
+        /** @var array $headers the headers array associated with the columns for the table */
+        private array $headers,
+        /** @var string $fields the database fields to select for the table */
+        private string $fields,
+        /** @var string $from the "from" clause for the DB query */
+        private string $from,
+        /** @var string $where the "where" clause for the DB query */
+        private string $where,
+        /** @var array $params the params array for the DB query */
+        private array $params
     ) {
     }
 

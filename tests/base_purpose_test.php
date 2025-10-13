@@ -28,7 +28,6 @@ use local_ai_manager\local\connector_factory;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class base_purpose_test extends \advanced_testcase {
-
     /**
      * Test if all purpose plugins have a proper description.
      *
@@ -36,7 +35,7 @@ final class base_purpose_test extends \advanced_testcase {
      * by overwriting base_purpose::get_description.
      *
      * @param string $purpose The purpose to check as string
-     * @covers \local_ai_manager\base_purpose::get_description
+     * @covers       \local_ai_manager\base_purpose::get_description
      * @dataProvider get_description_provider
      */
     public function test_get_description(string $purpose): void {
@@ -47,8 +46,10 @@ final class base_purpose_test extends \advanced_testcase {
         if (!$ismethodoverwritten) {
             $stringmanager = get_string_manager();
             $this->assertTrue($stringmanager->string_exists('purposedescription', 'aipurpose_' . $purpose));
-            $this->assertEquals(get_string('purposedescription', 'aipurpose_' . $purpose),
-                    $purposeinstance->get_description());
+            $this->assertEquals(
+                get_string('purposedescription', 'aipurpose_' . $purpose),
+                $purposeinstance->get_description()
+            );
         } else {
             $this->assertNotEmpty($purposeinstance->get_description());
         }
