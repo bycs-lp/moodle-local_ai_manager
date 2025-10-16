@@ -33,6 +33,7 @@ $string['baseurlsettingdesc'] = 'Insert the base URL of the Telli API here, stop
 $string['err_apiresult'] = 'An error occurred while trying to connect to the API.';
 $string['err_contentfilter'] = 'Your request was rejected as a result of the content filter of the external tool. Your prompt probably requests something that is not allowed.';
 $string['err_retrievingmodels'] = 'There was an error while trying to retrieve the list of models from the Telli API. Error code: {$a->code}.';
+$string['getconsumptiontask'] = 'Get Telli API consumption data';
 $string['globalapikeysetting'] = 'Global API key';
 $string['globalapikeysettingdesc'] = 'If this setting is set, this API key will be used for all requests. If not, the tenant manager will be able to insert own API keys.';
 $string['managementpage'] = 'Management page';

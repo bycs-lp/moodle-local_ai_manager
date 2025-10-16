@@ -30,13 +30,33 @@ use stdClass;
  */
 class utils {
     /**
-     * Helper function to retrieve usage and model info data from the Telli API.
+     * @var string|null Mock data for testing purposes
+     */
+    private static $mockusagedata = null;
+
+    /**
+     * Set mock usage data for testing.
+     *
+     * @param string|null $data Mock data as JSON string or null to disable mocking
+     * @return void
+     */
+    public static function set_mock_usage_data(?string $data): void {
+        self::$mockusagedata = $data;
+    }
+
+    /**
+     * Helper function to retrieve usage info data from the Telli API.
      *
      * @param string $apikey the apikey to use
      * @param string $baseurl the base url for the API
-     * @return stdClass
+     * @return string
      */
-    public static function get_api_info(string $apikey, string $baseurl): stdClass {
+    public static function get_usage_info(string $apikey, string $baseurl): string {
+        // Return mock data if we are in a unit test environment and mock data is set.
+        if (defined('PHPUNIT_TEST') && PHPUNIT_TEST && self::$mockusagedata !== null) {
+            return self::$mockusagedata;
+        }
+
         $client = new http_client([
             // We intentionally do not use the global local_ai_manager timeout setting, because here
             // we are not requesting any AI processing, but just query information from the API endpoints.
@@ -60,7 +80,7 @@ class utils {
             throw new \moodle_exception('err_apiresult', 'aitool_telli', '', $exception->getMessage());
         }
         if ($response->getStatusCode() === 200) {
-            $usagereturn = $response->getBody()->getContents();
+            return $response->getBody()->getContents();
         } else {
             throw new \moodle_exception(
                 'err_apiresult',
@@ -69,6 +89,30 @@ class utils {
                 get_string('statuscode', 'aitool_telli') . ': ' . $response->getStatusCode() . ': ' .
                 $response->getReasonPhrase()
             );
+        }
+    }
+
+    /**
+     * Helper function to retrieve model info data from the Telli API.
+     *
+     * @param string $apikey the apikey to use
+     * @param string $baseurl the base url for the API
+     * @return string
+     */
+    public static function get_models_info(string $apikey, string $baseurl): string {
+        $client = new http_client([
+            // We intentionally do not use the global local_ai_manager timeout setting, because here
+            // we are not requesting any AI processing, but just query information from the API endpoints.
+                'timeout' => 10,
+        ]);
+
+        $options['headers'] = [
+                'Authorization' => 'Bearer ' . $apikey,
+                'Content-Type' => 'application/json;charset=utf-8',
+        ];
+
+        if (!str_ends_with($baseurl, '/')) {
+            $baseurl .= '/';
         }
 
         $modelsendpoint = $baseurl . 'v1/models';
@@ -79,7 +123,7 @@ class utils {
             throw new \moodle_exception('err_apiresult', 'aitool_telli', '', $exception->getMessage());
         }
         if ($response->getStatusCode() === 200) {
-            $modelsreturn = $response->getBody()->getContents();
+            return $response->getBody()->getContents();
         } else {
             throw new \moodle_exception(
                 'err_apiresult',
@@ -88,10 +132,19 @@ class utils {
                 get_string('statuscode', 'aitool_telli') . $response->getStatusCode() . ': ' . $response->getReasonPhrase()
             );
         }
+    }
 
+    /**
+     * Helper function to retrieve usage and model info data from the Telli API.
+     *
+     * @param string $apikey the apikey to use
+     * @param string $baseurl the base url for the API
+     * @return stdClass
+     */
+    public static function get_api_info(string $apikey, string $baseurl): stdClass {
         $return = new stdClass();
-        $return->usage = $usagereturn;
-        $return->models = $modelsreturn;
+        $return->usage = self::get_usage_info($apikey, $baseurl);
+        $return->models = self::get_models_info($apikey, $baseurl);
         return $return;
     }
 }

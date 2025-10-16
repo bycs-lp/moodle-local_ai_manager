@@ -25,9 +25,7 @@
 
 use aitool_telli\form\management_form;
 use aitool_telli\local\utils;
-use core\http_client;
 use core\output\html_writer;
-use Psr\Http\Client\ClientExceptionInterface;
 
 require_once(__DIR__ . '/../../../../config.php');
 
@@ -59,14 +57,14 @@ if ($managementform->is_cancelled()) {
     echo $OUTPUT->render_from_template(
         'aitool_telli/management',
         [
-            'usagejson' => json_encode(
-                json_decode($apiinfo->usage),
-                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-            ),
-            'modelsjson' => json_encode(
-                json_decode($apiinfo->models),
-                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-            ),
+                'usagejson' => json_encode(
+                    json_decode($apiinfo->usage),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ),
+                'modelsjson' => json_encode(
+                    json_decode($apiinfo->models),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ),
         ]
     );
 
