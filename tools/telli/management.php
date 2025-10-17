@@ -25,9 +25,7 @@
 
 use aitool_telli\form\management_form;
 use aitool_telli\local\utils;
-use core\http_client;
 use core\output\html_writer;
-use Psr\Http\Client\ClientExceptionInterface;
 
 require_once(__DIR__ . '/../../../../config.php');
 
@@ -46,9 +44,10 @@ if ($managementform->is_cancelled()) {
     redirect(new moodle_url('/admin/settings.php', ['section' => 'aitoolpluginsmanagement']));
 } else if ($data = $managementform->get_data()) {
     $apiinfo = utils::get_api_info(
-        optional_param('apikey', '', PARAM_TEXT),
-        optional_param('baseurl', '', PARAM_URL)
+        $data->apikey,
+        $data->baseurl
     );
+    $sincetime = $data->sincetime;
 
     echo $OUTPUT->header();
 
@@ -59,6 +58,8 @@ if ($managementform->is_cancelled()) {
     echo $OUTPUT->render_from_template(
         'aitool_telli/management',
         [
+            'consumption' => utils::get_whole_consumption($sincetime),
+            'sincetime' => $sincetime,
             'usagejson' => json_encode(
                 json_decode($apiinfo->usage),
                 JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES

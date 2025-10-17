@@ -26,6 +26,11 @@
 
 <div class="d-flex w-100 justify-content-center">
     <div class="w-75">
+        <h2>{{#str}}wholeconsumption, aitool_telli{{/str}}</h2>
+        <div class="mb-5">
+            <div>{{#str}}since{{/str}} {{#userdate}}{{sincetime}}, {{#str}} strftimedatetime, core_langconfig {{/str}}{{/userdate}}:</div>
+            <div class="alert alert-info"><strong>{{consumption}} {{#str}}eurocents, aitool_telli{{/str}}</strong></div>
+        </div>
         <h2>{{#str}}usage, aitool_telli{{/str}}</h2>
         <pre><code>{{usagejson}}</code></pre>
         <hr class="mt-5 mb-5">

@@ -15,17 +15,24 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for aitool_telli.
+ * Task definitions for aitool_telli.
  *
  * @package    aitool_telli
  * @copyright  2025 ISB Bayern
- * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2025101601;
-$plugin->requires = 2023042403;
-$plugin->release = '0.0.1';
-$plugin->component = 'aitool_telli';
-$plugin->maturity = MATURITY_ALPHA;
+$tasks = [
+    [
+        'classname' => 'aitool_telli\task\get_consumption',
+        'blocking' => 0,
+        'minute' => '*',
+        'hour' => '*',
+        'day' => '*',
+        'dayofweek' => '*',
+        'month' => '*',
+        'disabled' => true,
+    ],
+];

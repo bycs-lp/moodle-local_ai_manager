@@ -48,6 +48,9 @@ class management_form extends \moodleform {
             $mform->setDefault('apikey', $globalapikey);
         }
 
+        $mform->addElement('date_time_selector', 'sincetime', get_string('sincetime', 'aitool_telli'));
+        $mform->setDefault('sincetime', time() - YEARSECS); // Default to one week ago.
+
         $this->add_action_buttons(true, get_string('retrieveinformation', 'aitool_telli'));
     }
 
