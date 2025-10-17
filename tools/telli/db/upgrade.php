@@ -43,7 +43,7 @@ function xmldb_aitool_telli_upgrade($oldversion) {
         // Adding fields to table aitool_telli_consumption.
         $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
         $table->add_field('type', XMLDB_TYPE_CHAR, '10', null, null, null, null);
-        $table->add_field('value', XMLDB_TYPE_NUMBER, '20, 5', null, null, null, null);
+        $table->add_field('value', XMLDB_TYPE_NUMBER, '38, 18', null, null, null, null);
         $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
 
         // Adding keys to table aitool_telli_consumption.

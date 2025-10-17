@@ -16,6 +16,7 @@
 
 namespace aitool_telli\task;
 
+use aitool_telli\local\apihandler;
 use aitool_telli\local\utils;
 
 /**
@@ -55,17 +56,20 @@ final class get_consumption_test extends \advanced_testcase {
      * @param float $remaining Remaining limit in cent
      */
     private function set_mock_data(float $limit, float $remaining): void {
-        utils::set_mock_usage_data(json_encode([
+        $apiconnector = $this->getMockBuilder(\aitool_telli\local\apihandler::class)->onlyMethods(['get_usage_info'])->getMock();
+        $apiconnector->expects($this->any())->method('get_usage_info')->willReturn([json_encode([
             'limitInCent' => $limit,
             'remainingLimitInCent' => $remaining,
-        ]));
+        ])]);
+
+        \core\di::set(\aitool_telli\local\apihandler::class, $apiconnector);
     }
 
     /**
      * Clean up after each test.
      */
     protected function tearDown(): void {
-        utils::set_mock_usage_data(null);
+        \core\di::reset_container();
         parent::tearDown();
     }
 
@@ -283,9 +287,9 @@ final class get_consumption_test extends \advanced_testcase {
 
         $this->resetAfterTest();
         $this->setup_config();
-
-        utils::set_mock_usage_data($mockdata);
-
+        $apiconnector = $this->getMockBuilder(\aitool_telli\local\apihandler::class)->onlyMethods(['get_usage_info'])->getMock();
+        $apiconnector->expects($this->any())->method('get_usage_info')->willReturn($mockdata);
+        \core\di::set(\aitool_telli\local\apihandler::class, $apiconnector);
         $output = $this->execute_task();
 
         $this->assertStringContainsString($expectedmessage, $output);

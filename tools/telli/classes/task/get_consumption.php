@@ -54,8 +54,9 @@ class get_consumption extends \core\task\scheduled_task {
 
         try {
             // Get usage info from Telli API.
-            $usageinfo = utils::get_usage_info($apikey, $baseurl);
-            $usagedata = json_decode($usageinfo, true);
+            $aiconnector = \core\di::get(\aitool_telli\local\apihandler::class);
+            $aiconnector->init($apikey, $baseurl);
+            $usagedata = json_decode($aiconnector->get_usage_info(), true);
 
             if ($usagedata === null) {
                 mtrace('Failed to decode usage data from Telli API.');
@@ -97,7 +98,7 @@ class get_consumption extends \core\task\scheduled_task {
                 // Store the last value as aggregate before reset.
                 $aggregaterecord = new \stdClass();
                 $aggregaterecord->type = 'aggregate';
-                $aggregaterecord->value = (int)$lastvalue;
+                $aggregaterecord->value = $lastvalue;
                 $aggregaterecord->timecreated = $timecreated;
                 $DB->insert_record('aitool_telli_consumption', $aggregaterecord);
                 mtrace("aggregate limit was reset. Stored previous consumption: {$lastvalue}");
@@ -106,7 +107,7 @@ class get_consumption extends \core\task\scheduled_task {
             // Store current consumption value.
             $currentrecord = new \stdClass();
             $currentrecord->type = 'current';
-            $currentrecord->value = (int)$currentconsumption;
+            $currentrecord->value = $currentconsumption;
             $currentrecord->timecreated = $timecreated;
             $DB->insert_record('aitool_telli_consumption', $currentrecord);
             mtrace("Stored current consumption: {$currentconsumption}");
