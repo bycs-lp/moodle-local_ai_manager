@@ -24,7 +24,7 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2025101601;
+$plugin->version  = 2025022501;
 $plugin->requires = 2023042403;
 $plugin->release = '0.0.1';
 $plugin->component = 'aitool_telli';

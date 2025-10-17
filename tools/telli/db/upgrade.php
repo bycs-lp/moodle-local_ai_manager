@@ -36,7 +36,7 @@ function xmldb_aitool_telli_upgrade($oldversion) {
     global $DB;
     $dbman = $DB->get_manager();
 
-    if ($oldversion < 2025101600) {
+    if ($oldversion < 2025022501) {
         // Define table aitool_telli_consumption to be created.
         $table = new xmldb_table('aitool_telli_consumption');
 
@@ -58,7 +58,7 @@ function xmldb_aitool_telli_upgrade($oldversion) {
         }
 
         // Telli savepoint reached.
-        upgrade_plugin_savepoint(true, 2025101600, 'aitool', 'telli');
+        upgrade_plugin_savepoint(true, 2025022501, 'aitool', 'telli');
     }
 
     return true;
