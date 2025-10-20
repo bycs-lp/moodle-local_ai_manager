@@ -131,7 +131,8 @@ class userstats_table extends table_sql implements dynamic {
         parent::setup();
 
         $this->shownames = has_capability('local/ai_manager:viewusernames', $tenant->get_context());
-        $this->privilegedroles = explode(',', get_config('local_ai_manager', 'privilegedroles'));
+        $privilegedrolesconfig = get_config('local_ai_manager', 'privilegedroles');
+        $this->privilegedroles = !empty($privilegedrolesconfig) ? explode(',', $privilegedrolesconfig) : [];
 
         $filterset = new userstats_table_filterset();
         $this->set_filterset($filterset);
@@ -144,16 +145,21 @@ class userstats_table extends table_sql implements dynamic {
      * @return string the resulting string for the lastname column
      */
     public function col_lastname(stdClass $value): string {
+        if ($value->id === null) {
+            return get_string('combinedanonymizedusers', 'local_ai_manager');
+        }
+
         $userhasprivilegedrole = is_siteadmin($value->id) ||
             array_reduce(
                 $this->privilegedroles,
                 fn($acc, $cur) => $acc || user_has_role_assignment($value->id, $cur, SYSCONTEXTID)
             );
+
         if (is_siteadmin() || ($this->shownames && !$userhasprivilegedrole)) {
             return $value->lastname;
-        } else {
-            return get_string('anonymized', 'local_ai_manager');
         }
+
+        return get_string('anonymized', 'local_ai_manager');
     }
 
     /**
@@ -163,6 +169,10 @@ class userstats_table extends table_sql implements dynamic {
      * @return string the resulting string for the firstname column
      */
     public function col_firstname(stdClass $value): string {
+        if ($value->id === null) {
+            return get_string('combinedanonymizedusers', 'local_ai_manager');
+        }
+
         $userhasprivilegedrole = is_siteadmin($value->id) ||
             array_reduce(
                 $this->privilegedroles,
@@ -170,9 +180,9 @@ class userstats_table extends table_sql implements dynamic {
             );
         if (is_siteadmin() || ($this->shownames && !$userhasprivilegedrole)) {
             return $value->firstname;
-        } else {
-            return get_string('anonymized', 'local_ai_manager');
         }
+
+        return get_string('anonymized', 'local_ai_manager');
     }
 
     /**
