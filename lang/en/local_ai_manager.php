@@ -68,6 +68,7 @@ $string['changelockstate'] = 'Change lock status';
 $string['changescope'] = 'Change usage scope';
 $string['choosecontext'] = 'Choose context to show users';
 $string['cleanuprequestlogtask'] = 'Clean up AI manager request log';
+$string['combinedanonymizedusers'] = 'Anonymized users (combined)';
 $string['configure_instance'] = 'Configure AI Tool Instances';
 $string['configureaitool'] = 'Configure AI tool';
 $string['configurepurposes'] = 'Configure the purposes';
