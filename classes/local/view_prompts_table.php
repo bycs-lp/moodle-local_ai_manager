@@ -97,15 +97,20 @@ class view_prompts_table extends table_sql {
             $params = array_merge($params, ['tenant' => $tenant->get_sql_identifier()]);
         }
 
-        $rolestoexcludeids = explode(',', get_config('local_ai_manager', 'privilegedroles'));
+        $privilegedroles = get_config('local_ai_manager', 'privilegedroles');
+        if (empty($privilegedroles)) {
+            $this->excludeduserids = [];
+        } else {
+            $rolestoexcludeids = explode(',', $privilegedroles);
 
-        $roleexcludeparams['systemcontextid'] = SYSCONTEXTID;
-        [$roleexcludeinsql, $roleexcludeinparams] = $DB->get_in_or_equal($rolestoexcludeids, SQL_PARAMS_NAMED);
-        $roleexcludeparams = array_merge($roleexcludeparams, $roleexcludeinparams);
-        $roleexcludesql = "SELECT u.id FROM " . $from . " "
-            . "LEFT JOIN {role_assignments} ra ON ra.userid = u.id AND ra.contextid = :systemcontextid "
-            . "WHERE ra.roleid " . $roleexcludeinsql;
-        $this->excludeduserids = $DB->get_fieldset_sql($roleexcludesql, array_merge($params, $roleexcludeparams));
+            $roleexcludeparams['systemcontextid'] = SYSCONTEXTID;
+            [$roleexcludeinsql, $roleexcludeinparams] = $DB->get_in_or_equal($rolestoexcludeids, SQL_PARAMS_NAMED);
+            $roleexcludeparams = array_merge($roleexcludeparams, $roleexcludeinparams);
+            $roleexcludesql = "SELECT u.id FROM " . $from . " "
+                . "LEFT JOIN {role_assignments} ra ON ra.userid = u.id AND ra.contextid = :systemcontextid "
+                . "WHERE ra.roleid " . $roleexcludeinsql;
+            $this->excludeduserids = $DB->get_fieldset_sql($roleexcludesql, array_merge($params, $roleexcludeparams));
+        }
 
         $this->no_sorting('viewprompts');
         $this->collapsible(false);
