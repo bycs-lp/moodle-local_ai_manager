@@ -30,9 +30,9 @@ import Templates from 'core/templates';
 /**
  * Renders the warning box.
  *
- * @param {string} selector the selector where the warning box should be rendered into
+ * @param {string} selectorOrElement the selector where the warning box should be rendered into
  */
-export const renderWarningBox = async(selector) => {
+export const renderWarningBox = async(selectorOrElement) => {
     let aiConfig = null;
     try {
         aiConfig = await getAiInfo();
@@ -43,7 +43,7 @@ export const renderWarningBox = async(selector) => {
         return;
     }
     const showAiWarningLink = aiConfig.aiwarningurl.length > 0;
-    const targetElement = document.querySelector(selector);
+    const targetElement = (selectorOrElement instanceof Element) ? selectorOrElement : document.querySelector(selectorOrElement);
     const {html, js} = await Templates.renderForPromise('local_ai_manager/ai_info_warning', {
         showaiwarninglink: showAiWarningLink,
         aiwarningurl: aiConfig.aiwarningurl

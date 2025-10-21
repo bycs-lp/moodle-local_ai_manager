@@ -32,11 +32,11 @@ import * as config from 'core/config';
  *
  * @param {string} component The component name from which this is being called
  * @param {int} userId id of the user
- * @param {string} selector the id of the element to insert the infobox
+ * @param {string} selectorOrElement a selector or element to insert the infobox into
  * @param {string[]} purposes the purposes which are being used
  */
-export const renderInfoBox = async(component, userId, selector, purposes = []) => {
-    const targetElement = document.querySelector(selector);
+export const renderInfoBox = async(component, userId, selectorOrElement, purposes = []) => {
+    const targetElement = (selectorOrElement instanceof Element) ? selectorOrElement : document.querySelector(selectorOrElement);
     const aiInfoUrl = new URL(config.wwwroot + '/local/ai_manager/ai_info.php');
     purposes.forEach(purpose => {
         aiInfoUrl.searchParams.append('purposes[]', purpose);

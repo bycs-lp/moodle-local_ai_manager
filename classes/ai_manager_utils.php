@@ -17,7 +17,6 @@
 namespace local_ai_manager;
 
 use context;
-use core\exception\moodle_exception;
 use core_plugin_manager;
 use local_ai_manager\hook\additional_user_restriction;
 use local_ai_manager\hook\purpose_usage;
@@ -65,7 +64,8 @@ class ai_manager_utils {
         int $itemid = 0,
         bool $includedeleted = true,
         string $fields = '*',
-        array $purposes = []
+        array $purposes = [],
+        int $limit = 0,
     ): array {
         global $DB;
 
@@ -97,7 +97,14 @@ class ai_manager_utils {
             $params = array_merge($params, $inparams);
         }
         $select = implode(' AND ', $conditions);
-        return $DB->get_records_select('local_ai_manager_request_log', $select, $params, 'timecreated ASC', $fields);
+        $sort = $limit === 0 ? 'timecreated ASC' : 'timecreated DESC';
+        $records = $DB->get_records_select('local_ai_manager_request_log', $select, $params, $sort, $fields, 0, $limit);
+        if ($limit !== 0) {
+            uasort($records, function ($a, $b) {
+                return $a->timecreated <=> $b->timecreated;
+            });
+        }
+        return $records;
     }
 
     /**
@@ -201,9 +208,9 @@ class ai_manager_utils {
      * @param int $contextid the contextid
      * @param int $userid the userid of the user, optional
      * @param int $itemid the itemid, optional
-     * @return void
+     * @return array of id numbers of record entries
      */
-    public static function mark_log_entries_as_deleted(string $component, int $contextid, int $userid = 0, int $itemid = 0): void {
+    public static function mark_log_entries_as_deleted(string $component, int $contextid, int $userid = 0, int $itemid = 0): array {
         global $DB;
         $params = [
             'component' => $component,
@@ -218,11 +225,14 @@ class ai_manager_utils {
         // We intentionally do this one by one despite maybe not being very efficient to avoid running into transaction size limit
         // on DB layer.
         $rs = $DB->get_recordset('local_ai_manager_request_log', $params, '', 'id, deleted');
+        $markedasdeletedids = [];
         foreach ($rs as $record) {
             $record->deleted = 1;
             $DB->update_record('local_ai_manager_request_log', $record);
+            $markedasdeletedids[] = $record->id;
         }
         $rs->close();
+        return $markedasdeletedids;
     }
 
     /**
