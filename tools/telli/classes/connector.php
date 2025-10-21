@@ -169,8 +169,10 @@ class connector extends base_connector {
      * @param base_instance $instance the telli instance
      */
     private function setup_wrapped_connector(base_instance $instance): void {
+        // We have to be very careful. The connector should also basically work when we only have a model set and
+        // - besides that - are working with a fake instance.
         $connectorfactory = \core\di::get(connector_factory::class);
-        if (!$instance->record_exists()) {
+        if (is_null($instance->get_model()) || !in_array($instance->get_model(), $this->get_models())) {
             return;
         }
         if (in_array($instance->get_model(), $this->get_models_by_purpose()['imggen'])) {
@@ -180,7 +182,10 @@ class connector extends base_connector {
             $this->wrappedconnector = $connectorfactory->get_connector_by_connectorname('chatgpt');
             $endpointsuffix = 'v1/chat/completions';
             // If there is a temperature parameter, pass it.
-            $this->wrappedconnector->instance->set_customfield1($this->instance->get_customfield1());
+            $currentcustomfield1 = $this->instance->get_customfield1();
+            if (!empty($currentcustomfield1)) {
+                $this->wrappedconnector->instance->set_customfield1($currentcustomfield1);
+            }
         }
         // Pass the model to the wrapped instance.
         $this->wrappedconnector->instance->set_model($instance->get_model());
@@ -192,10 +197,14 @@ class connector extends base_connector {
             }
             $this->wrappedconnector->instance->set_endpoint($baseurl . $endpointsuffix);
         } else {
-            $this->wrappedconnector->instance->set_endpoint($this->instance->get_endpoint());
+            $currentendpoint = $this->instance->get_endpoint();
+            if (!empty($currentendpoint)) {
+                $this->wrappedconnector->instance->set_endpoint($currentendpoint);
+            }
         }
         // Set the api key.
         $globalapikey = get_config('aitool_telli', 'globalapikey');
-        $this->wrappedconnector->instance->set_apikey(!empty($globalapikey) ? $globalapikey : $this->instance->get_apikey());
+        $currentapikey = $this->instance->get_apikey();
+        $this->wrappedconnector->instance->set_apikey(!empty($globalapikey) ? $globalapikey : $currentapikey);
     }
 }

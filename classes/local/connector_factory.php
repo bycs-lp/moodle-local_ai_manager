@@ -98,6 +98,14 @@ class connector_factory {
     /**
      * Converts the name of a connector to a connector object.
      *
+     * **CARE:** This will instantiate the connector with a new fake instance without any (reasonable) content!
+     * Use only if you exactly know what you are doing. Usually, it's better to use one of the other methods
+     * for retrieving a connector object, for example {@see get_connector_by_connectorname_and_model}.
+     * When using {@see get_connector_by_connectorname_and_model}, the connectors will have access to at least
+     * the model information and can instantiate themselves properly (for example, aitool plugins which wrap
+     * other connectors based on the given model will need this and will crash when being used later when not
+     * having proper model information).
+     *
      * @param string $connectorname the connector name
      * @return base_connector the corresponding connector object
      */
@@ -105,6 +113,27 @@ class connector_factory {
         $connectorclassname = '\\aitool_' . $connectorname . '\\connector';
         $instance = $this->get_new_instance($connectorname);
         $this->connector = new $connectorclassname($instance);
+        return $this->connector;
+    }
+
+    /**
+     * Returns a connector object based on the connector name and a given model.
+     *
+     * @param string $connectorname the connector name
+     * @param string $model the model name
+     * @return base_connector the corresponding connector object
+     */
+    public function get_connector_by_connectorname_and_model(string $connectorname, string $model): base_connector {
+        $connectorclassname = '\\aitool_' . $connectorname . '\\connector';
+        $instance = $this->get_new_instance($connectorname);
+        $instance->set_model($model);
+        $this->connector = new $connectorclassname($instance);
+        // We needed to set the model before the creation of the connector to allow the connector to spin itself up
+        // properly, including having information about the model to use.
+        // So we need to do the model check here afterwards, even if it feels odd.
+        if (!in_array($model, $this->connector->get_models())) {
+            throw new \coding_exception('Model ' . $model . ' is not supported by connector ' . $connectorname);
+        }
         return $this->connector;
     }
 

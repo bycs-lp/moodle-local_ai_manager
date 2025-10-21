@@ -57,10 +57,10 @@ final class get_consumption_test extends \advanced_testcase {
      */
     private function set_mock_data(float $limit, float $remaining): void {
         $apiconnector = $this->getMockBuilder(\aitool_telli\local\apihandler::class)->onlyMethods(['get_usage_info'])->getMock();
-        $apiconnector->expects($this->any())->method('get_usage_info')->willReturn([json_encode([
+        $apiconnector->expects($this->any())->method('get_usage_info')->willReturn(json_encode([
             'limitInCent' => $limit,
             'remainingLimitInCent' => $remaining,
-        ])]);
+        ]));
 
         \core\di::set(\aitool_telli\local\apihandler::class, $apiconnector);
     }
