@@ -205,9 +205,9 @@ class base_instance {
     /**
      * Standard getter.
      *
-     * @return string the name of the instance
+     * @return ?string the name of the instance or null if not set
      */
-    public function get_name(): string {
+    public function get_name(): ?string {
         return $this->name;
     }
 
@@ -223,9 +223,9 @@ class base_instance {
     /**
      * Standard getter.
      *
-     * @return string the tenant identifier
+     * @return string the tenant identifier or null if not set
      */
-    public function get_tenant(): string {
+    public function get_tenant(): ?string {
         return $this->tenant;
     }
 
@@ -241,7 +241,7 @@ class base_instance {
     /**
      * Standard getter.
      *
-     * @return ?string the connector identifier
+     * @return ?string the connector identifier or null if not set
      */
     public function get_connector(): ?string {
         return $this->connector;
@@ -259,9 +259,9 @@ class base_instance {
     /**
      * Standard getter.
      *
-     * @return string the endpoint of this instance
+     * @return ?string the endpoint of this instance or null if not set
      */
-    public function get_endpoint(): string {
+    public function get_endpoint(): ?string {
         return $this->endpoint;
     }
 
@@ -277,7 +277,7 @@ class base_instance {
     /**
      * Standard getter.
      *
-     * @return ?string the apikey, can be null if not set
+     * @return ?string the api key or null if not set
      */
     public function get_apikey(): ?string {
         return $this->apikey;
@@ -295,9 +295,9 @@ class base_instance {
     /**
      * Standard getter.
      *
-     * @return string name of the model
+     * @return ?string name of the model or null if not set
      */
-    public function get_model(): string {
+    public function get_model(): ?string {
         return $this->model;
     }
 
@@ -313,7 +313,7 @@ class base_instance {
     /**
      * Standard getter.
      *
-     * @return ?string the info link, can be null
+     * @return ?string the info link or null if not set
      */
     public function get_infolink(): ?string {
         return $this->infolink;

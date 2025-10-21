@@ -59,7 +59,7 @@ class statistics_overview_table extends table_sql {
         $this->define_headers($headers);
         $this->collapsible(false);
 
-        $fields = 'modelinfo, connector, COUNT(modelinfo) AS requestcount, SUM(value) AS userusage';
+        $fields = 'modelinfo, model, connector, COUNT(modelinfo) AS requestcount, SUM(value) AS userusage';
         $from = '{local_ai_manager_request_log}';
         $tenant = \core\di::get(tenant::class);
         $where = 'tenant = :tenant GROUP BY modelinfo, connector';
@@ -80,7 +80,8 @@ class statistics_overview_table extends table_sql {
      * @return string the string representation of the userusage column
      */
     public function col_userusage(stdClass $row): string {
-        $connector = \core\di::get(connector_factory::class)->get_connector_by_connectorname($row->connector);
+        $connector =
+            \core\di::get(connector_factory::class)->get_connector_by_connectorname_and_model($row->connector, $row->model);
         // Currently there are only requests and tokens as units, so we can use intval for the moment.
         return intval($row->userusage) . " " . $connector->get_unit()->to_string();
     }
