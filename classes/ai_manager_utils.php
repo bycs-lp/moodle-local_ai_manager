@@ -17,7 +17,6 @@
 namespace local_ai_manager;
 
 use context;
-use core\exception\moodle_exception;
 use core_plugin_manager;
 use local_ai_manager\hook\additional_user_restriction;
 use local_ai_manager\hook\purpose_usage;
@@ -65,7 +64,8 @@ class ai_manager_utils {
         int $itemid = 0,
         bool $includedeleted = true,
         string $fields = '*',
-        array $purposes = []
+        array $purposes = [],
+        int $limit = 0,
     ): array {
         global $DB;
 
@@ -97,7 +97,14 @@ class ai_manager_utils {
             $params = array_merge($params, $inparams);
         }
         $select = implode(' AND ', $conditions);
-        return $DB->get_records_select('local_ai_manager_request_log', $select, $params, 'timecreated ASC', $fields);
+        $sort = $limit === 0 ? 'timecreated ASC' : 'timecreated DESC';
+        $records = $DB->get_records_select('local_ai_manager_request_log', $select, $params, $sort, $fields, 0, $limit);
+        if ($limit !== 0) {
+            uasort($records, function($a, $b) {
+                return $a->timecreated <=> $b->timecreated;
+            });
+        }
+        return $records;
     }
 
     /**
