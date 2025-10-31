@@ -57,10 +57,10 @@ final class get_consumption_test extends \advanced_testcase {
      */
     private function set_mock_data(float $limit, float $remaining): void {
         $apiconnector = $this->getMockBuilder(\aitool_telli\local\apihandler::class)->onlyMethods(['get_usage_info'])->getMock();
-        $apiconnector->expects($this->any())->method('get_usage_info')->willReturn([json_encode([
+        $apiconnector->expects($this->any())->method('get_usage_info')->willReturn(json_encode([
             'limitInCent' => $limit,
             'remainingLimitInCent' => $remaining,
-        ])]);
+        ]));
 
         \core\di::set(\aitool_telli\local\apihandler::class, $apiconnector);
     }
@@ -114,7 +114,8 @@ final class get_consumption_test extends \advanced_testcase {
 
         $storedrecord = reset($records);
         $this->assertEquals('current', $storedrecord->type);
-        $this->assertEquals(3045, $storedrecord->value); // 10000000 - 9996954.58 = 3045.42 → 3045.
+        // 10000000 - 9996954.58 = 3045.42, stored as float.
+        $this->assertEqualsWithDelta(3045.42, (float)$storedrecord->value, 0.01);
         $this->assertGreaterThan(0, $storedrecord->timecreated);
         $this->assertStringContainsString('Stored current consumption', $output);
 
@@ -147,6 +148,30 @@ final class get_consumption_test extends \advanced_testcase {
                 'expectedcurrent' => 3500,
                 'expectedmessage' => null,
             ],
+            'same_value_no_reset' => [
+                'previous' => 3000,
+                'newconsumption' => 3000,
+                'expectaggregate' => false,
+                'expectedaggregatevalue' => null,
+                'expectedcurrent' => 3000,
+                'expectedmessage' => null,
+            ],
+            'tiny_decrease_within_epsilon_no_reset' => [
+                'previous' => 3000,
+                'newconsumption' => 2999.99,
+                'expectaggregate' => false,
+                'expectedaggregatevalue' => null,
+                'expectedcurrent' => 2999.99,
+                'expectedmessage' => null,
+            ],
+            'significant_decrease_triggers_reset' => [
+                'previous' => 3000,
+                'newconsumption' => 2998,
+                'expectaggregate' => true,
+                'expectedaggregatevalue' => 3000,
+                'expectedcurrent' => 2998,
+                'expectedmessage' => 'aggregate limit was reset',
+            ],
         ];
     }
 
@@ -154,19 +179,19 @@ final class get_consumption_test extends \advanced_testcase {
      * Test aggregate reset detection logic.
      *
      * @dataProvider reset_detection_provider
-     * @param int $previous Previous consumption value
-     * @param int $newconsumption New consumption value
+     * @param float $previous Previous consumption value
+     * @param float $newconsumption New consumption value
      * @param bool $expectaggregate Whether a aggregate record should be created
-     * @param int|null $expectedaggregatevalue Expected aggregate record value
-     * @param int $expectedcurrent Expected current record value
+     * @param float|null $expectedaggregatevalue Expected aggregate record value
+     * @param float $expectedcurrent Expected current record value
      * @param string|null $expectedmessage Expected log message
      */
     public function test_execute_reset_detection(
-        int $previous,
-        int $newconsumption,
+        float $previous,
+        float $newconsumption,
         bool $expectaggregate,
-        ?int $expectedaggregatevalue,
-        int $expectedcurrent,
+        ?float $expectedaggregatevalue,
+        float $expectedcurrent,
         ?string $expectedmessage
     ): void {
         global $DB;
@@ -192,7 +217,7 @@ final class get_consumption_test extends \advanced_testcase {
         if ($expectaggregate) {
             $this->assertCount(1, $aggregaterecords);
             $aggregaterecord = reset($aggregaterecords);
-            $this->assertEquals($expectedaggregatevalue, $aggregaterecord->value);
+            $this->assertEqualsWithDelta($expectedaggregatevalue, (float)$aggregaterecord->value, 0.01);
             $this->assertStringContainsString($expectedmessage, $output);
         } else {
             $this->assertEmpty($aggregaterecords);
@@ -204,7 +229,7 @@ final class get_consumption_test extends \advanced_testcase {
         // Verify current record.
         $currentrecords = $DB->get_records('aitool_telli_consumption', ['type' => 'current'], 'id DESC', '*', 0, 1);
         $currentrecord = reset($currentrecords);
-        $this->assertEquals($expectedcurrent, $currentrecord->value);
+        $this->assertEqualsWithDelta($expectedcurrent, (float)$currentrecord->value, 0.01);
     }
 
     /**
@@ -251,6 +276,57 @@ final class get_consumption_test extends \advanced_testcase {
         // Verify the values are correct.
         $values = array_map('intval', array_column(array_values($aggregaterecords), 'value'));
         $this->assertEquals([5000, 3000], $values, 'aggregate values should match pre-reset consumption');
+    }
+
+    /**
+     * Test that identical values with 6 decimal places do not trigger aggregate creation.
+     */
+    public function test_execute_identical_precise_float_values(): void {
+        global $DB;
+
+        $this->resetAfterTest();
+        $this->setup_config();
+
+        // First execution: consumption at 3045.418385 (6 decimal places).
+        $limit = 10000000;
+        $remaining1 = 9996954.581615;
+        $expectedconsumption = 3045.418385;
+
+        $this->set_mock_data($limit, $remaining1);
+        $output1 = $this->execute_task();
+
+        // Verify first record.
+        $records1 = $DB->get_records('aitool_telli_consumption', ['type' => 'current']);
+        $this->assertCount(1, $records1);
+        $record1 = reset($records1);
+        $this->assertEqualsWithDelta($expectedconsumption, (float)$record1->value, 0.000001);
+
+        // Verify no aggregate created.
+        $aggregates1 = $DB->get_records('aitool_telli_consumption', ['type' => 'aggregate']);
+        $this->assertCount(0, $aggregates1, 'No aggregate should exist after first execution');
+
+        // Second execution: EXACT same values from API (simulating no consumption change).
+        $remaining2 = 9996954.581615; // Identical to $remaining1.
+        $this->set_mock_data($limit, $remaining2);
+        $output2 = $this->execute_task();
+
+        // Verify second current record was created.
+        $records2 = $DB->get_records('aitool_telli_consumption', ['type' => 'current'], 'id ASC');
+        $this->assertCount(2, $records2, 'Should have 2 current records after second execution');
+
+        // Verify NO aggregate record was created (values are identical).
+        $aggregates2 = $DB->get_records('aitool_telli_consumption', ['type' => 'aggregate']);
+        $this->assertCount(0, $aggregates2, 'No aggregate should be created when values are identical');
+        $this->assertStringNotContainsString('aggregate limit was reset', $output2);
+
+        // Verify both current records have the same value.
+        $recordsarray = array_values($records2);
+        $this->assertEqualsWithDelta(
+            (float)$recordsarray[0]->value,
+            (float)$recordsarray[1]->value,
+            0.000001,
+            'Both current records should have identical values'
+        );
     }
 
     /**

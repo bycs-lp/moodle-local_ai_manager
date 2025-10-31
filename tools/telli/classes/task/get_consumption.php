@@ -23,9 +23,18 @@ use aitool_telli\local\utils;
  *
  * @package    aitool_telli
  * @copyright  2025 ISB Bayern
+ * @author     Dr. Peter Mayer
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class get_consumption extends \core\task\scheduled_task {
+    /**
+     * Epsilon tolerance for float comparison in cents.
+     *
+     * This prevents false positive reset detection due to floating-point precision issues.
+     * A reset is only detected if consumption decreases by more than this value.
+     */
+    private const EPSILON_TOLERANCE = 0.01;
+
     /**
      * Get a descriptive name for this task.
      *
@@ -94,7 +103,8 @@ class get_consumption extends \core\task\scheduled_task {
             }
 
             // Check if aggregate limit was reset (current consumption is less than last recorded value).
-            if ($lastvalue !== null && $currentconsumption < $lastvalue) {
+            // Use epsilon for float comparison to avoid false positives due to floating-point precision issues.
+            if ($lastvalue !== null && ($lastvalue - $currentconsumption) > self::EPSILON_TOLERANCE) {
                 // Store the last value as aggregate before reset.
                 $aggregaterecord = new \stdClass();
                 $aggregaterecord->type = 'aggregate';
