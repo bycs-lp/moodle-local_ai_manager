@@ -61,5 +61,15 @@ function xmldb_aitool_telli_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025101600, 'aitool', 'telli');
     }
 
+    if ($oldversion < 2025103100) {
+        // Clean up existing consumption data with epsilon-based reset detection.
+        // This fixes false positive aggregate records caused by floating-point precision issues.
+        $cleanup = new \aitool_telli\local\cleanup_consumption_data(false, false);
+        $cleanup->execute();
+
+        // Telli savepoint reached.
+        upgrade_plugin_savepoint(true, 2025103100, 'aitool', 'telli');
+    }
+
     return true;
 }

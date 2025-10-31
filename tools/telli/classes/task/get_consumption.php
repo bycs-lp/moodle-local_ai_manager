@@ -23,6 +23,7 @@ use aitool_telli\local\utils;
  *
  * @package    aitool_telli
  * @copyright  2025 ISB Bayern
+ * @author     Dr. Peter Mayer
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class get_consumption extends \core\task\scheduled_task {
