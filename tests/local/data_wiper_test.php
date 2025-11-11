@@ -44,6 +44,11 @@ final class data_wiper_test extends \advanced_testcase {
         parent::setUp();
         $tenant = new tenant('1234');
 
+        // We disable the hooks here, so we have a defined setup for these unit tests.
+        // The hook callbacks should be tested wherever the callbacks are being implemented.
+        $this->redirectHook(\local_ai_manager\hook\userinfo_extend::class, fn() => null);
+        $this->redirectHook(\local_ai_manager\hook\custom_tenant::class, fn() => null);
+
         // Set the capability based on the $configuration.
         $systemcontext = context_system::instance();
         $this->user1 = $this->getDataGenerator()->create_user(['institution' => $tenant->get_sql_identifier()]);
