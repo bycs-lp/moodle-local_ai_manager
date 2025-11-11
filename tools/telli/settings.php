@@ -67,6 +67,16 @@ if ($hassiteconfig) {
     );
 
     $settings->add(
+        new admin_setting_configduration_with_advanced(
+            'aitool_telli/retentionperiod',
+            new lang_string('retentionperiodsetting', 'aitool_telli'),
+            new lang_string('retentionperiodsettingdesc', 'aitool_telli'),
+            ['value' => 2 * YEARSECS, 'adv' => false],
+            YEARSECS
+        )
+    );
+
+    $settings->add(
         new admin_setting_description(
             'aitool_telli/managementsitebutton',
             get_string('managementpage', 'aitool_telli'),
