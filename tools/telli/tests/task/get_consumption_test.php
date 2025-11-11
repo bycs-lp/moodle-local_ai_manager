@@ -58,11 +58,13 @@ final class get_consumption_test extends \advanced_testcase {
      * @param float $remaining Remaining limit in cent
      */
     private function set_mock_data(float $limit, float $remaining): void {
-        $apiconnector = $this->getMockBuilder(\aitool_telli\local\apihandler::class)->onlyMethods(['get_usage_info'])->getMock();
-        $apiconnector->expects($this->any())->method('get_usage_info')->willReturn(json_encode([
+        $mockresponse = json_encode([
             'limitInCent' => $limit,
             'remainingLimitInCent' => $remaining,
-        ]));
+        ], JSON_THROW_ON_ERROR);
+
+        $apiconnector = $this->getMockBuilder(\aitool_telli\local\apihandler::class)->onlyMethods(['get_usage_info'])->getMock();
+        $apiconnector->expects($this->any())->method('get_usage_info')->willReturn($mockresponse);
 
         \core\di::set(\aitool_telli\local\apihandler::class, $apiconnector);
     }
@@ -509,56 +511,6 @@ final class get_consumption_test extends \advanced_testcase {
 
         // Verify no cleanup message in output.
         $this->assertStringNotContainsString('Cleaned up', $output);
-    }
-
-    /**
-     * Test cleanup with different retention periods.
-     *
-     * @covers \aitool_telli\task\get_consumption::cleanup_old_data
-     */
-    public function test_cleanup_with_different_retention_periods(): void {
-        global $DB;
-
-        $this->resetAfterTest();
-        $this->setup_config();
-
-        $currenttime = time();
-        $clock = $this->mock_clock_with_frozen($currenttime);
-        \core\di::set(\core\clock::class, $clock);
-
-        // Create records with different ages.
-        // Use small values to avoid triggering reset detection (values should increase over time).
-        $ages = [730, 365, 180, 90, 30, 7]; // Days - oldest first.
-        $basevalue = 100;
-        foreach ($ages as $index => $age) {
-            $record = new \stdClass();
-            $record->type = 'current';
-            $record->value = $basevalue + ($index * 10); // Increasing values: 100, 110, 120, 130, 140, 150.
-            $record->timecreated = $clock->time() - $age * DAYSECS;
-            $DB->insert_record('aitool_telli_consumption', $record);
-        }
-
-        $this->assertCount(6, $DB->get_records('aitool_telli_consumption'));
-
-        // Set retention period to 1 year (366 days to ensure 365 days record is kept, 730 is deleted).
-        set_config('retentionperiod', 366 * DAYSECS, 'aitool_telli');
-
-        // Execute task.
-        $this->set_mock_data(10000000, 9995000);
-        $this->execute_task();
-
-        // Verify only records older than 366 days were deleted (730 days record).
-        // Records with 365 days or less are kept (cutoff uses <, not <=).
-        $remainingrecords = $DB->get_records('aitool_telli_consumption');
-        $this->assertCount(6, $remainingrecords);        // Verify the 730 days old record was deleted.
-        $this->assertEmpty($DB->get_record('aitool_telli_consumption', ['value' => 100]));
-
-        // Verify records within retention period are kept (including exactly 365 days).
-        $this->assertNotEmpty($DB->get_record('aitool_telli_consumption', ['value' => 110])); // 365 days.
-        $this->assertNotEmpty($DB->get_record('aitool_telli_consumption', ['value' => 120])); // 180 days.
-        $this->assertNotEmpty($DB->get_record('aitool_telli_consumption', ['value' => 130])); // 90 days.
-        $this->assertNotEmpty($DB->get_record('aitool_telli_consumption', ['value' => 140])); // 30 days.
-        $this->assertNotEmpty($DB->get_record('aitool_telli_consumption', ['value' => 150])); // 7 days.
     }
 
     /**

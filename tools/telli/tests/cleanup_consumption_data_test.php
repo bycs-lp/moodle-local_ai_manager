@@ -41,7 +41,9 @@ final class cleanup_consumption_data_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         // Create test data with false positive aggregate.
-        $time = time();
+        $currenttime = time();
+        $clock = $this->mock_clock_with_frozen($currenttime);
+        $time = $clock->time();
 
         // First current record.
         $record1 = new \stdClass();
@@ -110,7 +112,9 @@ final class cleanup_consumption_data_test extends \advanced_testcase {
 
         $this->resetAfterTest();
 
-        $time = time();
+        $currenttime = time();
+        $clock = $this->mock_clock_with_frozen($currenttime);
+        $time = $clock->time();
 
         // First current record.
         $record1 = new \stdClass();
@@ -160,7 +164,9 @@ final class cleanup_consumption_data_test extends \advanced_testcase {
 
         $this->resetAfterTest();
 
-        $time = time();
+        $currenttime = time();
+        $clock = $this->mock_clock_with_frozen($currenttime);
+        $time = $clock->time();
 
         // Create pattern: high → low (reset 1) → high → low (reset 2).
         $testdata = [
@@ -206,7 +212,9 @@ final class cleanup_consumption_data_test extends \advanced_testcase {
 
         $this->resetAfterTest();
 
-        $time = time();
+        $currenttime = time();
+        $clock = $this->mock_clock_with_frozen($currenttime);
+        $time = $clock->time();
 
         // Create correct data (only increasing values, no resets).
         $testdata = [
@@ -251,9 +259,12 @@ final class cleanup_consumption_data_test extends \advanced_testcase {
 
         $this->resetAfterTest();
 
-        $time1 = 1609459200;
-        $time2 = 1609545600;
-        $time3 = 1609632000;
+        $currenttime = time();
+        $clock = $this->mock_clock_with_frozen($currenttime);
+
+        $time1 = $clock->time() - 200 * DAYSECS;
+        $time2 = $clock->time() - 100 * DAYSECS;
+        $time3 = $clock->time() - 50 * DAYSECS;
 
         $record1 = new \stdClass();
         $record1->type = 'current';
@@ -293,7 +304,9 @@ final class cleanup_consumption_data_test extends \advanced_testcase {
 
         $this->resetAfterTest();
 
-        $time = time();
+        $currenttime = time();
+        $clock = $this->mock_clock_with_frozen($currenttime);
+        $time = $clock->time();
 
         // Test exact epsilon boundary (0.01 difference).
         $record1 = new \stdClass();
@@ -359,7 +372,9 @@ final class cleanup_consumption_data_test extends \advanced_testcase {
 
         $this->resetAfterTest();
 
-        $time = time();
+        $currenttime = time();
+        $clock = $this->mock_clock_with_frozen($currenttime);
+        $time = $clock->time();
 
         // Use real-world precision values (6 decimal places).
         $record1 = new \stdClass();
