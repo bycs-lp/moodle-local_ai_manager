@@ -39,7 +39,13 @@ class connector extends base_connector {
     public function get_models_by_purpose(): array {
         $modelsbypurpose = base_purpose::get_installed_purposes_array();
         $modelsbypurpose['imggen'] = ['dall-e-3', 'gpt-image-1'];
+        $modelsbypurpose['imggen'][] = aitool_option_azure::get_azure_model_name('dalle');
         return $modelsbypurpose;
+    }
+
+    #[\Override]
+    public function get_selectable_models(): array {
+        return array_filter($this->get_models(), fn($model) => aitool_option_azure::get_azure_model_name('dalle') !== $model);
     }
 
     #[\Override]

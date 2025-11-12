@@ -36,7 +36,19 @@ class connector extends \local_ai_manager\base_connector {
     public function get_models_by_purpose(): array {
         $modelsbypurpose = base_purpose::get_installed_purposes_array();
         $modelsbypurpose['tts'] = ['tts-1', 'gpt-4o-mini-tts'];
+        foreach ($modelsbypurpose['tts'] as $model) {
+            $modelsbypurpose['tts'][] = instance::get_model_specific_azure_model_name($model);
+        }
         return $modelsbypurpose;
+    }
+
+    #[\Override]
+    public function get_selectable_models(): array {
+        // Do not offer the azure fake model identifiers as option.
+        return array_filter(
+            $this->get_models(),
+            fn($model) => instance::extract_model_name_from_azure_model_name($model) === $model
+        );
     }
 
     #[\Override]

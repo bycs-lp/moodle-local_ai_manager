@@ -509,7 +509,7 @@ class base_instance {
         $classname = '\\aitool_' . $connector . '\\connector';
         $connectorobject = \core\di::get($classname);
         $availablemodels = [];
-        foreach ($connectorobject->get_models() as $modelname) {
+        foreach ($connectorobject->get_selectable_models() as $modelname) {
             // phpcs:disable moodle.Commenting.TodoComment.MissingInfoInline
             // TODO maybe add lang strings, so we have $availablemodels[$modelname] = get_string($modelname); or sth similar.
             // phpcs:enable moodle.Commenting.TodoComment.MissingInfoInline

@@ -16,6 +16,10 @@
 
 namespace aitool_chatgpt;
 
+use local_ai_manager\ai_manager_utils;
+use local_ai_manager\base_connector;
+use local_ai_manager\local\aitool_option_azure;
+use local_ai_manager\local\connector_factory;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\unit;
 use local_ai_manager\local\usage;
@@ -36,7 +40,7 @@ class connector extends \local_ai_manager\base_connector {
     public function get_models_by_purpose(): array {
         $chatgptmodels =
             ['gpt-3.5-turbo', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'];
-        return [
+        $modelsbypurpose = [
             'chat' => $chatgptmodels,
             'feedback' => $chatgptmodels,
             'singleprompt' => $chatgptmodels,
@@ -46,6 +50,15 @@ class connector extends \local_ai_manager\base_connector {
             'itt' => ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o3', 'o4-mini'],
             'questiongeneration' => $chatgptmodels,
         ];
+        foreach ($modelsbypurpose as $purpose => $models) {
+            $modelsbypurpose[$purpose][] = aitool_option_azure::get_azure_model_name('chatgpt');
+        }
+        return $modelsbypurpose;
+    }
+
+    #[\Override]
+    public function get_selectable_models(): array {
+        return array_filter($this->get_models(), fn($model) => aitool_option_azure::get_azure_model_name('chatgpt') !== $model);
     }
 
     #[\Override]

@@ -59,6 +59,15 @@ abstract class base_connector {
     abstract public function get_models_by_purpose(): array;
 
     /**
+     * Returns the list of models that are selectable when creating/editing AI tools in the frontend.
+     *
+     * @return array list of models
+     */
+    public function get_selectable_models(): array {
+        return $this->get_models();
+    }
+
+    /**
      * Get the available models as plain array.
      *
      * @return array array of strings of model identifiers
