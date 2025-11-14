@@ -208,9 +208,9 @@ class ai_manager_utils {
      * @param int $contextid the contextid
      * @param int $userid the userid of the user, optional
      * @param int $itemid the itemid, optional
-     * @return void
+     * @return array of id numbers of record entries
      */
-    public static function mark_log_entries_as_deleted(string $component, int $contextid, int $userid = 0, int $itemid = 0): void {
+    public static function mark_log_entries_as_deleted(string $component, int $contextid, int $userid = 0, int $itemid = 0): array {
         global $DB;
         $params = [
             'component' => $component,
@@ -225,11 +225,14 @@ class ai_manager_utils {
         // We intentionally do this one by one despite maybe not being very efficient to avoid running into transaction size limit
         // on DB layer.
         $rs = $DB->get_recordset('local_ai_manager_request_log', $params, '', 'id, deleted');
+        $markedasdeletedids = [];
         foreach ($rs as $record) {
             $record->deleted = 1;
             $DB->update_record('local_ai_manager_request_log', $record);
+            $markedasdeletedids[] = $record->id;
         }
         $rs->close();
+        return $markedasdeletedids;
     }
 
     /**
