@@ -297,6 +297,9 @@ $string['usage'] = 'Usage';
 $string['use_openai_by_azure_apiversion'] = 'API version of the Azure resource';
 $string['use_openai_by_azure_deploymentid'] = 'Deployment ID of the Azure resource';
 $string['use_openai_by_azure_heading'] = 'Use OpenAI via Azure';
+$string['use_openai_by_azure_info'] = "All of the information for Azure is now included in the Azure Endpoint \"Target URI\".
+
+Simply copy this URI from your Azure Portal.";
 $string['use_openai_by_azure_name'] = 'Name of the Azure resource';
 $string['useconfirmlink'] = 'Please confirm here: {$a}.';
 $string['userconfig'] = 'User configuration';
