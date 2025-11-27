@@ -559,7 +559,7 @@ class ai_manager_utils {
                 $purposes[] = [
                     'purpose' => $purpose,
                     'available' => self::AVAILABILITY_DISABLED,
-                    'errormessage' => get_string('error_purposenotconfigured', 'local_ai_manager'),
+                    'errormessage' => get_string('error_purposenotconfigured', 'local_ai_manager', $purpose),
                 ];
                 continue;
             }
