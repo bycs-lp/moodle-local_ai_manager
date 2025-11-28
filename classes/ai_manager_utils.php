@@ -98,6 +98,18 @@ class ai_manager_utils {
         }
         $select = implode(' AND ', $conditions);
         $sort = $limit === 0 ? 'timecreated ASC' : 'timecreated DESC';
+        if ($fields !== '*') {
+            $fieldsarray = explode(',', $fields);
+            // We always need id field to make results have a unique identifier.
+            if (!in_array('id', $fieldsarray)) {
+                $fieldsarray = ['id', ...$fieldsarray];
+            }
+            // We always need timecreated field to be able to sort properly.
+            if (!in_array('timecreated', $fieldsarray)) {
+                $fieldsarray[] = 'timecreated';
+            }
+            $fields = implode(',', $fieldsarray);
+        }
         $records = $DB->get_records_select('local_ai_manager_request_log', $select, $params, $sort, $fields, 0, $limit);
         if ($limit !== 0) {
             uasort($records, function ($a, $b) {
