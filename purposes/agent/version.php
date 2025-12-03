@@ -24,7 +24,7 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2025090201;
+$plugin->version  = 2025112800;
 $plugin->requires = 2023042403;
 $plugin->release = '0.0.1';
 $plugin->component = 'aipurpose_agent';

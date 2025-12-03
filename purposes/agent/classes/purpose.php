@@ -38,72 +38,85 @@ use local_ai_manager\request_options;
  */
 class purpose extends base_purpose {
 
-    /** @var array @var array keep the rawoptions during processing */
-    protected $sanitizedoptions = [];
+    /**
+     * @var array Storage variable to keep the raw options sent from the frontend.
+     *
+     * Before doing the AI request the options from the frontend will be stored. After the AI request has been made they
+     * are used to sanitize the AI output.
+     */
+    private array $storedoptions = [];
 
     #[\Override]
     public function get_additional_request_options(array $options): array {
-        return $options;
-    }
-
-    #[\Override]
-    public function get_additional_purpose_options(): array {
-        return ['agentoptions' => base_purpose::PARAM_ARRAY];
-    }
-
-    #[\Override]
-    public function format_prompt_text(string $prompttext, request_options $requestoptions): string {
         global $CFG, $PAGE;
 
-        // Keep the options for validating the ai answer
-        $this->sanitizedoptions = $requestoptions->get_options();
+        // Keep the options for validating the AI answer.
+        $this->storedoptions = $options;
 
-        // If $sanitizedoptions contains domelements add genericprompt and add domelements.
-        if (!isset($this->sanitizedoptions['agentoptions']['formelements'])) {
-            return $prompttext;
+        if (!isset($this->storedoptions['agentoptions']['formelements'])) {
+            return [];
         }
 
         // Build the prompt. Start with generic prompt.
         $genericprompt = file_get_contents($CFG->dirroot . '/local/ai_manager/purposes/agent/assets/genericprompt.txt');
 
         // Add formelement options.
-        $formelementoptionsjson = json_encode(['formelements' => $this->sanitizedoptions['agentoptions']['formelements']]);
+        $formelementoptionsjson = json_encode(['formelements' => $this->storedoptions['agentoptions']['formelements']]);
         $formattedprompt = str_replace('{{formelementsjson}}', $formelementoptionsjson, $genericprompt);
 
         // TODO: Add the moodle doc pages or information from other sources.
         $docpagelink = page_get_doc_link_path($PAGE);
 
-        // TODO: make the next line usable for other modtypes than assignment.
-        if (!empty($this->sanitizedoptions['agentoptions']['pageid'])) {
-            $formattedprompt = str_replace('{{pageid}}', $this->sanitizedoptions['agentoptions']['pageid'], $formattedprompt);
+        if (!empty($this->storedoptions['agentoptions']['pageid'])) {
+            $formattedprompt = str_replace('{{pageid}}', $this->storedoptions['agentoptions']['pageid'], $formattedprompt);
         }
 
-        // Replace the teacherinput.
-        $formattedprompt = str_replace('{{teacherinput}}', $prompttext, $formattedprompt);
+        $currentconversationcontext = $options['conversationcontext'] ?? [];
 
-        return $formattedprompt;
+        return [
+            'conversationcontext' => [
+                ...$currentconversationcontext,
+                [
+                    'sender' => 'user',
+                    'message' => $formattedprompt,
+                ],
+            ],
+        ];
+    }
+
+    #[\Override]
+    public function get_additional_purpose_options(): array {
+        return ['conversationcontext' => base_purpose::PARAM_ARRAY, 'agentoptions' => base_purpose::PARAM_ARRAY];
+    }
+
+    #[\Override]
+    public function format_prompt_text(string $prompttext, request_options $requestoptions): string {
+        return $prompttext;
     }
 
     /**
-     * Check formelements contained in the ai response and remove them if id was not present in the prompt.
+     * Check formelements contained in the AI response and remove them if id was not present in the prompt.
      *
-     * @param array $formelementsfromai
-     * @return array
+     * @param array $formelementsfromai the form elements returned from the AI
+     * @return array the validated/sanitized input array
      */
     protected function validate_formelements(array $formelementsfromai): array {
-
-        // Gather the valid formelements.
+        // We only validate if the stored options are available.
+        // This is only the case if we are in the thread that actually queries the external AI system.
+        // Sanitizing however is not necessary when we just format a stored response.
+        if (empty($this->storedoptions)) {
+            return $formelementsfromai;
+        }
         $validformelementids = [];
-        foreach ($this->sanitizedoptions['agentoptions']['formelements'] as $formelement) {
+        foreach ($this->storedoptions['agentoptions']['formelements'] as $formelement) {
             if (isset($formelement['id'])) {
                 $validformelementids[$formelement['id']] = $formelement['id'];
             }
         }
 
-        // Filter formelements from the ai response by checking id.
+        // Filter formelements from the AI response by checking id.
         $filteredformelements = [];
         foreach ($formelementsfromai as $formelement) {
-
             if (isset($validformelementids[$formelement['id']])) {
                 $filteredformelements[] = $formelement;
             }
@@ -116,10 +129,10 @@ class purpose extends base_purpose {
      * Validates and structures the given chat output data by formatting it into an associative array.
      *
      * @param array $chatoutput An array of chat output data where each element is expected to have 'type' and 'text' keys.
-     * @return array An array of structured chat output data containing 'intro' and 'outro' types along with their corresponding texts.
+     * @return array An array of structured chat output data containing 'intro' and 'outro' types along with their corresponding
+     *     texts.
      */
     protected function validate_chatoutput(array $chatoutput): array {
-
         // Convert into assoziative array;
         $outputrecord = [];
         foreach ($chatoutput as $value) {
@@ -129,14 +142,14 @@ class purpose extends base_purpose {
             $outputrecord[$value['type']] = $value['text'];
         }
         return [
-                [
-                        'type' => 'intro',
-                        'text' => $outputrecord['intro'] ?? '',
-                ],
-                [
-                        'type' => 'outro',
-                        'text' => $outputrecord['outro'] ?? '',
-                ],
+            [
+                'type' => 'intro',
+                'text' => $outputrecord['intro'] ?? '',
+            ],
+            [
+                'type' => 'outro',
+                'text' => $outputrecord['outro'] ?? '',
+            ],
         ];
     }
 
@@ -144,23 +157,24 @@ class purpose extends base_purpose {
     public function format_output(string $output): string {
         // Standard data to return, when validation fails.
         $erroroutput = json_encode([
-                'formelements' => [],
-                'chatoutput' => [
-                        [
-                                'type' => 'intro',
-                                'text' => 'Sorry, I am not able to assist you.'
-                        ],
-                        [
-                                'type' => 'outro',
-                                'text' => ''
-                        ],
-                ]
+            'formelements' => [],
+            'chatoutput' => [
+                [
+                    'type' => 'intro',
+                    'text' => 'Sorry, I am not able to assist you.'
+                ],
+                [
+                    'type' => 'outro',
+                    'text' => ''
+                ],
+            ]
         ]);
 
-        // Do a basic validation here.
         $output = trim($output);
 
-        // Clean the ai response (should be pure json object).
+        // Clean the AI response (should be pure JSON object).
+        // First of all, remove triple backticks and language specifier if present. Some models will keep formatting code like this
+        // despite being instructed to only return plain JSON.
         $matches = [];
         $triplebackticks = "\u{0060}\u{0060}\u{0060}";
         preg_match('/' . $triplebackticks . '[a-zA-Z0-9]*\s*(.*?)\s*' . $triplebackticks . '/s', $output, $matches);
@@ -187,8 +201,9 @@ class purpose extends base_purpose {
 
         // Checking the correct structure of chat output.
         $outputrecord['chatoutput'] = $this->validate_chatoutput($outputrecord['chatoutput']);
-
-        // TODO: do a validation based on sanitized options.
+        foreach ($outputrecord['chatoutput'] as $key => $outputobject) {
+            $outputrecord['chatoutput'][$key]['text'] = format_text($outputobject['text'], FORMAT_MARKDOWN, ['filter' => false]);
+        }
 
         return json_encode($outputrecord);
     }
