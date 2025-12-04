@@ -148,7 +148,11 @@ class manager {
         if (is_null($instance)) {
             return prompt_response::create_from_error(
                 403,
-                get_string('error_purposenotconfigured', 'local_ai_manager', $this->purpose->get_plugin_name()),
+                get_string(
+                    'error_purposenotconfigured',
+                    'local_ai_manager',
+                    get_string('pluginname', 'aipurpose_' . $this->purpose->get_plugin_name())
+                ),
                 ''
             );
         }
