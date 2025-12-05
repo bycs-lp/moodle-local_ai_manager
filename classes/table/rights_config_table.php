@@ -61,6 +61,9 @@ class rights_config_table extends table_sql implements dynamic {
         parent::__construct($uniqid);
 
         $this->tenant = $SESSION->local_ai_manager_tenant;
+        // Dynamic tables create an object of this class via webservice. This however is a separate request and there is no tenant
+        // object in the di container yet when being called. So we need to set the correct one from the session here.
+        \core\di::set(tenant::class, $this->tenant);
 
         $this->set_attribute('id', $this->uniqueid);
         $this->define_baseurl(
