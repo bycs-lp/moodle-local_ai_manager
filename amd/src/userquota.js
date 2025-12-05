@@ -90,7 +90,7 @@ export const renderUserQuota = async(selector, purposes) => {
         unlimited: userquotaData.role === 'role_unlimited'
     };
     const {html, js} = await Templates.renderForPromise('local_ai_manager/userquota', userquotaContentTemplateContext);
-    Templates.appendNodeContents(targetElement, html, js);
+    Templates.replaceNodeContents(targetElement, html, js);
 };
 
 const localizeQueryCountTexts = async() => {

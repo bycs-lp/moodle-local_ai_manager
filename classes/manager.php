@@ -256,6 +256,7 @@ class manager {
         }
 
         $logrecordid = $this->log_request($prompttext, $promptcompletion, $duration, $requestoptions);
+        $promptcompletion->set_logrecordid($logrecordid);
         get_ai_response_succeeded::create_from_prompt_response($promptcompletion, $logrecordid)->trigger();
 
         $promptcompletion->set_content($this->purpose->format_output($promptcompletion->get_content()));
