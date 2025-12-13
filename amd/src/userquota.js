@@ -57,13 +57,13 @@ const fetchUserquotaData = () => fetchMany([{
 /**
  * Renders the current user usage information into the element identified by the given selector.
  *
- * @param {string} selector the id of the element to insert the infobox
+ * @param {string} selectorOrElement a selector or element to insert the infobox into
  * @param {string[]} purposes the purposes to show user quota for
  */
-export const renderUserQuota = async(selector, purposes) => {
+export const renderUserQuota = async(selectorOrElement, purposes) => {
     await localizeQueryCountTexts();
 
-    const targetElement = document.querySelector(selector);
+    const targetElement = (selectorOrElement instanceof Element) ? selectorOrElement : document.querySelector(selectorOrElement);
     const userquotaData = await fetchUserquotaData();
     const purposeInfo = [];
 
@@ -90,7 +90,7 @@ export const renderUserQuota = async(selector, purposes) => {
         unlimited: userquotaData.role === 'role_unlimited'
     };
     const {html, js} = await Templates.renderForPromise('local_ai_manager/userquota', userquotaContentTemplateContext);
-    Templates.appendNodeContents(targetElement, html, js);
+    Templates.replaceNodeContents(targetElement, html, js);
 };
 
 const localizeQueryCountTexts = async() => {
