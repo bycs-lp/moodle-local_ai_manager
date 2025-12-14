@@ -1,0 +1,59 @@
+{
+  "formelements": [
+    {
+      "id": "id_introeditor",
+      "name": "introeditor[text]",
+      "newValue": "Please submit a short essay on the given topic. Your essay will be graded on a scale of 0–5.",
+      "explanation": "This provides the students with clear instructions for the assignment."
+    },
+    {
+      "id": "id_grade_modgrade_type",
+      "name": "grade[modgrade_type]",
+      "newValue": "scale",
+      "explanation": "The grading type is set to 'scale' to allow for a 0–5 grading system."
+    },
+    {
+      "id": "id_grade_modgrade_scale",
+      "name": "grade[modgrade_scale]",
+      "newValue": "5",
+      "explanation": "This sets the grading scale to 0–5, as requested by the teacher."
+    },
+    {
+      "id": "id_assignsubmission_onlinetext_enabled",
+      "name": "assignsubmission_onlinetext_enabled",
+      "newValue": "1",
+      "explanation": "Online text submission is enabled to allow students to submit their essays directly."
+    },
+    {
+      "id": "id_assignsubmission_file_enabled",
+      "name": "assignsubmission_file_enabled",
+      "newValue": "0",
+      "explanation": "File submissions are disabled to keep the assignment simple and focused on online text submissions."
+    },
+    {
+      "id": "id_assignsubmission_onlinetext_wordlimit_enabled",
+      "name": "assignsubmission_onlinetext_wordlimit_enabled",
+      "newValue": "1",
+      "explanation": "Word limit is enabled to set a maximum word count for the essay."
+    },
+    {
+      "id": "id_assignsubmission_onlinetext_wordlimit",
+      "name": "assignsubmission_onlinetext_wordlimit",
+      "newValue": "500",
+      "explanation": "A word limit of 500 is suggested to keep the essays concise and manageable for grading."
+    },
+    {
+      "id": "id_duedate_enabled",
+      "name": "duedate[enabled]",
+      "newValue": "1",
+      "explanation": "The due date is enabled to ensure students know when the assignment is due."
+    },
+    {
+      "id": "id_alwaysshowdescription",
+      "name": "alwaysshowdescription",
+      "newValue": "1",
+      "explanation": "The description will always be visible to students, providing clarity about the assignment requirements."
+    }
+  ],
+  "pageid": "page-mod-assign-mod"
+}
