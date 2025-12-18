@@ -30,7 +30,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class tenantnavbar implements renderable, \templatable {
-
     /**
      * Constructor.
      *
@@ -40,12 +39,12 @@ class tenantnavbar implements renderable, \templatable {
      *
      */
     public function __construct(
-            /**
-             * @var string $relativeactiveurl the base url (without parameters) relative to '/local/ai_manager/'
-             *    which should be shown as active, for example 'tenant_config.php' or 'purpose_config.php'
-             *    or 'statistics.php?purpose=chat'
-             */
-            private string $relativeactiveurl
+        /**
+         * @var string $relativeactiveurl the base url (without parameters) relative to '/local/ai_manager/'
+         *    which should be shown as active, for example 'tenant_config.php' or 'purpose_config.php'
+         *    or 'statistics.php?purpose=chat'
+         */
+        private string $relativeactiveurl
     ) {
     }
 
@@ -69,16 +68,16 @@ class tenantnavbar implements renderable, \templatable {
         $statisticspurposes = [];
         foreach (base_purpose::get_all_purposes() as $purpose) {
             $statisticspurposes[] = [
-                    'pluginname' => $purpose,
-                    'fullname' => get_string('pluginname', 'aipurpose_' . $purpose),
-                    'active' => $this->relativeactiveurl === 'purpose_statistics.php?purpose=' . $purpose,
+                'pluginname' => $purpose,
+                'fullname' => get_string('pluginname', 'aipurpose_' . $purpose),
+                'active' => $this->relativeactiveurl === 'purpose_statistics.php?purpose=' . $purpose,
             ];
         }
         $data->statisticspurposes = $statisticspurposes;
 
         $data->userconfigactive = $data->quotaconfigactive || $data->rightsconfigactive;
         $data->statisticsactive = $data->statisticsoverviewactive
-                || array_reduce($statisticspurposes, fn($current, $node) => $current || $node['active'], false);
+            || array_reduce($statisticspurposes, fn($current, $node) => $current || $node['active'], false);
 
         return $data;
     }

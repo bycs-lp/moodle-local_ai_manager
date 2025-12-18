@@ -58,8 +58,15 @@ class ai_manager_utils {
      * @param array $purposes Array of purpose name strings that should be returned. If empty, all purposes will be returned.
      * @return array array of records of the log table
      */
-    public static function get_log_entries(string $component, int $contextid, int $userid = 0, int $itemid = 0,
-            bool $includedeleted = true, string $fields = '*', array $purposes = []): array {
+    public static function get_log_entries(
+        string $component,
+        int $contextid,
+        int $userid = 0,
+        int $itemid = 0,
+        bool $includedeleted = true,
+        string $fields = '*',
+        array $purposes = []
+    ): array {
         global $DB;
 
         $conditions = [];
@@ -110,11 +117,17 @@ class ai_manager_utils {
         $maincontext = \context::instance_by_id($contextid);
         $tenant = \core\di::get(tenant::class);
         if ($tenant->get_context()->id === $maincontext->id) {
-            $contextids = $DB->get_fieldset('local_ai_manager_request_log', 'DISTINCT contextid',
-                    ['tenant' => $tenant->get_sql_identifier(), 'userid' => $userid, 'coursecontextid' => SYSCONTEXTID]);
+            $contextids = $DB->get_fieldset(
+                'local_ai_manager_request_log',
+                'DISTINCT contextid',
+                ['tenant' => $tenant->get_sql_identifier(), 'userid' => $userid, 'coursecontextid' => SYSCONTEXTID]
+            );
         } else if ($maincontext->contextlevel === CONTEXT_COURSE) {
-            $contextids = $DB->get_fieldset('local_ai_manager_request_log', 'DISTINCT contextid',
-                    ['userid' => $userid, 'coursecontextid' => $maincontext->id]);
+            $contextids = $DB->get_fieldset(
+                'local_ai_manager_request_log',
+                'DISTINCT contextid',
+                ['userid' => $userid, 'coursecontextid' => $maincontext->id]
+            );
         }
 
         if (empty($contextids)) {
@@ -134,7 +147,7 @@ class ai_manager_utils {
             $params['time'] = $time;
         }
         $sql = "SELECT * FROM {local_ai_manager_request_log} WHERE userid = :userid AND contextid " . $insql . $timesql .
-                " ORDER BY timecreated DESC";
+            " ORDER BY timecreated DESC";
         $records = $DB->get_records_sql($sql, $params);
         if (empty($records)) {
             return [];
@@ -147,17 +160,17 @@ class ai_manager_utils {
             $contextname = $context ? $context->get_context_name() : get_string('contextdeleted', 'local_ai_manager');
             $canviewpromptsdates = $context ? has_capability('local/ai_manager:viewpromptsdates', $context) : false;
             $promptobject = [
-                    'sequencenumber' => $sequencenumber,
-                    'prompt' => format_text($record->prompttext, FORMAT_MARKDOWN),
-                    'promptshortened' => self::shorten_prompt(format_text($record->prompttext, FORMAT_MARKDOWN)),
-                    'promptcompletion' => format_text($record->promptcompletion, FORMAT_MARKDOWN),
-                    'promptcompletionshortened' => self::shorten_prompt(format_text($record->promptcompletion, FORMAT_MARKDOWN)),
-                    'date' => $canviewpromptsdates ? $record->timecreated : 0,
+                'sequencenumber' => $sequencenumber,
+                'prompt' => format_text($record->prompttext, FORMAT_MARKDOWN),
+                'promptshortened' => self::shorten_prompt(format_text($record->prompttext, FORMAT_MARKDOWN)),
+                'promptcompletion' => format_text($record->promptcompletion, FORMAT_MARKDOWN),
+                'promptcompletionshortened' => self::shorten_prompt(format_text($record->promptcompletion, FORMAT_MARKDOWN)),
+                'date' => $canviewpromptsdates ? $record->timecreated : 0,
             ];
 
             if (in_array($record->purpose, ['imggen', 'tts'])) {
                 $promptobject['promptcompletion'] =
-                        '| ' . get_string('promptcompletitionfilesnotavailable', 'local_ai_manager') . ' |';
+                    '| ' . get_string('promptcompletitionfilesnotavailable', 'local_ai_manager') . ' |';
                 $promptobject['promptcompletionshortened'] = $promptobject['promptcompletion'];
             }
 
@@ -167,10 +180,10 @@ class ai_manager_utils {
             } else {
                 $promptobject['firstprompt'] = true;
                 $entries[$record->contextid] = [
-                        'contextid' => $record->contextid,
-                        'contextdisplayname' => $contextname,
-                        'prompts' => [$promptobject],
-                        'viewpromptsdates' => $canviewpromptsdates,
+                    'contextid' => $record->contextid,
+                    'contextdisplayname' => $contextname,
+                    'prompts' => [$promptobject],
+                    'viewpromptsdates' => $canviewpromptsdates,
                 ];
             }
             $sequencenumber++;
@@ -193,8 +206,8 @@ class ai_manager_utils {
     public static function mark_log_entries_as_deleted(string $component, int $contextid, int $userid = 0, int $itemid = 0): void {
         global $DB;
         $params = [
-                'component' => $component,
-                'contextid' => $contextid,
+            'component' => $component,
+            'contextid' => $contextid,
         ];
         if (!empty($userid)) {
             $params['userid'] = $userid;
@@ -222,12 +235,14 @@ class ai_manager_utils {
      */
     public static function itemid_exists(string $component, int $contextid, int $itemid): bool {
         global $DB;
-        return $DB->record_exists('local_ai_manager_request_log',
-                [
-                        'component' => $component,
-                        'contextid' => $contextid,
-                        'itemid' => $itemid,
-                ]);
+        return $DB->record_exists(
+            'local_ai_manager_request_log',
+            [
+                'component' => $component,
+                'contextid' => $contextid,
+                'itemid' => $itemid,
+            ]
+        );
     }
 
     /**
@@ -240,9 +255,9 @@ class ai_manager_utils {
     public static function get_next_free_itemid(string $component, int $contextid): int {
         global $DB;
         $sql = "SELECT MAX(itemid) as maxitemid FROM {local_ai_manager_request_log} "
-                . "WHERE component = :component AND contextid = :contextid";
+            . "WHERE component = :component AND contextid = :contextid";
         $max =
-                intval($DB->get_field_sql($sql, ['component' => $component, 'contextid' => $contextid]));
+            intval($DB->get_field_sql($sql, ['component' => $component, 'contextid' => $contextid]));
         return empty($max) ? 1 : $max + 1;
     }
 
@@ -275,26 +290,30 @@ class ai_manager_utils {
      * @param ?string $tenant the tenant to retrieve the information for. If null, the current tenant will be used
      * @return array complex associative array containing all the needed configurations
      */
-    public static function get_ai_config(stdClass $user, int $contextid, ?string $tenant = null,
-            ?array $selectedpurposes = []): array {
+    public static function get_ai_config(
+        stdClass $user,
+        int $contextid,
+        ?string $tenant = null,
+        ?array $selectedpurposes = []
+    ): array {
         if (!is_null($tenant)) {
             $tenant = new tenant($tenant);
             \core\di::set(tenant::class, $tenant);
         }
         $tenant = \core\di::get(tenant::class);
 
-        $availablepurposes = \local_ai_manager\plugininfo\aipurpose::get_enabled_plugins();
+        $installedpurposes = array_keys(core_plugin_manager::instance()->get_installed_plugins('aipurpose'));
         if (empty($selectedpurposes)) {
             // If no purpose is specified, we return the config for all purposes.
-            $selectedpurposes = $availablepurposes;
+            $selectedpurposes = $installedpurposes;
         }
 
         $availability = self::determine_availability($user, $tenant, $contextid);
         $purposes = self::determine_purposes_availability($user, $contextid, $selectedpurposes);
 
         return [
-                'availability' => $availability,
-                'purposes' => $purposes,
+            'availability' => $availability,
+            'purposes' => $purposes,
         ];
     }
 
@@ -314,13 +333,17 @@ class ai_manager_utils {
         $tools = [];
         foreach (\local_ai_manager\plugininfo\aitool::get_enabled_plugins() as $toolname) {
             $tool['name'] = $toolname;
-            $addurl = new moodle_url('/local/ai_manager/edit_instance.php',
-                    [
-                            'tenant' => $tenant->get_identifier(),
-                            'returnurl' => (new moodle_url('/local/ai_manager/tenant_config.php',
-                                    ['tenant' => $tenant->get_identifier()]))->out(),
-                            'connectorname' => $toolname,
-                    ]);
+            $addurl = new moodle_url(
+                '/local/ai_manager/edit_instance.php',
+                [
+                    'tenant' => $tenant->get_identifier(),
+                    'returnurl' => (new moodle_url(
+                        '/local/ai_manager/tenant_config.php',
+                        ['tenant' => $tenant->get_identifier()]
+                    ))->out(),
+                    'connectorname' => $toolname,
+                ]
+            );
             $tool['addurl'] = $addurl->out(false);
             $tools[] = $tool;
         }
@@ -328,8 +351,8 @@ class ai_manager_utils {
         $aiwarningurl = get_config('local_ai_manager', 'aiwarningurl') ?: '';
 
         return [
-                'aiwarningurl' => $aiwarningurl,
-                'tools' => $tools,
+            'aiwarningurl' => $aiwarningurl,
+            'tools' => $tools,
         ];
     }
 
@@ -429,6 +452,16 @@ class ai_manager_utils {
         }
 
         $userinfo = new userinfo($user->id);
+        $context = context::instance_by_id($contextid);
+        if ($userinfo->get_scope() === userinfo::SCOPE_COURSES_ONLY) {
+            $parentcoursecontext = self::find_closest_parent_course_context($context);
+            if (is_null($parentcoursecontext)) {
+                $availability['available'] = self::AVAILABILITY_HIDDEN;
+                return $availability;
+            }
+        }
+
+        // From here on the checks that cause the state "disabled" are being performed.
         if ($userinfo->is_locked()) {
             $availability['available'] = self::AVAILABILITY_DISABLED;
             $availability['errormessage'] = get_string('error_http403blocked', 'local_ai_manager');
@@ -440,17 +473,8 @@ class ai_manager_utils {
             $url = new moodle_url('/local/ai_manager/confirm_ai_usage.php');
             $confirmlink = \html_writer::link($url, $url->out(), ['target' => '_blank']);
             $availability['errormessage'] = get_string('error_http403notconfirmed', 'local_ai_manager')
-                    . '. ' . get_string('useconfirmlink', 'local_ai_manager', $confirmlink);
+                . '. ' . get_string('useconfirmlink', 'local_ai_manager', $confirmlink);
             return $availability;
-        }
-
-        $context = context::instance_by_id($contextid);
-        if ($userinfo->get_scope() === userinfo::SCOPE_COURSES_ONLY) {
-            $parentcoursecontext = self::find_closest_parent_course_context($context);
-            if (is_null($parentcoursecontext)) {
-                $availability['available'] = self::AVAILABILITY_HIDDEN;
-                return $availability;
-            }
         }
 
         return $availability;
@@ -477,18 +501,32 @@ class ai_manager_utils {
         $purposes = [];
         $purposeconfig = $configmanager->get_purpose_config($userinfo->get_role());
         $factory = \core\di::get(\local_ai_manager\local\connector_factory::class);
+        $enabledpurposes = \local_ai_manager\plugininfo\aipurpose::get_enabled_plugins();
         foreach (array_keys(core_plugin_manager::instance()->get_installed_plugins('aipurpose')) as $purpose) {
             if (!in_array($purpose, $selectedpurposes)) {
                 continue;
             }
+
+            if (!in_array($purpose, $enabledpurposes)) {
+                $purposes[] = [
+                    'purpose' => $purpose,
+                    'available' => self::AVAILABILITY_HIDDEN,
+                    'errormessage' => get_string(
+                        'error_purposedisabled',
+                        'local_ai_manager',
+                        get_string('pluginname', 'aipurpose_' . $purpose)
+                    ),
+                ];
+                continue;
+            }
+
             $purposeinstance = $factory->get_purpose_by_purpose_string($purpose);
             $userusage = new userusage($purposeinstance, $user->id);
-
             if (empty($purposeconfig[$purpose])) {
                 $purposes[] = [
-                        'purpose' => $purpose,
-                        'available' => self::AVAILABILITY_DISABLED,
-                        'errormessage' => get_string('error_purposenotconfigured', 'local_ai_manager'),
+                    'purpose' => $purpose,
+                    'available' => self::AVAILABILITY_DISABLED,
+                    'errormessage' => get_string('error_purposenotconfigured', 'local_ai_manager'),
                 ];
                 continue;
             }
@@ -498,28 +536,30 @@ class ai_manager_utils {
             $instance = $factory->get_connector_instance_by_purpose($purpose, $userinfo->get_role());
             if (!$instance->is_enabled()) {
                 $purposes[] = [
-                        'purpose' => $purpose,
-                        'available' => self::AVAILABILITY_DISABLED,
-                        'errormessage' => get_string('exception_instanceunavailable', 'local_ai_manager'),
+                    'purpose' => $purpose,
+                    'available' => self::AVAILABILITY_DISABLED,
+                    'errormessage' => get_string('exception_instanceunavailable', 'local_ai_manager'),
                 ];
                 continue;
             }
 
-            if ($userusage->get_currentusage() >=
-                    $configmanager->get_max_requests($purposeinstance, $userinfo->get_role())) {
+            if (
+                $userusage->get_currentusage() >=
+                $configmanager->get_max_requests($purposeinstance, $userinfo->get_role())
+            ) {
                 $purposes[] = [
-                        'purpose' => $purpose,
-                        'available' => self::AVAILABILITY_DISABLED,
-                        'errormessage' => get_string('error_limitreached', 'local_ai_manager'),
+                    'purpose' => $purpose,
+                    'available' => self::AVAILABILITY_DISABLED,
+                    'errormessage' => get_string('error_limitreached', 'local_ai_manager'),
                 ];
                 continue;
             }
 
             if ($configmanager->get_max_requests($purposeinstance, $userinfo->get_role()) === 0) {
                 $purposes[] = [
-                        'purpose' => $purpose,
-                        'available' => self::AVAILABILITY_DISABLED,
-                        'errormessage' => get_string('error_purposenotconfigured', 'local_ai_manager'),
+                    'purpose' => $purpose,
+                    'available' => self::AVAILABILITY_DISABLED,
+                    'errormessage' => get_string('error_purposenotconfigured', 'local_ai_manager'),
                 ];
                 continue;
             }
@@ -529,17 +569,17 @@ class ai_manager_utils {
             \core\di::get(\core\hook\manager::class)->dispatch($restrictionhook);
             if (!$restrictionhook->is_allowed()) {
                 $purposes[] = [
-                        'purpose' => $purpose,
-                        'available' => self::AVAILABILITY_HIDDEN,
-                        'errormessage' => $restrictionhook->get_message(),
+                    'purpose' => $purpose,
+                    'available' => self::AVAILABILITY_HIDDEN,
+                    'errormessage' => $restrictionhook->get_message(),
                 ];
                 continue;
             }
 
             $purposes[] = [
-                    'purpose' => $purpose,
-                    'available' => self::AVAILABILITY_AVAILABLE,
-                    'errormessage' => '',
+                'purpose' => $purpose,
+                'available' => self::AVAILABILITY_AVAILABLE,
+                'errormessage' => '',
             ];
         }
         return $purposes;
@@ -584,9 +624,9 @@ class ai_manager_utils {
         foreach (\local_ai_manager\plugininfo\aipurpose::get_enabled_plugins() as $purpose) {
             $purposeinstance = $connectorfactory->get_purpose_by_purpose_string($purpose);
             $purposearray = [
-                    'purposename' => $purpose,
-                    'purposedisplayname' => get_string('pluginname', 'aipurpose_' . $purpose),
-                    'purposedescription' => $purposeinstance->get_description(),
+                'purposename' => $purpose,
+                'purposedisplayname' => get_string('pluginname', 'aipurpose_' . $purpose),
+                'purposedescription' => $purposeinstance->get_description(),
             ];
             if (isset($purposeusageinfo[$purpose]) && !empty($purposeusageinfo[$purpose])) {
                 $data = $purposeusageinfo[$purpose];

@@ -28,7 +28,6 @@ namespace local_ai_manager\task;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class data_wiper extends \core\task\scheduled_task {
-
     /**
      * Returns the name of the task.
      *

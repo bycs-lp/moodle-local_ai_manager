@@ -27,7 +27,6 @@ use moodle_url;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class aipurposes_admin_table extends \local_ai_manager\table\aitools_admin_table {
-
     #[\Override]
     protected function get_plugintype(): string {
         return 'aipurpose';
@@ -36,7 +35,7 @@ class aipurposes_admin_table extends \local_ai_manager\table\aitools_admin_table
     #[\Override]
     public function guess_base_url(): void {
         $this->define_baseurl(
-                new moodle_url('/admin/settings.php', ['section' => 'aipurposepluginsmanagement'])
+            new moodle_url('/admin/settings.php', ['section' => 'aipurposepluginsmanagement'])
         );
     }
 }

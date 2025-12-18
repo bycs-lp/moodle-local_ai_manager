@@ -16,8 +16,6 @@
 
 namespace aitool_telli\local;
 
-use core\http_client;
-use Psr\Http\Client\ClientExceptionInterface;
 use stdClass;
 
 /**
@@ -29,7 +27,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class utils {
-
     /**
      * Helper function to retrieve usage and model info data from the Telli API.
      *
@@ -38,53 +35,42 @@ class utils {
      * @return stdClass
      */
     public static function get_api_info(string $apikey, string $baseurl): stdClass {
-        $client = new http_client([
-            // We intentionally do not use the global local_ai_manager timeout setting, because here
-            // we are not requesting any AI processing, but just query information from the API endpoints.
-                'timeout' => 10,
-        ]);
-
-        $options['headers'] = [
-                'Authorization' => 'Bearer ' . $apikey,
-                'Content-Type' => 'application/json;charset=utf-8',
-        ];
-
-        if (!str_ends_with($baseurl, '/')) {
-            $baseurl .= '/';
-        }
-
-        $usageendpoint = $baseurl . 'v1/usage';
-
-        try {
-            $response = $client->get($usageendpoint, $options);
-        } catch (ClientExceptionInterface $exception) {
-            throw new \moodle_exception('err_apiresult', 'aitool_telli', '', $exception->getMessage());
-        }
-        if ($response->getStatusCode() === 200) {
-            $usagereturn = $response->getBody()->getContents();
-        } else {
-            throw new \moodle_exception('err_apiresult', 'aitool_telli', '',
-                    get_string('statuscode', 'aitool_telli') . ': ' . $response->getStatusCode() . ': ' .
-                    $response->getReasonPhrase());
-        }
-
-        $modelsendpoint = $baseurl . 'v1/models';
-
-        try {
-            $response = $client->get($modelsendpoint, $options);
-        } catch (ClientExceptionInterface $exception) {
-            throw new \moodle_exception('err_apiresult', 'aitool_telli', '', $exception->getMessage());
-        }
-        if ($response->getStatusCode() === 200) {
-            $modelsreturn = $response->getBody()->getContents();
-        } else {
-            throw new \moodle_exception('err_apiresult', 'aitool_telli', '',
-                    get_string('statuscode', 'aitool_telli') . $response->getStatusCode() . ': ' . $response->getReasonPhrase());
-        }
-
         $return = new stdClass();
-        $return->usage = $usagereturn;
-        $return->models = $modelsreturn;
+        $apiconnector = \core\di::get(\aitool_telli\local\apihandler::class);
+        $apiconnector->init($apikey, $baseurl);
+        $return->usage = $apiconnector->get_usage_info();
+        $return->models = $apiconnector->get_models_info();
         return $return;
+    }
+
+    /**
+     * Calculates the whole consumption since a given time.
+     *
+     * @param int $sincetime the timestamp since when the whole consumption should be calculated
+     * @return float the whole consumption in eurocents
+     */
+    public static function get_whole_consumption(int $sincetime): float {
+        global $DB;
+        $aggregatesum =
+            $DB->get_field_sql(
+                'SELECT SUM(value) FROM {aitool_telli_consumption} WHERE type = :type AND timecreated > :sincetime',
+                ['type' => 'aggregate', 'sincetime' => $sincetime]
+            );
+        if (!$aggregatesum) {
+            $aggregatesum = 0;
+        }
+        $maxaggregatetimecreated =
+            $DB->get_field_sql(
+                'SELECT MAX(timecreated) FROM {aitool_telli_consumption} WHERE type = :type AND timecreated > :sincetime',
+                ['type' => 'aggregate', 'sincetime' => $sincetime]
+            );
+        if (!$maxaggregatetimecreated) {
+            $maxaggregatetimecreated = $sincetime;
+        }
+        $sql = "SELECT MAX(value)FROM {aitool_telli_consumption}
+                 WHERE type = :type AND timecreated > :maxaggregatetime";
+        $params = ['type' => 'current', 'maxaggregatetime' => $maxaggregatetimecreated];
+        $result = $DB->get_field_sql($sql, $params);
+        return (float) $aggregatesum + (float) $result;
     }
 }

@@ -36,7 +36,6 @@ use local_ai_manager\base_purpose;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class purpose extends base_purpose {
-
     #[\Override]
     public function get_additional_request_options(array $options): array {
         if (array_key_exists('conversationcontext', $options)) {

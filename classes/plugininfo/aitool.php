@@ -28,7 +28,6 @@ use core_plugin_manager;
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class aitool extends base {
-
     #[\Override]
     public static function get_enabled_plugins() {
         global $DB;
@@ -43,8 +42,12 @@ class aitool extends base {
         }
 
         [$insql, $params] = $DB->get_in_or_equal($installed, SQL_PARAMS_NAMED);
-        $disabled = $DB->get_records_select('config_plugins', "plugin $insql AND name = 'enabled' AND value = '0'", $params,
-                'plugin ASC');
+        $disabled = $DB->get_records_select(
+            'config_plugins',
+            "plugin $insql AND name = 'enabled' AND value = '0'",
+            $params,
+            'plugin ASC'
+        );
         foreach ($disabled as $conf) {
             unset($plugins[explode('_', $conf->plugin, 2)[1]]);
         }

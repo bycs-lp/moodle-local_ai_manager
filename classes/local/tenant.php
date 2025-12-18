@@ -27,7 +27,6 @@ use local_ai_manager\hook\custom_tenant;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class tenant {
-
     /** @var string identifier of the default tenant */
     public const DEFAULT_IDENTIFIER = 'default';
 

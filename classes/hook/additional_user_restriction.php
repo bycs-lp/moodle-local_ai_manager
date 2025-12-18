@@ -33,7 +33,6 @@ use local_ai_manager\local\userinfo;
 #[\core\attribute\label('Allows plugins to further restrict the use of AI tools through local_ai_manager.')]
 #[\core\attribute\tags('local_ai_manager')]
 class additional_user_restriction {
-
     /** @var bool If access to the AI tool should be granted or not */
     private bool $allowed = true;
     /** @var int The corresponding HTTP status code, 200 if access is being granted */
@@ -48,11 +47,11 @@ class additional_user_restriction {
      */
     public function __construct(
         /** @var userinfo The userinfo object of the user that tries to access an AI tool */
-            private readonly userinfo $userinfo,
-            /** @var ?context The context or null if no context has been specified */
-            private readonly ?context $context,
-            /** @var base_purpose The purpose which is being tried to use */
-            private readonly base_purpose $purpose,
+        private readonly userinfo $userinfo,
+        /** @var ?context The context or null if no context has been specified */
+        private readonly ?context $context,
+        /** @var base_purpose The purpose which is being tried to use */
+        private readonly base_purpose $purpose,
     ) {
     }
 

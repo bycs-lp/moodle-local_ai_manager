@@ -29,7 +29,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class instance extends base_instance {
-
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
         aitool_option_azure::extend_form_definition($mform);
@@ -38,8 +37,14 @@ class instance extends base_instance {
     #[\Override]
     protected function get_extended_formdata(): stdClass {
         $data = new stdClass();
-        foreach (aitool_option_azure::add_azure_options_to_form_data($this->get_customfield2(), $this->get_customfield3(),
-                $this->get_customfield4(), $this->get_customfield5()) as $key => $value) {
+        foreach (
+            aitool_option_azure::add_azure_options_to_form_data(
+                $this->get_customfield2(),
+                $this->get_customfield3(),
+                $this->get_customfield4(),
+                $this->get_customfield5()
+            ) as $key => $value
+        ) {
             $data->{$key} = $value;
         }
         return $data;
@@ -51,8 +56,8 @@ class instance extends base_instance {
 
         if (!empty($enabled)) {
             $endpoint = 'https://' . $resourcename .
-                    '.openai.azure.com/openai/deployments/'
-                    . $deploymentid . '/images/generations?api-version=' . $apiversion;
+                '.openai.azure.com/openai/deployments/'
+                . $deploymentid . '/images/generations?api-version=' . $apiversion;
             // We have an empty model because the model is preconfigured if we're using azure.
             // So we overwrite the default "preconfigured" value by a better model name.
             $this->set_model(aitool_option_azure::get_azure_model_name($this->get_connector()));

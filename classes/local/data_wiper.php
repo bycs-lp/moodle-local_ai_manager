@@ -30,7 +30,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class data_wiper {
-
     /** @var int the date until which all data should be anonymized. */
     private int $anonymizedate;
 
@@ -62,8 +61,10 @@ class data_wiper {
      */
     public function anonymize_request_log_data(): void {
         global $DB;
-        $rs = $DB->get_recordset_select('local_ai_manager_request_log', "timecreated < :anonymizedate",
-                ['anonymizedate' => $this->anonymizedate]
+        $rs = $DB->get_recordset_select(
+            'local_ai_manager_request_log',
+            "timecreated < :anonymizedate",
+            ['anonymizedate' => $this->anonymizedate]
         );
         foreach ($rs as $record) {
             $anonymizecontext = false;
@@ -71,7 +72,7 @@ class data_wiper {
             if ($context && $context->contextlevel == CONTEXT_USER && $context->instanceid == $record->userid) {
                 $anonymizecontext = true;
             }
-            $this->anonymize_request_log_record($record, $anonymizecontext);;
+            $this->anonymize_request_log_record($record, $anonymizecontext);
         }
         $rs->close();
     }
@@ -81,8 +82,10 @@ class data_wiper {
      */
     public function delete_request_log_data(): void {
         global $DB;
-        $rs = $DB->get_recordset_select('local_ai_manager_request_log', "timecreated < :deletedate",
-                ['deletedate' => $this->deletedate]
+        $rs = $DB->get_recordset_select(
+            'local_ai_manager_request_log',
+            "timecreated < :deletedate",
+            ['deletedate' => $this->deletedate]
         );
         foreach ($rs as $record) {
             $DB->delete_records('local_ai_manager_request_log', ['id' => $record->id]);

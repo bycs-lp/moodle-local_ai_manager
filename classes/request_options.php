@@ -28,19 +28,18 @@ use context;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class request_options {
-
     /**
      * Create the request_options object.
      */
     public function __construct(
         /** @var base_purpose The purpose the request should use */
-            private readonly base_purpose $purpose,
-            /** @var context The context in which the request is being performed */
-            private readonly context $context,
-            /** @var string The name of the component from which the request is being performed */
-            private readonly string $component,
-            /** @var array additional request options for the AI request */
-            private array $options = []
+        private readonly base_purpose $purpose,
+        /** @var context The context in which the request is being performed */
+        private readonly context $context,
+        /** @var string The name of the component from which the request is being performed */
+        private readonly string $component,
+        /** @var array additional request options for the AI request */
+        private array $options = []
     ) {
         $this->options = $this->purpose->get_request_options($options);
     }
@@ -101,13 +100,17 @@ class request_options {
         foreach ($this->options as $key => $value) {
             if (!array_key_exists($key, $this->purpose->get_available_purpose_options())) {
                 throw new coding_exception('Option ' . $key . ' is not allowed for the purpose ' .
-                        $this->purpose->get_plugin_name());
+                    $this->purpose->get_plugin_name());
             }
             if (is_array($this->purpose->get_available_purpose_options()[$key])) {
-                if (!in_array($value[0], array_map(fn($valueobject) => $valueobject['key'],
-                        $this->purpose->get_available_purpose_options()[$key]))) {
+                if (
+                    !in_array($value[0], array_map(
+                        fn($valueobject) => $valueobject['key'],
+                        $this->purpose->get_available_purpose_options()[$key]
+                    ))
+                ) {
                     throw new coding_exception('Value ' . $value[0] . ' for option ' . $key . ' is not allowed for the purpose ' .
-                            $this->purpose->get_plugin_name());
+                        $this->purpose->get_plugin_name());
                 }
             } else {
                 if ($this->purpose->get_available_purpose_options()[$key] === base_purpose::PARAM_ARRAY) {

@@ -32,7 +32,6 @@ use local_ai_manager\local\connector_factory;
 #[\core\attribute\label('Allows plugins to add information about which purpose they are using and where exactly.')]
 #[\core\attribute\tags('local_ai_manager')]
 class purpose_usage {
-
     /**
      * @var string[] array with the localized display names of the components, indexed by component name.
      *

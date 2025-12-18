@@ -30,7 +30,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class instance extends base_instance {
-
     /** @var string Constant for declaring that Gemini should be used over the open Google AI API. */
     const GOOGLE_BACKEND_GOOGLEAI = 'googleai';
 
@@ -39,11 +38,15 @@ class instance extends base_instance {
 
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
-        $mform->addElement('select', 'googlebackend', get_string('googlebackend', 'aitool_gemini'),
-                [
-                        self::GOOGLE_BACKEND_GOOGLEAI => get_string('googlebackendgoogleai', 'aitool_gemini'),
-                        self::GOOGLE_BACKEND_VERTEXAI => get_string('googlebackendvertexai', 'aitool_gemini'),
-                ]);
+        $mform->addElement(
+            'select',
+            'googlebackend',
+            get_string('googlebackend', 'aitool_gemini'),
+            [
+                self::GOOGLE_BACKEND_GOOGLEAI => get_string('googlebackendgoogleai', 'aitool_gemini'),
+                self::GOOGLE_BACKEND_VERTEXAI => get_string('googlebackendvertexai', 'aitool_gemini'),
+            ]
+        );
         aitool_option_vertexai::extend_form_definition($mform);
         $mform->hideIf('serviceaccountjson', 'googlebackend', 'neq', 'vertexai');
         $mform->hideIf('apikey', 'googlebackend', 'eq', 'vertexai');
@@ -80,7 +83,7 @@ class instance extends base_instance {
             $this->set_endpoint($baseendpoint . ':generateContent');
         } else {
             $this->set_endpoint('https://generativelanguage.googleapis.com/v1beta/models/' . $this->get_model() .
-                    ':generateContent');
+                ':generateContent');
         }
     }
 
@@ -92,7 +95,6 @@ class instance extends base_instance {
         }
         $errors = array_merge($errors, aitool_option_temperature::validate_temperature($data));
         return $errors;
-
     }
 
     /**

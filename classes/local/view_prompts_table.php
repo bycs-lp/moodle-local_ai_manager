@@ -36,7 +36,6 @@ require_once($CFG->libdir . '/tablelib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class view_prompts_table extends table_sql {
-
     /** @var array Array of user ids to not show the view prompt link. */
     private array $excludeduserids = [];
 
@@ -48,10 +47,10 @@ class view_prompts_table extends table_sql {
      * @param moodle_url $baseurl the current base url on which the table is being displayed
      */
     public function __construct(
-            string $uniqid,
-            tenant $tenant,
-            moodle_url $baseurl,
-            \context $context
+        string $uniqid,
+        tenant $tenant,
+        moodle_url $baseurl,
+        \context $context
     ) {
         global $DB;
         parent::__construct($uniqid);
@@ -60,9 +59,9 @@ class view_prompts_table extends table_sql {
         // Define the list of columns to show.
         $columns = ['lastname', 'firstname', 'viewprompts'];
         $headers = [
-                get_string('lastname'),
-                get_string('firstname'),
-                get_string('viewprompts', 'local_ai_manager'),
+            get_string('lastname'),
+            get_string('firstname'),
+            get_string('viewprompts', 'local_ai_manager'),
         ];
 
         $this->define_headers($headers);
@@ -89,7 +88,7 @@ class view_prompts_table extends table_sql {
             } else {
                 $userids = array_map(fn($user) => $user->id, $users);
                 [$insql, $inparams] =
-                        $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'insql');
+                    $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'insql');
                 $where .= 'AND u.id ' . $insql;
                 $params = array_merge($params, $inparams);
             }
@@ -98,15 +97,20 @@ class view_prompts_table extends table_sql {
             $params = array_merge($params, ['tenant' => $tenant->get_sql_identifier()]);
         }
 
-        $rolestoexcludeids = explode(',', get_config('local_ai_manager', 'privilegedroles'));
+        $privilegedroles = get_config('local_ai_manager', 'privilegedroles');
+        if (empty($privilegedroles)) {
+            $this->excludeduserids = [];
+        } else {
+            $rolestoexcludeids = explode(',', $privilegedroles);
 
-        $roleexcludeparams['systemcontextid'] = SYSCONTEXTID;
-        [$roleexcludeinsql, $roleexcludeinparams] = $DB->get_in_or_equal($rolestoexcludeids, SQL_PARAMS_NAMED);
-        $roleexcludeparams = array_merge($roleexcludeparams, $roleexcludeinparams);
-        $roleexcludesql = "SELECT u.id FROM " . $from . " "
+            $roleexcludeparams['systemcontextid'] = SYSCONTEXTID;
+            [$roleexcludeinsql, $roleexcludeinparams] = $DB->get_in_or_equal($rolestoexcludeids, SQL_PARAMS_NAMED);
+            $roleexcludeparams = array_merge($roleexcludeparams, $roleexcludeinparams);
+            $roleexcludesql = "SELECT u.id FROM " . $from . " "
                 . "LEFT JOIN {role_assignments} ra ON ra.userid = u.id AND ra.contextid = :systemcontextid "
                 . "WHERE ra.roleid " . $roleexcludeinsql;
-        $this->excludeduserids = $DB->get_fieldset_sql($roleexcludesql, array_merge($params, $roleexcludeparams));
+            $this->excludeduserids = $DB->get_fieldset_sql($roleexcludesql, array_merge($params, $roleexcludeparams));
+        }
 
         $this->no_sorting('viewprompts');
         $this->collapsible(false);
@@ -121,13 +125,13 @@ class view_prompts_table extends table_sql {
         if ($column === 'viewprompts') {
             if (!in_array($row->id, $this->excludeduserids)) {
                 return \core\output\html_writer::tag(
-                        'button',
-                        \core\output\html_writer::tag('i', '', ['class' => 'fa fa-search-plus']),
-                        [
-                                'class' => 'btn btn-icon',
-                                'data-view-prompts-userid' => $row->id,
-                                'data-view-prompts-userdisplayname' => $row->firstname . ' ' . $row->lastname,
-                        ]
+                    'button',
+                    \core\output\html_writer::tag('i', '', ['class' => 'fa fa-search-plus']),
+                    [
+                        'class' => 'btn btn-icon',
+                        'data-view-prompts-userid' => $row->id,
+                        'data-view-prompts-userdisplayname' => $row->firstname . ' ' . $row->lastname,
+                    ]
                 );
             } else {
                 return '';

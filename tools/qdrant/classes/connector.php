@@ -41,10 +41,6 @@ class connector extends \local_ai_manager\base_connector {
 
     public function make_request(array $data, request_options $requestoptions): request_response
     {
-        debugging("connector::make_request");
-        print_r($data);
-        print_r($requestoptions);
-     
         $client = new http_client([
             'timeout' => get_config('local_ai_manager', 'requesttimeout'),
             'verify' => !empty(get_config('local_ai_manager', 'verifyssl')),
@@ -53,16 +49,11 @@ class connector extends \local_ai_manager\base_connector {
         $action = $requestoptions->get_options()['action'] ?? 'retrieve';
         $payloadfunc = "get_payload_$action";
         $options['headers'] = $this->get_headers();
-        $options['body'] = json_encode($this->$payloadfunc($data));
+        $options['body'] = json_encode($this->$payloadfunc($data, $requestoptions));
 
         [$method, $endpoint] = $this->get_endpoint($this->instance->get_endpoint(), $action);
-        var_dump($method);
-        var_dump($endpoint);
-        var_dump($options);
-        
         try {
             $response = $client->request($method, $endpoint, $options);
-            // $response = $client->post($endpoint, $options);
         } catch (ClientExceptionInterface $exception) {
             return $this->create_error_response_from_exception($exception);
         }
@@ -82,8 +73,8 @@ class connector extends \local_ai_manager\base_connector {
     /**
      * Generate API Payload for a "retrieve" action.
      */
-    protected function get_payload_retrieve($data): array {
-        $embedding = $this->get_embedding($data);
+    protected function get_payload_retrieve($data, $requestoptions): array {
+        $embedding = $this->get_embedding($data['content']);
         $payload = [
             'using' => $this->get_vector_name(),
             'query' => array_map(
@@ -101,10 +92,11 @@ class connector extends \local_ai_manager\base_connector {
     /**
      * Generate API Payload for a "store" action.
      */
-    protected function get_payload_store($data): array {
-        $embedding = $this->get_embedding($data);
+    protected function get_payload_store($data, $requestoptions): array {
         
+        $embedding = $this->get_embedding($data['content']);        
         $id = $this->make_guid();
+
         $payload = [
             'points' => [
                 [
@@ -117,7 +109,11 @@ class connector extends \local_ai_manager\base_connector {
                             $embedding
                         )
                     ],
-                    'payload' => $data['metadata'] ?? new \stdClass(),
+                    'payload' => [
+                        'content' => $data['content'],
+                        'document' => (object) ($data['document'] ?? []),
+                        'metadata' => (object) ($requestoptions->get_options()['metadata'] ?? []),
+                    ]
                 ]
             ],
         ];
@@ -127,27 +123,21 @@ class connector extends \local_ai_manager\base_connector {
     /**
      * Get embedding for text (with caching).
      */
-    protected function get_embedding($data): array {
-        $usecache = true;
+    protected function get_embedding($datatoembed): array {
+        $usecache = false;
         $cache = \cache::make('local_ai_manager', 'textembeddingmodels');
-        $cachekey = md5($data['content']);
+        $cachekey = md5($datatoembed);
         if ($usecache && $cache->has($cachekey)) {
             $embedding = $cache->get($cachekey);
-            debugging('Using cached embedding');
         } else {    
             // We have to re-use ai manager to get vector.
-            debugging("Fetching new embedding from 'embedding' connector");
             $txmanager = new \local_ai_manager\manager('embedding');
-
             $response = $txmanager->perform_request(
-                $data['content'],
+                $datatoembed ?? "",
                 'aitool_qdrant',
                 \core\context\system::instance()->id,
             );
-            var_dump($response);
             $embedding = trim($response->get_content());
-
-            var_dump($embedding);
             $cache->set($cachekey, $embedding);
         }
         return explode(",", $embedding);
@@ -196,11 +186,7 @@ class connector extends \local_ai_manager\base_connector {
 
     #[\Override]
     public function execute_prompt_completion(StreamInterface $result, request_options $requestoptions): prompt_response {
-        debugging("connector::execute_prompt_completion");
-        print_r($result);
-        print_r($requestoptions);
         $content = $result->getContents();
-        var_dump($content);
         return prompt_response::create_from_result(
             $this->instance->get_model(),
             new usage(1.0),
@@ -208,20 +194,21 @@ class connector extends \local_ai_manager\base_connector {
         );
     }
 
+    /**
+     * @param string $prompttext The text prompt to process. This is expected to be the document content 
+     */
      #[\Override]
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
-        print_r($prompttext);
-        print_r($requestoptions);
+        
         $prompt['action'] = $requestoptions->get_options()['action'] ?? 'retrieve';
         if ($prompt['action'] === 'retrieve') {
             $prompt['content'] = $prompttext;
             $prompt['topk'] = $requestoptions->get_options()['topk'] ?? 1;
         }
         if ($prompt['action'] === 'store') {
-            $prompt += json_decode($prompttext, true);
+            $prompt['content'] = $prompttext;
         }
         
-        print_r($prompt);
         return $prompt;
     }
 }

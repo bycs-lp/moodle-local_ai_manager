@@ -28,4 +28,9 @@ class purpose extends base_purpose {
     public function get_additional_purpose_options(): array {
         return ['conversationcontext' => base_purpose::PARAM_ARRAY];
     }
+       #[\Override]
+   public function format_output(string $output): string
+   {
+       return $output;
+   }
 }

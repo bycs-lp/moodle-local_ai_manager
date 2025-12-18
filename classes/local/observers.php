@@ -27,7 +27,6 @@ use core\event\user_deleted;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class observers {
-
     /**
      * Observer for user_deleted event.
      *

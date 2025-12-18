@@ -36,7 +36,6 @@ use templatable;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class instancetable implements renderable, templatable {
-
     #[\Override]
     public function export_for_template(renderer_base $output): stdClass {
         $tenant = \core\di::get(tenant::class);
@@ -53,9 +52,9 @@ class instancetable implements renderable, templatable {
             }
         }
         $purposesheadingrolebasic = get_string('purposesheading', 'local_ai_manager', [
-                'role' => get_string('role_basic', 'local_ai_manager'),
-                'currentcount' => count($purposeswithtoolrolebasic),
-                'maxcount' => count($purposeconfigrolebasic),
+            'role' => get_string('role_basic', 'local_ai_manager'),
+            'currentcount' => count($purposeswithtoolrolebasic),
+            'maxcount' => count($purposeconfigrolebasic),
         ]);
 
         // Purposes with role extended.
@@ -67,9 +66,9 @@ class instancetable implements renderable, templatable {
             }
         }
         $purposesheadingroleextended = get_string('purposesheading', 'local_ai_manager', [
-                'role' => get_string('role_extended', 'local_ai_manager'),
-                'currentcount' => count($purposeswithtoolroleextended),
-                'maxcount' => count($purposeconfigroleextended),
+            'role' => get_string('role_extended', 'local_ai_manager'),
+            'currentcount' => count($purposeswithtoolroleextended),
+            'maxcount' => count($purposeconfigroleextended),
         ]);
 
         foreach (base_instance::get_all_instances() as $instance) {
@@ -86,29 +85,38 @@ class instancetable implements renderable, templatable {
                 }
             }
             $linkedname = $instance->is_enabled()
-                    ? html_writer::link(new moodle_url('/local/ai_manager/edit_instance.php',
-                            ['id' => $instance->get_id(), 'tenant' => $tenant->get_identifier()]), $instance->get_name())
-                    : $instance->get_name();
+                ? html_writer::link(
+                    new moodle_url(
+                        '/local/ai_manager/edit_instance.php',
+                        ['id' => $instance->get_id(), 'tenant' => $tenant->get_identifier()]
+                    ),
+                    $instance->get_name()
+                )
+                : $instance->get_name();
 
             $instances[] = [
-                    'name' => $linkedname,
-                    'toolname' => get_string('pluginname', 'aitool_' . $instance->get_connector()),
-                    'model' => $instance->get_model() === base_instance::PRECONFIGURED_MODEL
-                            ? get_string('preconfiguredmodel', 'local_ai_manager')
-                            : $instance->get_model(),
-                    'enabled' => $instance->is_enabled(),
-                    'purposesrolebasic' => $purposesrolebasic,
-                    'purposesroleextended' => $purposesroleextended,
-                    'nopurposeslink' => html_writer::link(new moodle_url('/local/ai_manager/purpose_config.php',
-                            ['tenant' => $tenant->get_identifier()]),
-                            '<i class="fa fa-arrow-right"></i> ' . get_string('assignpurposes', 'local_ai_manager')),
+                'name' => $linkedname,
+                'toolname' => get_string('pluginname', 'aitool_' . $instance->get_connector()),
+                'model' => $instance->get_model() === base_instance::PRECONFIGURED_MODEL
+                    ? get_string('preconfiguredmodel', 'local_ai_manager')
+                    : $instance->get_model(),
+                'enabled' => $instance->is_enabled(),
+                'purposesrolebasic' => $purposesrolebasic,
+                'purposesroleextended' => $purposesroleextended,
+                'nopurposeslink' => html_writer::link(
+                    new moodle_url(
+                        '/local/ai_manager/purpose_config.php',
+                        ['tenant' => $tenant->get_identifier()]
+                    ),
+                    '<i class="fa fa-arrow-right"></i> ' . get_string('assignpurposes', 'local_ai_manager')
+                ),
             ];
         }
         return (object) [
-                'tenant' => $tenant->get_identifier(),
-                'purposesheadingrolebasic' => $purposesheadingrolebasic,
-                'purposesheadingroleextended' => $purposesheadingroleextended,
-                'instances' => $instances,
+            'tenant' => $tenant->get_identifier(),
+            'purposesheadingrolebasic' => $purposesheadingrolebasic,
+            'purposesheadingroleextended' => $purposesheadingroleextended,
+            'instances' => $instances,
         ];
     }
 }

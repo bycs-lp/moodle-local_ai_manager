@@ -30,7 +30,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class instance extends base_instance {
-
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
         aitool_option_temperature::extend_form_definition($mform, ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini']);
@@ -45,8 +44,14 @@ class instance extends base_instance {
         foreach ($temperaturedata as $key => $value) {
             $data->{$key} = $value;
         }
-        foreach (aitool_option_azure::add_azure_options_to_form_data($this->get_customfield2(), $this->get_customfield3(),
-                $this->get_customfield4(), $this->get_customfield5()) as $key => $value) {
+        foreach (
+            aitool_option_azure::add_azure_options_to_form_data(
+                $this->get_customfield2(),
+                $this->get_customfield3(),
+                $this->get_customfield4(),
+                $this->get_customfield5()
+            ) as $key => $value
+        ) {
             $data->{$key} = $value;
         }
         return $data;
@@ -60,8 +65,8 @@ class instance extends base_instance {
          [$enabled, $resourcename, $deploymentid, $apiversion] = aitool_option_azure::extract_azure_data_to_store($data);
         if (!empty($enabled)) {
             $endpoint = 'https://' . $resourcename .
-                    '.openai.azure.com/openai/deployments/'
-                    . $deploymentid . '/chat/completions?api-version=' . $apiversion;
+                '.openai.azure.com/openai/deployments/'
+                . $deploymentid . '/chat/completions?api-version=' . $apiversion;
             // We have an empty model because the model is preconfigured if we're using azure.
             // So we overwrite the default "preconfigured" value by a better model name.
 

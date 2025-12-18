@@ -17,6 +17,7 @@
 namespace aitool_googlesynthesize;
 
 use core\http_client;
+use local_ai_manager\base_purpose;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\request_response;
 use local_ai_manager\local\unit;
@@ -34,12 +35,11 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends \local_ai_manager\base_connector {
-
     #[\Override]
     public function get_models_by_purpose(): array {
-        return [
-                'tts' => ['googletts'],
-        ];
+        $modelsbypurpose = base_purpose::get_installed_purposes_array();
+        $modelsbypurpose['tts'] = ['googletts'];
+        return $modelsbypurpose;
     }
 
     #[\Override]
@@ -50,12 +50,12 @@ class connector extends \local_ai_manager\base_connector {
     #[\Override]
     public function make_request(array $data, request_options $requestoptions): request_response {
         $client = new http_client([
-                'timeout' => get_config('local_ai_manager', 'requesttimeout'),
+            'timeout' => get_config('local_ai_manager', 'requesttimeout'),
         ]);
 
         $options['headers'] = [
-                'x-goog-api-key' => $this->get_api_key(),
-                'Content-Type' => 'application/json;charset=utf-8',
+            'x-goog-api-key' => $this->get_api_key(),
+            'Content-Type' => 'application/json;charset=utf-8',
         ];
         $options['body'] = json_encode($data);
 
@@ -63,10 +63,11 @@ class connector extends \local_ai_manager\base_connector {
         if ($response->getStatusCode() === 200) {
             $return = request_response::create_from_result($response->getBody());
         } else {
-            $return = request_response::create_from_error($response->getStatusCode(),
-                    get_string('error_sendingrequestfailed', 'local_ai_manager'),
-                    $response->getBody()->getContents(),
-                    $response->getBody()
+            $return = request_response::create_from_error(
+                $response->getStatusCode(),
+                get_string('error_sendingrequestfailed', 'local_ai_manager'),
+                $response->getBody()->getContents(),
+                $response->getBody()
             );
         }
         return $return;
@@ -81,19 +82,19 @@ class connector extends \local_ai_manager\base_connector {
 
         $fs = get_file_storage();
         $fileinfo = [
-                'contextid' => \context_user::instance($USER->id)->id,
-                'component' => 'user',
-                'filearea' => 'draft',
-                'itemid' => $options['itemid'],
-                'filepath' => '/',
-                'filename' => $options['filename'],
+            'contextid' => \context_user::instance($USER->id)->id,
+            'component' => 'user',
+            'filearea' => 'draft',
+            'itemid' => $options['itemid'],
+            'filepath' => '/',
+            'filename' => $options['filename'],
         ];
         $file = $fs->create_file_from_string($fileinfo, base64_decode($content['audioContent']));
 
         $filepath = \moodle_url::make_draftfile_url(
-                $file->get_itemid(),
-                $file->get_filepath(),
-                $file->get_filename()
+            $file->get_itemid(),
+            $file->get_filepath(),
+            $file->get_filename()
         )->out();
 
         return prompt_response::create_from_result($this->instance->get_model(), new usage(1.0), $filepath);
@@ -103,16 +104,16 @@ class connector extends \local_ai_manager\base_connector {
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
         $options = $requestoptions->get_options();
         return [
-                'input' => [
-                        'text' => $prompttext,
-                ],
-                'voice' => [
-                        'ssmlGender' => $options['gender'][0],
-                        'languageCode' => $options['languages'][0],
-                ],
-                'audioConfig' => [
-                        'audioEncoding' => 'MP3',
-                ],
+            'input' => [
+                'text' => $prompttext,
+            ],
+            'voice' => [
+                'ssmlGender' => $options['gender'][0],
+                'languageCode' => $options['languages'][0],
+            ],
+            'audioConfig' => [
+                'audioEncoding' => 'MP3',
+            ],
         ];
     }
 
@@ -139,19 +140,19 @@ class connector extends \local_ai_manager\base_connector {
         }
         // The call array_values(...) is needed to re-index the array for later merging.
         $languages = array_values(array_map(
-                fn($languagecode) => [
-                        'key' => $languagecode,
-                        'displayname' => Locale::getDisplayLanguage($languagecode, current_language()) . ' (' . $languagecode . ')',
-                ],
-                $languagekeys
+            fn($languagecode) => [
+                'key' => $languagecode,
+                'displayname' => Locale::getDisplayLanguage($languagecode, current_language()) . ' (' . $languagecode . ')',
+            ],
+            $languagekeys
         ));
         usort($languages, fn($a, $b) => strcmp($a['displayname'], $b['displayname']));
         return [
-                'gender' => [
-                        ['key' => 'MALE', 'displayname' => get_string('male', 'local_ai_manager')],
-                        ['key' => 'FEMALE', 'displayname' => get_string('female', 'local_ai_manager')],
-                ],
-                'languages' => $languages,
+            'gender' => [
+                ['key' => 'MALE', 'displayname' => get_string('male', 'local_ai_manager')],
+                ['key' => 'FEMALE', 'displayname' => get_string('female', 'local_ai_manager')],
+            ],
+            'languages' => $languages,
         ];
     }
 
@@ -175,12 +176,12 @@ class connector extends \local_ai_manager\base_connector {
         }
 
         $client = new http_client([
-                'timeout' => get_config('local_ai_manager', 'requesttimeout'),
+            'timeout' => get_config('local_ai_manager', 'requesttimeout'),
         ]);
 
         $options['headers'] = [
-                'x-goog-api-key' => $this->get_api_key(),
-                'Content-Type' => 'application/json;charset=utf-8',
+            'x-goog-api-key' => $this->get_api_key(),
+            'Content-Type' => 'application/json;charset=utf-8',
         ];
 
         $response = $client->get('https://texttospeech.googleapis.com/v1/voices', $options);

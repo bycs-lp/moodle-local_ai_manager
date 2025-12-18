@@ -31,7 +31,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class data_wiper_test extends \advanced_testcase {
-
     /** @var stdClass The user object of the first test user. */
     private stdClass $user1;
 
@@ -44,6 +43,11 @@ final class data_wiper_test extends \advanced_testcase {
     protected function setUp(): void {
         parent::setUp();
         $tenant = new tenant('1234');
+
+        // We disable the hooks here, so we have a defined setup for these unit tests.
+        // The hook callbacks should be tested wherever the callbacks are being implemented.
+        $this->redirectHook(\local_ai_manager\hook\userinfo_extend::class, fn() => null);
+        $this->redirectHook(\local_ai_manager\hook\custom_tenant::class, fn() => null);
 
         // Set the capability based on the $configuration.
         $systemcontext = context_system::instance();
@@ -136,7 +140,7 @@ final class data_wiper_test extends \advanced_testcase {
         $recordidsbeforeanonymizedate[] = $this->generate_request_log_entry('imggen user2', 'imggen', $pagecontext);
         $this->assertEquals($this->get_latest_request_log_entry()->prompttext, 'imggen user2');
         $this->setUser($this->user1);
-        $this->mock_clock_with_frozen(time() + 2 * DAYSECS);;
+        $this->mock_clock_with_frozen(time() + 2 * DAYSECS);
         // Now we crossed the date for anonymizing, so from now on records should be kept as they are.
         $recordidsafteranonymizedate[] = $this->generate_request_log_entry('singleprompt user1', 'singleprompt', $pagecontext);
         $this->assertEquals($this->get_latest_request_log_entry()->prompttext, 'singleprompt user1');
@@ -211,7 +215,7 @@ final class data_wiper_test extends \advanced_testcase {
         $recordidsbeforeanonymizedateuser2[] = $this->generate_request_log_entry('imggen user2', 'imggen', $pagecontext);
         $this->assertEquals($this->get_latest_request_log_entry()->prompttext, 'imggen user2');
         $this->setUser($this->user1);
-        $this->mock_clock_with_frozen(time() + 2 * DAYSECS);;
+        $this->mock_clock_with_frozen(time() + 2 * DAYSECS);
         // Now we crossed the date for anonymizing, so from now on records should be kept as they are.
         $recordidsafteranonymizedateuser1[] = $this->generate_request_log_entry('singleprompt user1', 'singleprompt', $pagecontext);
         $this->assertEquals($this->get_latest_request_log_entry()->prompttext, 'singleprompt user1');
@@ -357,7 +361,7 @@ final class data_wiper_test extends \advanced_testcase {
         $connectorfactory = \core\di::get(connector_factory::class);
         $chatpurpose = $connectorfactory->get_purpose_by_purpose_string('chat');
         $chatuserusage = new userusage($chatpurpose, $user->id);
-        $chatuserusage->set_currentusage(60.0);;
+        $chatuserusage->set_currentusage(60.0);
         $chatuserusage->store();
         // Reload to verify we have a real DB record.
         $chatuserusage->load();
@@ -365,7 +369,7 @@ final class data_wiper_test extends \advanced_testcase {
 
         $singlepromptpurpose = $connectorfactory->get_purpose_by_purpose_string('singleprompt');
         $singlepromptuserusage = new userusage($singlepromptpurpose, $user->id);
-        $singlepromptuserusage->set_currentusage(30.0);;
+        $singlepromptuserusage->set_currentusage(30.0);
         $singlepromptuserusage->store();
         // Reload to verify we have a real DB record.
         $singlepromptuserusage->load();
@@ -398,8 +402,8 @@ final class data_wiper_test extends \advanced_testcase {
      */
     private function assert_record_anonymized(stdClass $record): void {
         $this->assertNull($record->userid);
-        $this->assertEquals(data_wiper::ANONYMIZE_STRING, $record->prompttext);;
-        $this->assertEquals(data_wiper::ANONYMIZE_STRING, $record->promptcompletion);;
+        $this->assertEquals(data_wiper::ANONYMIZE_STRING, $record->prompttext);
+        $this->assertEquals(data_wiper::ANONYMIZE_STRING, $record->promptcompletion);
     }
 
     /**
@@ -409,7 +413,7 @@ final class data_wiper_test extends \advanced_testcase {
      */
     private function assert_record_not_anonymized(stdClass $record): void {
         $this->assertNotNull($record->userid);
-        $this->assertNotEquals(data_wiper::ANONYMIZE_STRING, $record->prompttext);;
-        $this->assertNotEquals(data_wiper::ANONYMIZE_STRING, $record->promptcompletion);;
+        $this->assertNotEquals(data_wiper::ANONYMIZE_STRING, $record->prompttext);
+        $this->assertNotEquals(data_wiper::ANONYMIZE_STRING, $record->promptcompletion);
     }
 }

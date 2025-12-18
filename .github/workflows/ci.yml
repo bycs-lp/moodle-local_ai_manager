@@ -30,8 +30,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3']
-        moodle-branch: ['main', 'MOODLE_500_STABLE']
+        php: ['8.3', '8.4']
+        moodle-branch: ['main', 'MOODLE_500_STABLE', 'MOODLE_501_STABLE']
         database: [pgsql, mariadb]
 
     steps:
@@ -91,6 +91,33 @@ jobs:
       - name: PHPUnit tests
         if: ${{ !cancelled() }}
         run: moodle-plugin-ci phpunit --fail-on-warning
+
+      - name: PHPUnit tests for subplugins
+        if: ${{ !cancelled() }}
+        run: |
+          fail=0
+          failures=()
+          for base in $(jq -r '.subplugintypes[]' ./plugin/db/subplugins.json); do
+            for dir in $(find "./plugin/$base" -mindepth 1 -maxdepth 1 -type d); do
+              if [ -d "$dir/tests" ]; then
+                echo "Running PHPUnit for $dir"
+                if moodle-plugin-ci phpunit --fail-on-warning "$dir"; then
+                  echo "OK: $dir"
+                else
+                  rc=$?
+                  echo "WARNING: PHPUnit failed for $dir (rc=$rc)"
+                  failures+=("$dir: returncode: $rc")
+                  fail=1
+                fi
+              fi
+            done
+          done   
+          if [ "$fail" -ne 0 ]; then
+            echo "Some PHPUnit runs failed:"
+            printf '%s\n' "${failures[@]}"
+            echo "Marking step as failed, because at least one PHPUnit run failed."
+            exit 1
+          fi
 
       - name: Mark cancelled jobs as failed.
         if: ${{ cancelled() }}

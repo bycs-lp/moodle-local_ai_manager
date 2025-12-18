@@ -24,8 +24,8 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2025092300;
+$plugin->version  = 2025092601;
 $plugin->requires = 2023042403;
-$plugin->release = '0.0.1';
+$plugin->release = '0.0.2';
 $plugin->component = 'aipurpose_rag';
 $plugin->maturity = MATURITY_ALPHA;

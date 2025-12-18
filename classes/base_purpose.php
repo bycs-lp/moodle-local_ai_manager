@@ -28,7 +28,6 @@ use local_ai_manager\local\userinfo;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class base_purpose {
-
     /** @var string Constant for defining that a purpose option is an array */
     const PARAM_ARRAY = 'array';
 
@@ -39,6 +38,30 @@ class base_purpose {
      */
     public function get_description(): string {
         return get_string('purposedescription', 'aipurpose_' . $this->get_plugin_name());
+    }
+
+    /**
+     * Helper function that returns an array with purposes.
+     *
+     * The returned array has all installed purposes as keys and an empty array as value so that single purpose keys can be
+     * overridden by the purpose subplugins to define which purposes they want to support.
+     *
+     * The array has the form:
+     * [
+     *     'chat' => [],
+     *     'feedback' => [],
+     *     ... all other installed purposes ...
+     * ]
+     *
+     * @return array the array with names of all installed purposes as keys and empty arrays as values
+     */
+    public static function get_installed_purposes_array(): array {
+        $installedpurposes = array_keys(core_plugin_manager::instance()->get_installed_plugins('aipurpose'));
+        $purposearray = [];
+        foreach ($installedpurposes as $installedpurpose) {
+            $purposearray[$installedpurpose] = [];
+        }
+        return $purposearray;
     }
 
     /**

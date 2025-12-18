@@ -22,6 +22,7 @@ use local_ai_manager\hook\purpose_usage;
 use local_ai_manager\local\connector_factory;
 use local_ai_manager\local\userinfo;
 use local_ai_manager\local\userusage;
+use local_ai_manager\plugininfo\aipurpose;
 use stdClass;
 
 /**
@@ -36,8 +37,8 @@ final class ai_manager_utils_test extends \advanced_testcase {
     #[\Override]
     protected function setUp(): void {
         parent::setUp();
-        // We disable the hook here, so we have a defined setup for this unit test.
-        // The hook callbacks should be tested wherever the callback is being implemented.
+        // We disable the hooks here, so we have a defined setup for these unit tests.
+        // The hook callbacks should be tested wherever the callbacks are being implemented.
         $this->redirectHook(\local_ai_manager\hook\userinfo_extend::class, fn() => null);
         $this->redirectHook(\local_ai_manager\hook\custom_tenant::class, fn() => null);
     }
@@ -115,19 +116,27 @@ final class ai_manager_utils_test extends \advanced_testcase {
         $coursecat = $this->getDataGenerator()->create_category();
         $subcoursecat = $this->getDataGenerator()->create_category(['parent' => $coursecat->id]);
         $pagecoursemodule = $this->getDataGenerator()->get_plugin_generator('mod_page')->create_instance(
-                ['course' => $course->id]
+            ['course' => $course->id]
         );
         $pagecoursemodule2 = $this->getDataGenerator()->get_plugin_generator('mod_page')->create_instance(
-                ['course' => $course2->id]
+            ['course' => $course2->id]
         );
-        $blockusercontext = $this->getDataGenerator()->create_block('html',
-                ['parentcontextid' => \context_user::instance($user->id)->id]);
-        $blocksystemcontext = $this->getDataGenerator()->create_block('html',
-                ['parentcontextid' => \context_system::instance()->id]);
-        $blockcoursecontext = $this->getDataGenerator()->create_block('html',
-                ['parentcontextid' => \context_course::instance($course->id)->id]);
-        $blockcoursemodulecontext = $this->getDataGenerator()->create_block('html',
-                ['parentcontextid' => \context_module::instance($pagecoursemodule->cmid)->id]);
+        $blockusercontext = $this->getDataGenerator()->create_block(
+            'html',
+            ['parentcontextid' => \context_user::instance($user->id)->id]
+        );
+        $blocksystemcontext = $this->getDataGenerator()->create_block(
+            'html',
+            ['parentcontextid' => \context_system::instance()->id]
+        );
+        $blockcoursecontext = $this->getDataGenerator()->create_block(
+            'html',
+            ['parentcontextid' => \context_course::instance($course->id)->id]
+        );
+        $blockcoursemodulecontext = $this->getDataGenerator()->create_block(
+            'html',
+            ['parentcontextid' => \context_module::instance($pagecoursemodule->cmid)->id]
+        );
 
         $coursecontext = \context_course::instance($course->id);
         $course2context = \context_course::instance($course2->id);
@@ -144,17 +153,25 @@ final class ai_manager_utils_test extends \advanced_testcase {
         $this->assertNull(ai_manager_utils::find_closest_parent_course_context($coursecatcontext));
         $this->assertNull(ai_manager_utils::find_closest_parent_course_context($subcoursecatcontext));
         $this->assertEquals($coursecontext->id, ai_manager_utils::find_closest_parent_course_context($pagecoursemodulecontext)->id);
-        $this->assertNotEquals($coursecontext->id,
-                ai_manager_utils::find_closest_parent_course_context($pagecoursemodule2context)->id);
-        $this->assertEquals($course2context->id,
-                ai_manager_utils::find_closest_parent_course_context($pagecoursemodule2context)->id);
+        $this->assertNotEquals(
+            $coursecontext->id,
+            ai_manager_utils::find_closest_parent_course_context($pagecoursemodule2context)->id
+        );
+        $this->assertEquals(
+            $course2context->id,
+            ai_manager_utils::find_closest_parent_course_context($pagecoursemodule2context)->id
+        );
         $this->assertNull(ai_manager_utils::find_closest_parent_course_context($blockusercontextcontext));
         $this->assertNull(ai_manager_utils::find_closest_parent_course_context($blocksystemcontextcontext));
         $this->assertNull(ai_manager_utils::find_closest_parent_course_context($blocksystemcontextcontext));
-        $this->assertEquals($coursecontext->id,
-                ai_manager_utils::find_closest_parent_course_context($blockcoursecontextcontext)->id);
-        $this->assertEquals($coursecontext->id,
-                ai_manager_utils::find_closest_parent_course_context($blockcoursemodulecontextcontext)->id);
+        $this->assertEquals(
+            $coursecontext->id,
+            ai_manager_utils::find_closest_parent_course_context($blockcoursecontextcontext)->id
+        );
+        $this->assertEquals(
+            $coursecontext->id,
+            ai_manager_utils::find_closest_parent_course_context($blockcoursemodulecontextcontext)->id
+        );
     }
 
     /**
@@ -319,8 +336,10 @@ final class ai_manager_utils_test extends \advanced_testcase {
         $user = $this->getDataGenerator()->create_user(['institution' => '1234']);
         $course = $this->getDataGenerator()->create_course();
 
-        $block = $this->getDataGenerator()->create_block('html',
-                ['parentcontextid' => \context_course::instance($course->id)->id]);
+        $block = $this->getDataGenerator()->create_block(
+            'html',
+            ['parentcontextid' => \context_course::instance($course->id)->id]
+        );
 
         // First of all, set up everything in a way that a request could in theory be made, so no restrictions apply.
         $aiuserroleid = $this->getDataGenerator()->create_role(['shortname' => 'aiuser']);
@@ -371,6 +390,13 @@ final class ai_manager_utils_test extends \advanced_testcase {
         set_config('restrictedtenants', '', 'local_ai_manager');
         $configmanager->set_config('tenantenabled', true);
 
+        $userinfo->set_scope(userinfo::SCOPE_COURSES_ONLY);
+        $userinfo->store();
+        $availability = ai_manager_utils::get_ai_config($user, SYSCONTEXTID, null, ['chat'])['availability'];
+        $this->assertEquals($availability['available'], ai_manager_utils::AVAILABILITY_HIDDEN);
+        $userinfo->set_scope(userinfo::SCOPE_EVERYWHERE);
+        $userinfo->store();
+
         $userinfo->set_locked(true);
         $userinfo->store();
         $availability = ai_manager_utils::get_ai_config($user, $blockcontextid, null, ['chat'])['availability'];
@@ -385,10 +411,22 @@ final class ai_manager_utils_test extends \advanced_testcase {
         $userinfo->set_confirmed(true);
         $userinfo->store();
 
+        // Checks that cause the state "hidden" should win over checks that cause the state "disabled" if both checks apply.
+        $userinfo->set_locked(true);
         $userinfo->set_scope(userinfo::SCOPE_COURSES_ONLY);
         $userinfo->store();
         $availability = ai_manager_utils::get_ai_config($user, SYSCONTEXTID, null, ['chat'])['availability'];
-        $this->assertEquals($availability['available'], ai_manager_utils::AVAILABILITY_HIDDEN);
+        $this->assertEquals(ai_manager_utils::AVAILABILITY_HIDDEN, $availability['available']);
+        $userinfo->set_locked(false);
+        $userinfo->set_scope(userinfo::SCOPE_EVERYWHERE);
+        $userinfo->store();
+
+        $userinfo->set_confirmed(false);
+        $userinfo->set_scope(userinfo::SCOPE_COURSES_ONLY);
+        $userinfo->store();
+        $availability = ai_manager_utils::get_ai_config($user, SYSCONTEXTID, null, ['chat'])['availability'];
+        $this->assertEquals(ai_manager_utils::AVAILABILITY_HIDDEN, $availability['available']);
+        $userinfo->set_confirmed(true);
         $userinfo->set_scope(userinfo::SCOPE_EVERYWHERE);
         $userinfo->store();
     }
@@ -404,8 +442,10 @@ final class ai_manager_utils_test extends \advanced_testcase {
         $user = $this->getDataGenerator()->create_user(['institution' => '1234']);
         $course = $this->getDataGenerator()->create_course();
 
-        $block = $this->getDataGenerator()->create_block('html',
-                ['parentcontextid' => \context_course::instance($course->id)->id]);
+        $block = $this->getDataGenerator()->create_block(
+            'html',
+            ['parentcontextid' => \context_course::instance($course->id)->id]
+        );
 
         // First of all, set up everything in a way that a request could in theory be made, so no restrictions apply.
         $aiuserroleid = $this->getDataGenerator()->create_role(['shortname' => 'aiuser']);
@@ -442,9 +482,12 @@ final class ai_manager_utils_test extends \advanced_testcase {
         $configmanager->set_config(base_purpose::get_purpose_tool_config_key('chat', userinfo::ROLE_BASIC), $instance->get_id());
 
         $hookmanager = \core\di::get(\core\hook\manager::class);
-        $hookmanager->phpunit_redirect_hook(additional_user_restriction::class, function($hook) {
-            $hook->set_access_allowed(true);
-        });
+        $hookmanager->phpunit_redirect_hook(
+            additional_user_restriction::class,
+            function ($hook) {
+                $hook->set_access_allowed(true);
+            }
+        );
 
         $chatpurposeconfig = ai_manager_utils::get_ai_config($user, $blockcontextid, null, ['chat'])['purposes'][0];
         $this->assertEquals($chatpurposeconfig['available'], ai_manager_utils::AVAILABILITY_AVAILABLE);
@@ -454,10 +497,14 @@ final class ai_manager_utils_test extends \advanced_testcase {
         $this->assertCount(count(base_purpose::get_all_purposes()), $purposesconfig);
         foreach (base_purpose::get_all_purposes() as $purpose) {
             $purposeconfig =
-                    array_values(array_filter($purposesconfig, fn($purposeconfig) => $purposeconfig['purpose'] === $purpose))[0];
-            $this->assertTrue(in_array($purposeconfig['available'],
+                array_values(array_filter($purposesconfig, fn($purposeconfig) => $purposeconfig['purpose'] === $purpose))[0];
+            $this->assertTrue(
+                in_array(
+                    $purposeconfig['available'],
                     [ai_manager_utils::AVAILABILITY_AVAILABLE, ai_manager_utils::AVAILABILITY_HIDDEN,
-                            ai_manager_utils::AVAILABILITY_DISABLED]));
+                        ai_manager_utils::AVAILABILITY_DISABLED]
+                )
+            );
         }
 
         // Now introduce "problems" one by one and check the correct state. After that reset
@@ -490,15 +537,20 @@ final class ai_manager_utils_test extends \advanced_testcase {
 
         // Test the hook.
         $hookmanager->phpunit_stop_redirections();
-        $hookmanager->phpunit_redirect_hook(additional_user_restriction::class, function($hook) {
+        $hookmanager->phpunit_redirect_hook(additional_user_restriction::class, function ($hook) {
             $hook->set_access_allowed(false, 403, 'You are not allowed!');
         });
         $chatpurposeconfig = ai_manager_utils::get_ai_config($user, $blockcontextid, null, ['chat'])['purposes'][0];
         $this->assertEquals($chatpurposeconfig['available'], ai_manager_utils::AVAILABILITY_HIDDEN);
         $hookmanager->phpunit_stop_redirections();
-        $hookmanager->phpunit_redirect_hook(additional_user_restriction::class, function($hook) {
+        $hookmanager->phpunit_redirect_hook(additional_user_restriction::class, function ($hook) {
             $hook->set_access_allowed(true);
         });
+
+        // Test if we receive a valid answer for disabled purpose subplugins.
+        aipurpose::enable_plugin('chat', false);
+        $chatpurposeconfig = ai_manager_utils::get_ai_config($user, $blockcontextid, null, ['chat'])['purposes'][0];
+        $this->assertEquals($chatpurposeconfig['available'], ai_manager_utils::AVAILABILITY_HIDDEN);
     }
 
     /**
@@ -510,15 +562,18 @@ final class ai_manager_utils_test extends \advanced_testcase {
      * @covers \local_ai_manager\ai_manager_utils::get_purposes_usage_info
      */
     public function test_get_purposes_usage_info(): void {
-        $this->redirectHook(\local_ai_manager\hook\purpose_usage::class, function($hook) {
+        $this->redirectHook(\local_ai_manager\hook\purpose_usage::class, function ($hook) {
             $hook->set_component_displayname('testcomponent1', 'displaynamecomponent1');
             $hook->set_component_displayname('testcomponent2', 'displaynamecomponent2');
             $hook->add_purpose_usage_description('chat', 'testcomponent1', 'testcomponent1 description first place chat');
             $hook->add_purpose_usage_description('chat', 'testcomponent1', 'testcomponent1 description second place chat');
             $hook->add_purpose_usage_description('chat', 'testcomponent2', 'testcomponent2 description first place chat');
             $hook->add_purpose_usage_description('chat', 'testcomponent2', 'testcomponent2 description second place chat');
-            $hook->add_purpose_usage_description('translate', 'testcomponent1',
-                    'description of the first place for translating');
+            $hook->add_purpose_usage_description(
+                'translate',
+                'testcomponent1',
+                'description of the first place for translating'
+            );
         });
 
         $expected = ['purposes' => []];
@@ -526,49 +581,49 @@ final class ai_manager_utils_test extends \advanced_testcase {
         foreach (\local_ai_manager\plugininfo\aipurpose::get_enabled_plugins() as $purpose) {
             $purposeinstance = $connectorfactory->get_purpose_by_purpose_string($purpose);
             $purposearray = [
-                    'purposename' => $purpose,
-                    'purposedisplayname' => get_string('pluginname', 'aipurpose_' . $purpose),
-                    'purposedescription' => $purposeinstance->get_description(),
+                'purposename' => $purpose,
+                'purposedisplayname' => get_string('pluginname', 'aipurpose_' . $purpose),
+                'purposedescription' => $purposeinstance->get_description(),
             ];
             if ($purpose === 'chat') {
                 $purposearray['components'] = [
-                        [
-                                'component' => 'testcomponent1',
-                                'componentdisplayname' => 'displaynamecomponent1',
-                                'placedescriptions' => [
-                                        [
-                                                'description' => 'testcomponent1 description first place chat',
-                                        ],
-                                        [
-                                                'description' => 'testcomponent1 description second place chat',
-                                        ],
-                                ],
+                    [
+                        'component' => 'testcomponent1',
+                        'componentdisplayname' => 'displaynamecomponent1',
+                        'placedescriptions' => [
+                            [
+                                'description' => 'testcomponent1 description first place chat',
+                            ],
+                            [
+                                'description' => 'testcomponent1 description second place chat',
+                            ],
                         ],
-                        [
-                                'component' => 'testcomponent2',
-                                'componentdisplayname' => 'displaynamecomponent2',
-                                'placedescriptions' => [
-                                        [
-                                                'description' => 'testcomponent2 description first place chat',
-                                        ],
-                                        [
-                                                'description' => 'testcomponent2 description second place chat',
-                                        ],
-                                ],
+                    ],
+                    [
+                        'component' => 'testcomponent2',
+                        'componentdisplayname' => 'displaynamecomponent2',
+                        'placedescriptions' => [
+                            [
+                                'description' => 'testcomponent2 description first place chat',
+                            ],
+                            [
+                                'description' => 'testcomponent2 description second place chat',
+                            ],
                         ],
+                    ],
                 ];
             } else if ($purpose === 'translate') {
                 $purposearray['components'][] =
-                        [
-                                'component' => 'testcomponent1',
-                                'componentdisplayname' => 'displaynamecomponent1',
-                                'placedescriptions' => [
-                                        [
-                                                'description' => 'description of the first place for translating',
-                                        ],
+                    [
+                        'component' => 'testcomponent1',
+                        'componentdisplayname' => 'displaynamecomponent1',
+                        'placedescriptions' => [
+                            [
+                                'description' => 'description of the first place for translating',
+                            ],
 
-                                ],
-                        ];
+                        ],
+                    ];
             }
             $expected['purposes'][] = $purposearray;
         }

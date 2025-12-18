@@ -25,7 +25,6 @@ namespace local_ai_manager\table;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class userstats_table_filterset extends \core_table\local\filter\filterset {
-
     /**
      * Get the optional filters.
      *

@@ -33,7 +33,6 @@ require_once($CFG->libdir . '/formslib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class context_selector_form extends \moodleform {
-
     /**
      * Form definition.
      */
@@ -57,8 +56,13 @@ class context_selector_form extends \moodleform {
         }
 
         $maincontextselect =
-                $mform->createElement('select', 'contextid', get_string('choosecontext', 'local_ai_manager'), [],
-                        ['onchange' => 'this.form.requestSubmit()']);
+            $mform->createElement(
+                'select',
+                'contextid',
+                get_string('choosecontext', 'local_ai_manager'),
+                [],
+                ['onchange' => 'this.form.requestSubmit()']
+            );
         foreach ($maincontextoptions as $key => $value) {
             $maincontextselect->addOption($value, $key);
         }
@@ -66,10 +70,11 @@ class context_selector_form extends \moodleform {
         if ($accessmanager->is_tenant_member() && has_capability('local/ai_manager:viewtenantprompts', $tenant->get_context())) {
             // Add a placeholder.
             $maincontextselect->addOption('', '', ['disabled' => 'disabled']);
-            $maincontextselect->addOption(ai_manager_utils::get_context_displayname($tenant->get_context(), $tenant),
-                    $tenant->get_context()->id);
+            $maincontextselect->addOption(
+                ai_manager_utils::get_context_displayname($tenant->get_context(), $tenant),
+                $tenant->get_context()->id
+            );
         }
         $mform->addElement($maincontextselect);
     }
-
 }

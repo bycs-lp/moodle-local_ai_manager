@@ -34,7 +34,6 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 abstract class base_connector {
-
     /** @var base_instance the connector instance the connector is using */
     protected base_instance $instance;
 
@@ -50,9 +49,23 @@ abstract class base_connector {
     /**
      * Define available models.
      *
+     * IMPORTANT: You will have to define a key for every purpose. If your connector should not support
+     * certain purposes, return an empty array for this purpose.
+     *
+     * A unit test in base_connector_test class will check if you implemented all existing purposes.
+     *
      * @return array names of the available models
      */
     abstract public function get_models_by_purpose(): array;
+
+    /**
+     * Returns the list of models that are selectable when creating/editing AI tools in the frontend.
+     *
+     * @return array list of models
+     */
+    public function get_selectable_models(): array {
+        return $this->get_models();
+    }
 
     /**
      * Get the available models as plain array.
@@ -112,6 +125,12 @@ abstract class base_connector {
      */
     abstract public function execute_prompt_completion(StreamInterface $result, request_options $requestoptions): prompt_response;
 
+    protected function conform_contents(string $content, request_options $requestoptions) {
+        return $content;
+    }
+    protected function apply_guard_rails($content, request_options $requestoptions) {
+        return $content;
+    }
     /**
      * Defines if the connector uses the first customvalue attribute.
      *
@@ -163,8 +182,8 @@ abstract class base_connector {
      */
     public function make_request(array $data, request_options $requestoptions): request_response {
         $client = new http_client([
-                'timeout' => get_config('local_ai_manager', 'requesttimeout'),
-                'verify' => !empty(get_config('local_ai_manager', 'verifyssl')),
+            'timeout' => get_config('local_ai_manager', 'requesttimeout'),
+            'verify' => !empty(get_config('local_ai_manager', 'verifyssl')),
         ]);
 
         $options['headers'] = $this->get_headers();
@@ -183,10 +202,10 @@ abstract class base_connector {
             $return = request_response::create_from_result($response->getBody());
         } else {
             $return = request_response::create_from_error(
-                    $response->getStatusCode(),
-                    get_string('error_sendingrequestfailed', 'local_ai_manager'),
-                    $response->getBody()->getContents(),
-                    $response->getBody()
+                $response->getStatusCode(),
+                get_string('error_sendingrequestfailed', 'local_ai_manager'),
+                $response->getBody()->getContents(),
+                $response->getBody()
             );
         }
         return $return;
@@ -254,8 +273,8 @@ abstract class base_connector {
      */
     protected function get_headers(): array {
         return [
-                'Authorization' => 'Bearer ' . $this->get_api_key(),
-                'Content-Type' => 'application/json;charset=utf-8',
+            'Authorization' => 'Bearer ' . $this->get_api_key(),
+            'Content-Type' => 'application/json;charset=utf-8',
         ];
     }
 

@@ -37,7 +37,6 @@ require_once($CFG->libdir . '/formslib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class purpose_config_form extends \moodleform {
-
     /**
      * Form definition.
      */
@@ -52,14 +51,17 @@ class purpose_config_form extends \moodleform {
         foreach (base_purpose::get_all_purposes() as $purpose) {
             $factory = \core\di::get(connector_factory::class);
             $instances = $factory::get_connector_instances_for_purpose($purpose);
-            $instances = array_map(fn ($instance) => $instance->get_name(), $instances);
+            $instances = array_map(fn($instance) => $instance->get_name(), $instances);
             $instances[0] = get_string('notselected', 'local_ai_manager');
 
             $mform->addElement(
-                    'header',
-                    'purpose_config_purpose_' . $purpose . '_header',
-                    get_string('select_tool_for_purpose', 'local_ai_manager',
-                            get_string('pluginname', 'aipurpose_' . $purpose))
+                'header',
+                'purpose_config_purpose_' . $purpose . '_header',
+                get_string(
+                    'select_tool_for_purpose',
+                    'local_ai_manager',
+                    get_string('pluginname', 'aipurpose_' . $purpose)
+                )
             );
             $purposeinfoicon = $OUTPUT->render_from_template('local_ai_manager/purposeinfoicon', ['purposename' => $purpose]);
             $purposeinfoicon = \core\output\html_writer::div($purposeinfoicon, 'w-100 d-flex justify-content-end mb-1');
@@ -73,10 +75,10 @@ class purpose_config_form extends \moodleform {
             );
             $mform->setDefault('purpose_' . $purpose . '_tool_role_basic', 0);
             $mform->addElement(
-                    'select',
-                    base_purpose::get_purpose_tool_config_key($purpose, userinfo::ROLE_EXTENDED),
-                    get_string('role_extended', 'local_ai_manager'),
-                    $instances
+                'select',
+                base_purpose::get_purpose_tool_config_key($purpose, userinfo::ROLE_EXTENDED),
+                get_string('role_extended', 'local_ai_manager'),
+                $instances
             );
             $mform->setDefault('purpose_' . $purpose . '_tool_role_extended', 0);
         }

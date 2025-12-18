@@ -39,10 +39,7 @@ class purpose extends base_purpose {
 
     #[\Override]
     public function get_additional_request_options(array $options): array {
-        
-        return [
-            'action' => $options['action'] ?? 'retrieve',
-        ];
+        return $options;
     }
 
    #[\Override]
@@ -50,10 +47,13 @@ class purpose extends base_purpose {
         $sharedopts =  [
             'action' => PARAM_TEXT,
             'topk' => PARAM_INT,
+            'content' => PARAM_RAW,
+            'document' => self::PARAM_ARRAY,
+            'metadata' => self::PARAM_ARRAY,
         ];
-        $modeopts = [];
         
-        return $sharedopts + $modeopts;
+        
+        return $sharedopts;
    }
 
    /**

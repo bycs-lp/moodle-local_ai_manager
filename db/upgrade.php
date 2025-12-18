@@ -45,7 +45,6 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
     }
 
     if ($oldversion < 2024080900) {
-
         // Changing precision of field duration on table local_ai_manager_request_log to (20, 3).
         $table = new xmldb_table('local_ai_manager_request_log');
         $field = new xmldb_field('duration', XMLDB_TYPE_NUMBER, '20, 3', null, null, null, null, 'modelinfo');
@@ -122,7 +121,6 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
     }
 
     if ($oldversion < 2024092600) {
-
         $sqllike = $DB->sql_like('configkey', ':configkeypattern');
         $sql = "SELECT * FROM {local_ai_manager_config} WHERE $sqllike";
         $rs = $DB->get_recordset_sql($sql, ['configkeypattern' => 'purpose_%_tool']);
@@ -133,11 +131,15 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
             $roleextendedrecord = clone($record);
             unset($roleextendedrecord->id);
             $roleextendedrecord->configkey = $oldconfigkey . '_role_extended';
-            if (!$DB->record_exists('local_ai_manager_config',
+            if (
+                !$DB->record_exists(
+                    'local_ai_manager_config',
                     [
-                            'configkey' => $roleextendedrecord->configkey,
-                            'tenant' => $roleextendedrecord->tenant,
-                    ])) {
+                        'configkey' => $roleextendedrecord->configkey,
+                        'tenant' => $roleextendedrecord->tenant,
+                    ]
+                )
+            ) {
                 $DB->insert_record('local_ai_manager_config', $roleextendedrecord);
             }
         }
@@ -147,7 +149,6 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
     }
 
     if ($oldversion < 2024110501) {
-
         // Changing type of field customfield1 on table local_ai_manager_instance to text.
         $table = new xmldb_table('local_ai_manager_instance');
         $field = new xmldb_field('customfield1', XMLDB_TYPE_TEXT, null, null, null, null, null, 'infolink');
@@ -166,7 +167,6 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
     }
 
     if ($oldversion < 2024120200) {
-
         $rs = $DB->get_recordset('local_ai_manager_instance', ['connector' => 'gemini']);
         foreach ($rs as $record) {
             $record->customfield2 = 'googleai';
@@ -181,7 +181,6 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
     }
 
     if ($oldversion < 2025010701) {
-
         // Define field scope to be added to local_ai_manager_userinfo.
         $table = new xmldb_table('local_ai_manager_userinfo');
         $field = new xmldb_field('scope', XMLDB_TYPE_INTEGER, '1', null, null, null, null, 'confirmed');
@@ -256,7 +255,6 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
     }
 
     if ($oldversion < 2025021700) {
-
         $table = new xmldb_table('local_ai_manager_request_log');
         $field = new xmldb_field('coursecontextid', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'contextid');
 

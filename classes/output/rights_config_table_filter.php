@@ -23,7 +23,6 @@ use local_ai_manager\local\userinfo;
 use renderer_base;
 use stdClass;
 
-
 /**
  * Class for rendering the filter for the rights config table in local_ai_manager.
  *
@@ -33,7 +32,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class rights_config_table_filter extends \core\output\datafilter {
-
     /**
      * Get data for all filter types.
      *
@@ -55,8 +53,6 @@ class rights_config_table_filter extends \core\output\datafilter {
         return $filtertypes;
     }
 
-
-
     /**
      * Get data for the roles filter.
      *
@@ -64,33 +60,40 @@ class rights_config_table_filter extends \core\output\datafilter {
      */
     protected function get_roles_filter(): ?stdClass {
         $rolefilteroptions =
-                [
-                        userinfo::ROLE_BASIC => get_string(userinfo::get_role_as_string(userinfo::ROLE_BASIC), 'local_ai_manager'),
-                        userinfo::ROLE_EXTENDED => get_string(userinfo::get_role_as_string(userinfo::ROLE_EXTENDED),
-                                'local_ai_manager'),
-                        userinfo::ROLE_UNLIMITED => get_string(userinfo::get_role_as_string(userinfo::ROLE_UNLIMITED),
-                                'local_ai_manager'),
-                ];
+            [
+                userinfo::ROLE_BASIC => get_string(userinfo::get_role_as_string(userinfo::ROLE_BASIC), 'local_ai_manager'),
+                userinfo::ROLE_EXTENDED => get_string(
+                    userinfo::get_role_as_string(userinfo::ROLE_EXTENDED),
+                    'local_ai_manager'
+                ),
+                userinfo::ROLE_UNLIMITED => get_string(
+                    userinfo::get_role_as_string(userinfo::ROLE_UNLIMITED),
+                    'local_ai_manager'
+                ),
+            ];
 
         return $this->get_filter_object(
-                'role',
-                get_string('roles', 'core_role'),
-                false,
-                true,
-                null,
-                array_map(function($id, $title) {
+            'role',
+            get_string('roles', 'core_role'),
+            false,
+            true,
+            null,
+            array_map(
+                function ($id, $title) {
                     return (object) [
-                            'value' => $id,
-                            'title' => $title,
+                        'value' => $id,
+                        'title' => $title,
                     ];
-                }, array_keys($rolefilteroptions), array_values($rolefilteroptions)),
-                false,
-                null,
-                false,
-                [self::JOINTYPE_ANY]
+                },
+                array_keys($rolefilteroptions),
+                array_values($rolefilteroptions)
+            ),
+            false,
+            null,
+            false,
+            [self::JOINTYPE_ANY]
         );
     }
-
 
     /**
      * Get data for the roles filter.
@@ -103,21 +106,25 @@ class rights_config_table_filter extends \core\output\datafilter {
         $hookfilteroptions = $usertablefilterhook->get_filter_options();
 
         return $this->get_filter_object(
-                'hook',
-                $usertablefilterhook->get_filter_label(),
-                false,
-                true,
-                null,
-                array_map(function($id, $title) {
+            'hook',
+            $usertablefilterhook->get_filter_label(),
+            false,
+            true,
+            null,
+            array_map(
+                function ($id, $title) {
                     return (object) [
-                            'value' => $id,
-                            'title' => $title,
+                        'value' => $id,
+                        'title' => $title,
                     ];
-                }, array_keys($hookfilteroptions), array_values($hookfilteroptions)),
-                false,
-                null,
-                false,
-                [self::JOINTYPE_ANY]
+                },
+                array_keys($hookfilteroptions),
+                array_values($hookfilteroptions)
+            ),
+            false,
+            null,
+            false,
+            [self::JOINTYPE_ANY]
         );
     }
 
@@ -128,16 +135,16 @@ class rights_config_table_filter extends \core\output\datafilter {
      */
     protected function get_namepattern_filter(): ?stdClass {
         return $this->get_filter_object(
-                'namepattern',
-                get_string('namepattern', 'local_ai_manager'),
-                true,
-                true,
-                'core/datafilter/filtertypes/keyword',
-                [],
-                true,
-                null,
-                false,
-                [self::JOINTYPE_ANY]
+            'namepattern',
+            get_string('namepattern', 'local_ai_manager'),
+            true,
+            true,
+            'core/datafilter/filtertypes/keyword',
+            [],
+            true,
+            null,
+            false,
+            [self::JOINTYPE_ANY]
         );
     }
 
@@ -149,9 +156,9 @@ class rights_config_table_filter extends \core\output\datafilter {
      */
     public function export_for_template(renderer_base $output): stdClass {
         return (object) [
-                'tableregionid' => $this->tableregionid,
-                'filtertypes' => $this->get_filtertypes(),
-                'rownumber' => 1,
+            'tableregionid' => $this->tableregionid,
+            'filtertypes' => $this->get_filtertypes(),
+            'rownumber' => 1,
         ];
     }
 }

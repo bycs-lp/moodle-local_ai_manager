@@ -38,7 +38,7 @@ class get_purpose_options extends external_api {
      */
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
-                'purpose' => new external_value(PARAM_ALPHANUM, 'The purpose name', VALUE_DEFAULT, ''),
+            'purpose' => new external_value(PARAM_ALPHANUM, 'The purpose name', VALUE_DEFAULT, ''),
         ]);
     }
 
@@ -50,9 +50,9 @@ class get_purpose_options extends external_api {
      */
     public static function execute(string $purpose): array {
         [
-                'purpose' => $purpose,
+            'purpose' => $purpose,
         ] = self::validate_parameters(self::execute_parameters(), [
-                'purpose' => $purpose,
+            'purpose' => $purpose,
         ]);
         $context = \context_system::instance();
         self::validate_context($context);
@@ -64,7 +64,7 @@ class get_purpose_options extends external_api {
         $factory = \core\di::get(connector_factory::class);
         $purposeobject = $factory->get_purpose_by_purpose_string($purpose);
         return [
-                'options' => json_encode($purposeobject->get_available_purpose_options()),
+            'options' => json_encode($purposeobject->get_available_purpose_options()),
         ];
     }
 
@@ -74,9 +74,10 @@ class get_purpose_options extends external_api {
      * @return external_single_structure the return structure
      */
     public static function execute_returns(): external_single_structure {
-        return new external_single_structure([
-                        'options' => new external_value(PARAM_TEXT, 'JSON encoded string of available options', VALUE_OPTIONAL),
-                ]
+        return new external_single_structure(
+            [
+                'options' => new external_value(PARAM_TEXT, 'JSON encoded string of available options', VALUE_OPTIONAL),
+            ]
         );
     }
 }

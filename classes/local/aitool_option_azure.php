@@ -27,7 +27,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class aitool_option_azure {
-
     /**
      * Extends the form definition of the edit instance form by adding azure options.
      *
@@ -72,8 +71,12 @@ class aitool_option_azure {
      * @param ?string $apiversion the api version of the azure resource
      * @return stdClass the stdClass which then can be passed to the form for loading
      */
-    public static function add_azure_options_to_form_data(bool $enabled, ?string $resourcename, ?string $deploymentid,
-            ?string $apiversion): stdClass {
+    public static function add_azure_options_to_form_data(
+        bool $enabled,
+        ?string $resourcename,
+        ?string $deploymentid,
+        ?string $apiversion
+    ): stdClass {
         $data = new stdClass();
         $data->azure_enabled = $enabled;
         if ($enabled) {

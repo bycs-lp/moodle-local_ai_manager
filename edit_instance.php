@@ -74,27 +74,41 @@ if (!empty($id)) {
     $connectorinstance = $factory->get_new_instance($connectorname);
 }
 
-$editinstanceform = new \local_ai_manager\form\edit_instance_form(new moodle_url('/local/ai_manager/edit_instance.php',
-        ['id' => $id, 'connectorname' => $connectorname]),
-        ['id' => $id, 'tenant' => $tenant->get_identifier(), 'connector' => $connectorname]);
+$editinstanceform = new \local_ai_manager\form\edit_instance_form(
+    new moodle_url(
+        '/local/ai_manager/edit_instance.php',
+        ['id' => $id, 'connectorname' => $connectorname]
+    ),
+    ['id' => $id, 'tenant' => $tenant->get_identifier(), 'connector' => $connectorname]
+);
 
 // Standard form processing if statement.
 if ($editinstanceform->is_cancelled()) {
     redirect($returnurl);
 } else if ($data = $editinstanceform->get_data()) {
     $connectorinstance->store_formdata($data);
-    redirect(new moodle_url('/local/ai_manager/tenant_config.php', ['tenant' => $tenant->get_identifier()]),
-            get_string('aitoolsaved', 'local_ai_manager'), '');
+    redirect(
+        new moodle_url(
+            '/local/ai_manager/tenant_config.php',
+            ['tenant' => $tenant->get_identifier()]
+        ),
+        get_string('aitoolsaved', 'local_ai_manager'),
+        ''
+    );
 } else {
     echo $OUTPUT->header();
     echo html_writer::start_div('w-75 d-flex flex-column align-items-center ml-auto mr-auto');
-    echo $OUTPUT->render_from_template('local_ai_manager/edit_instance_heading',
-            [
-                    'heading' => $OUTPUT->heading(get_string('configureaitool', 'local_ai_manager')),
-                    'showdeletebutton' => !empty($id),
-                    'deleteurl' => new moodle_url('/local/ai_manager/edit_instance.php',
-                            ['id' => $id, 'del' => 1, 'sesskey' => sesskey()]),
-            ]);
+    echo $OUTPUT->render_from_template(
+        'local_ai_manager/edit_instance_heading',
+        [
+            'heading' => $OUTPUT->heading(get_string('configureaitool', 'local_ai_manager')),
+            'showdeletebutton' => !empty($id),
+            'deleteurl' => new moodle_url(
+                '/local/ai_manager/edit_instance.php',
+                ['id' => $id, 'del' => 1, 'sesskey' => sesskey()]
+            ),
+        ]
+    );
     $editinstanceform->set_data($connectorinstance->get_formdata());
     echo html_writer::start_div('w-100');
     $editinstanceform->display();

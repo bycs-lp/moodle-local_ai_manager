@@ -16,16 +16,13 @@
 
 namespace aitool_imagen;
 
-use core\http_client;
-use Firebase\JWT\JWT;
 use local_ai_manager\base_connector;
-use local_ai_manager\base_instance;
+use local_ai_manager\base_purpose;
 use local_ai_manager\local\aitool_option_vertexai_authhandler;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\request_response;
 use local_ai_manager\local\unit;
 use local_ai_manager\local\usage;
-use local_ai_manager\manager;
 use local_ai_manager\request_options;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Message\StreamInterface;
@@ -39,32 +36,36 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends base_connector {
-
     /** @var string The access token to use for authentication against the Google imagen API endpoint. */
     private string $accesstoken = '';
 
     #[\Override]
     public function get_models_by_purpose(): array {
-        return [
-                'imggen' => ['imagen-3.0-generate-002'],
+        $modelsbypurpose = base_purpose::get_installed_purposes_array();
+        $modelsbypurpose['imggen'] = [
+            'imagen-3.0-generate-002',
+            'imagen-4.0-generate-001',
+            'imagen-4.0-ultra-generate-001',
+            'imagen-4.0-fast-generate-001',
         ];
+        return $modelsbypurpose;
     }
 
     #[\Override]
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
         $options = $requestoptions->get_options();
         $promptdata = [
-                'instances' => [
-                        [
-                                'prompt' => $prompttext,
-                        ],
+            'instances' => [
+                [
+                    'prompt' => $prompttext,
                 ],
-                'parameters' => [
-                        'sampleCount' => 1,
-                        'safetySetting' => 'block_few',
-                        'language' => 'en',
-                        'aspectRatio' => $options['sizes'][0],
-                ],
+            ],
+            'parameters' => [
+                'sampleCount' => 1,
+                'safetySetting' => 'block_few',
+                'language' => 'en',
+                'aspectRatio' => $options['sizes'][0],
+            ],
         ];
 
         return $promptdata;
@@ -85,7 +86,7 @@ class connector extends base_connector {
     #[\Override]
     public function make_request(array $data, request_options $requestoptions): request_response {
         $vertexaiauthhandler =
-                new aitool_option_vertexai_authhandler($this->instance->get_id(), $this->instance->get_customfield1());
+            new aitool_option_vertexai_authhandler($this->instance->get_id(), $this->instance->get_customfield1());
         try {
             // Composing the "Authorization" header is not that easy as just looking up a Bearer token in the database.
             // So we here explicitly retrieve the access token from cache or the Google OAuth API and do some proper error handling.
@@ -115,24 +116,27 @@ class connector extends base_connector {
         $options = $requestoptions->get_options();
         $content = json_decode($result->getContents(), true);
         if (empty($content['predictions']) || !array_key_exists('bytesBase64Encoded', $content['predictions'][0])) {
-            return prompt_response::create_from_error(400,
-                    get_string('err_predictionmissing', 'aitool_imagen'), '');
+            return prompt_response::create_from_error(
+                400,
+                get_string('err_predictionmissing', 'aitool_imagen'),
+                ''
+            );
         }
         $fs = get_file_storage();
         $fileinfo = [
-                'contextid' => \context_user::instance($USER->id)->id,
-                'component' => 'user',
-                'filearea' => 'draft',
-                'itemid' => $options['itemid'],
-                'filepath' => '/',
-                'filename' => $options['filename'],
+            'contextid' => \context_user::instance($USER->id)->id,
+            'component' => 'user',
+            'filearea' => 'draft',
+            'itemid' => $options['itemid'],
+            'filepath' => '/',
+            'filename' => $options['filename'],
         ];
         $file = $fs->create_file_from_string($fileinfo, base64_decode($content['predictions'][0]['bytesBase64Encoded']));
 
         $filepath = \moodle_url::make_draftfile_url(
-                $file->get_itemid(),
-                $file->get_filepath(),
-                $file->get_filename()
+            $file->get_itemid(),
+            $file->get_filepath(),
+            $file->get_filename()
         )->out();
 
         return prompt_response::create_from_result($this->instance->get_model(), new usage(1.0), $filepath);
@@ -141,11 +145,11 @@ class connector extends base_connector {
     #[\Override]
     public function get_available_options(): array {
         $options['sizes'] = [
-                ['key' => '1:1', 'displayname' => '1:1 (1024 x 1024)'],
-                ['key' => '3:4', 'displayname' => '4:3 (896 x 1280)'],
-                ['key' => '4:3', 'displayname' => '4:3 (1280 x 896)'],
-                ['key' => '9:16', 'displayname' => '9:16 (768 x 1408)'],
-                ['key' => '16:9', 'displayname' => '16:9 (1408 x 768)'],
+            ['key' => '1:1', 'displayname' => '1:1 (1024 x 1024)'],
+            ['key' => '3:4', 'displayname' => '4:3 (896 x 1280)'],
+            ['key' => '4:3', 'displayname' => '4:3 (1280 x 896)'],
+            ['key' => '9:16', 'displayname' => '9:16 (768 x 1408)'],
+            ['key' => '16:9', 'displayname' => '16:9 (1408 x 768)'],
         ];
         return $options;
     }
@@ -157,8 +161,11 @@ class connector extends base_connector {
             case 400:
                 if (method_exists($exception, 'getResponse') && !empty($exception->getResponse())) {
                     $responsebody = json_decode($exception->getResponse()->getBody()->getContents());
-                    if (property_exists($responsebody, 'error') && property_exists($responsebody->error, 'status')
-                            && $responsebody->error->status === 'INVALID_ARGUMENT') {
+                    if (
+                        property_exists($responsebody, 'error')
+                        && property_exists($responsebody->error, 'status')
+                        && $responsebody->error->status === 'INVALID_ARGUMENT'
+                    ) {
                         $message = get_string('err_contentpolicyviolation', 'aitool_imagen');
                     }
                 }

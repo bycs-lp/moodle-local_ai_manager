@@ -25,7 +25,6 @@ namespace local_ai_manager\local;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class prompt_response {
-
     /** @var string The model which has been used by the external AI tool to generate the reponse. */
     private string $model;
 

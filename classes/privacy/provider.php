@@ -42,47 +42,46 @@ use local_ai_manager\local\data_wiper;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class provider implements
-        \core_privacy\local\metadata\provider,
-        \core_privacy\local\request\plugin\provider,
-        \core_privacy\local\request\core_userlist_provider {
-
+    \core_privacy\local\request\core_userlist_provider,
+    \core_privacy\local\metadata\provider,
+    \core_privacy\local\request\plugin\provider {
     #[\Override]
     public static function get_metadata(collection $collection): collection {
         $collection->add_database_table(
-                'local_ai_manager_request_log',
-                [
-                        'userid' => 'privacy:metadata:local_ai_manager_request_log:userid',
-                        'prompttext' => 'privacy:metadata:local_ai_manager_request_log:prompttext',
-                        'promptcompletion' => 'privacy:metadata:local_ai_manager_request_log:promptcompletion',
-                        'requestoptions' => 'privacy:metadata:local_ai_manager_request_log:requestoptions',
-                        'contextid' => 'privacy:metadata:local_ai_manager_request_log:contextid',
-                        'timecreated' => 'privacy:metadata:local_ai_manager_request_log:timecreated',
-                ],
-                'privacy:metadata:local_ai_manager_request_log'
+            'local_ai_manager_request_log',
+            [
+                'userid' => 'privacy:metadata:local_ai_manager_request_log:userid',
+                'prompttext' => 'privacy:metadata:local_ai_manager_request_log:prompttext',
+                'promptcompletion' => 'privacy:metadata:local_ai_manager_request_log:promptcompletion',
+                'requestoptions' => 'privacy:metadata:local_ai_manager_request_log:requestoptions',
+                'contextid' => 'privacy:metadata:local_ai_manager_request_log:contextid',
+                'timecreated' => 'privacy:metadata:local_ai_manager_request_log:timecreated',
+            ],
+            'privacy:metadata:local_ai_manager_request_log'
         );
 
         $collection->add_database_table(
-                'local_ai_manager_userinfo',
-                [
-                        'userid' => 'privacy:metadata:local_ai_manager_userinfo:userid',
-                        'role' => 'privacy:metadata:local_ai_manager_userinfo:role',
-                        'locked' => 'privacy:metadata:local_ai_manager_userinfo:locked',
-                        'confirmed' => 'privacy:metadata:local_ai_manager_userinfo:confirmed',
-                        'scope' => 'privacy:metadata:local_ai_manager_userinfo:scope',
-                        'timemodified' => 'privacy:metadata:local_ai_manager_userinfo:timemodified',
-                ],
-                'privacy:metadata:local_ai_manager_userinfo'
+            'local_ai_manager_userinfo',
+            [
+                'userid' => 'privacy:metadata:local_ai_manager_userinfo:userid',
+                'role' => 'privacy:metadata:local_ai_manager_userinfo:role',
+                'locked' => 'privacy:metadata:local_ai_manager_userinfo:locked',
+                'confirmed' => 'privacy:metadata:local_ai_manager_userinfo:confirmed',
+                'scope' => 'privacy:metadata:local_ai_manager_userinfo:scope',
+                'timemodified' => 'privacy:metadata:local_ai_manager_userinfo:timemodified',
+            ],
+            'privacy:metadata:local_ai_manager_userinfo'
         );
 
         $collection->add_database_table(
-                'local_ai_manager_userusage',
-                [
-                        'userid' => 'privacy:metadata:local_ai_manager_userusage:userid',
-                        'purpose' => 'privacy:metadata:local_ai_manager_userusage:purpose',
-                        'currentusage' => 'privacy:metadata:local_ai_manager_userusage:currentusage',
-                        'timemodified' => 'privacy:metadata:local_ai_manager_userusage:timemodified',
-                ],
-                'privacy:metadata:local_ai_manager_userusage'
+            'local_ai_manager_userusage',
+            [
+                'userid' => 'privacy:metadata:local_ai_manager_userusage:userid',
+                'purpose' => 'privacy:metadata:local_ai_manager_userusage:purpose',
+                'currentusage' => 'privacy:metadata:local_ai_manager_userusage:currentusage',
+                'timemodified' => 'privacy:metadata:local_ai_manager_userusage:timemodified',
+            ],
+            'privacy:metadata:local_ai_manager_userusage'
         );
 
         return $collection;
@@ -117,11 +116,11 @@ class provider implements
             if ($context->id === SYSCONTEXTID) {
                 $userinforecord = $DB->get_record('local_ai_manager_userinfo', ['userid' => $userid]);
                 writer::with_context($context)->export_data(
-                        [
-                                get_string('pluginname', 'local_ai_manager'),
-                                get_string('privacy:metadata:local_ai_manager_userinfo', 'local_ai_manager'),
-                        ],
-                        (object) ['userinfo' => $userinforecord]
+                    [
+                        get_string('pluginname', 'local_ai_manager'),
+                        get_string('privacy:metadata:local_ai_manager_userinfo', 'local_ai_manager'),
+                    ],
+                    (object) ['userinfo' => $userinforecord]
                 );
                 $userusagerecords = $DB->get_records('local_ai_manager_userusage', ['userid' => $userid]);
                 $userusageobjects = [];
@@ -131,24 +130,24 @@ class provider implements
                     $userusageobjects[$purpose] = $userusage;
                 }
                 writer::with_context($context)->export_data(
-                        [
-                                get_string('pluginname', 'local_ai_manager'),
-                                get_string('privacy:metadata:local_ai_manager_userusage', 'local_ai_manager'),
-                        ],
-                        (object) ['userusage' => $userusageobjects]
+                    [
+                        get_string('pluginname', 'local_ai_manager'),
+                        get_string('privacy:metadata:local_ai_manager_userusage', 'local_ai_manager'),
+                    ],
+                    (object) ['userusage' => $userusageobjects]
                 );
             }
             $entries = $DB->get_records('local_ai_manager_request_log', ['userid' => $userid, 'contextid' => $context->id]);
             if (!empty($entries)) {
                 writer::with_context($context)->export_data(
-                        // We add two structure levels here: Inside a given context (for example a specific chat block instance) we
-                        // define a category "AI Manager" and a subcategory "Request Logs".
-                        // For "reasons" these categories are referred to "subcontexts" by moodle which is an irritating naming.
-                        [
-                                get_string('pluginname', 'local_ai_manager'),
-                                get_string('privacy:metadata:local_ai_manager_request_log', 'local_ai_manager'),
-                        ],
-                        (object) ['requests' => $entries]
+                // We add two structure levels here: Inside a given context (for example a specific chat block instance) we
+                // define a category "AI Manager" and a subcategory "Request Logs".
+                // For "reasons" these categories are referred to "subcontexts" by moodle which is an irritating naming.
+                    [
+                        get_string('pluginname', 'local_ai_manager'),
+                        get_string('privacy:metadata:local_ai_manager_request_log', 'local_ai_manager'),
+                    ],
+                    (object) ['requests' => $entries]
                 );
             }
         }
@@ -167,8 +166,10 @@ class provider implements
                 $datawiper->delete_userinfo($contextlist->get_user()->id);
                 $datawiper->delete_userusage($contextlist->get_user()->id);
             }
-            $recordsincontext = $DB->get_records('local_ai_manager_request_log',
-                    ['userid' => $contextlist->get_user()->id, 'contextid' => $context->id]);
+            $recordsincontext = $DB->get_records(
+                'local_ai_manager_request_log',
+                ['userid' => $contextlist->get_user()->id, 'contextid' => $context->id]
+            );
             foreach ($recordsincontext as $record) {
                 $anonymizecontext = false;
                 $context = \context::instance_by_id($record->contextid, IGNORE_MISSING);
@@ -193,7 +194,7 @@ class provider implements
 
         if ($context->id === SYSCONTEXTID) {
             $sql .= " UNION SELECT DISTINCT userid FROM {local_ai_manager_userinfo}"
-                    . " UNION SELECT DISTINCT userid FROM {local_ai_manager_userusage}";
+                . " UNION SELECT DISTINCT userid FROM {local_ai_manager_userusage}";
         }
 
         $userlist->add_from_sql('userid', $sql, ['contextid' => $context->id]);
@@ -212,8 +213,8 @@ class provider implements
 
         if ($context->id === SYSCONTEXTID) {
             foreach ($userlist->get_userids() as $userid) {
-                $datawiper->delete_userinfo($userid);;
-                $datawiper->delete_userusage($userid);;
+                $datawiper->delete_userinfo($userid);
+                $datawiper->delete_userusage($userid);
             }
         }
         [$insql, $inparams] = $DB->get_in_or_equal($userlist->get_userids(), SQL_PARAMS_NAMED);

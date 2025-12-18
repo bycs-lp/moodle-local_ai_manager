@@ -28,7 +28,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class userusage {
-
     /** @var int Constant for defining what means if a user can do unlimited requests */
     public const UNLIMITED_REQUESTS_PER_USER = 999999;
 
@@ -63,10 +62,11 @@ class userusage {
      * @param int $userid the user id to create the usage object for
      */
     public function __construct(
-            /** @var base_purpose $purpose The purpose to create the user usage object for */
-            private readonly base_purpose $purpose,
-            /** @var int $userid the user id to create the usage object for */
-            private readonly int $userid) {
+        /** @var base_purpose $purpose The purpose to create the user usage object for */
+        private readonly base_purpose $purpose,
+        /** @var int $userid the user id to create the usage object for */
+        private readonly int $userid
+    ) {
         $this->load();
     }
 
@@ -75,14 +75,17 @@ class userusage {
      */
     public function load(): void {
         global $DB;
-        $this->record = $DB->get_record('local_ai_manager_userusage',
-                ['purpose' => $this->purpose->get_plugin_name(), 'userid' => $this->userid]);
+        $this->record = $DB->get_record(
+            'local_ai_manager_userusage',
+            ['purpose' => $this->purpose->get_plugin_name(), 'userid' => $this->userid]
+        );
         $this->currentusage = !empty($this->record->currentusage) ? $this->record->currentusage : 0;
         $this->lastreset = !empty($this->record->lastreset) ? $this->record->lastreset : 0;
     }
 
     /**
      * Checks if a database record exists (yet).
+     *
      * @return bool true if a database record exists (yet)
      */
     public function record_exists(): bool {
@@ -91,6 +94,7 @@ class userusage {
 
     /**
      * Standard getter.
+     *
      * @return int The user id of the user for which this object contains the user information
      */
     public function get_userid(): int {
@@ -102,8 +106,10 @@ class userusage {
      */
     public function store() {
         global $DB;
-        $this->record = $DB->get_record('local_ai_manager_userusage',
-                ['purpose' => $this->purpose->get_plugin_name(), 'userid' => $this->userid]);
+        $this->record = $DB->get_record(
+            'local_ai_manager_userusage',
+            ['purpose' => $this->purpose->get_plugin_name(), 'userid' => $this->userid]
+        );
         $newrecord = new stdClass();
         $newrecord->purpose = $this->purpose->get_plugin_name();
         $newrecord->userid = $this->userid;

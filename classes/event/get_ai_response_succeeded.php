@@ -27,7 +27,6 @@ use local_ai_manager\local\prompt_response;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class get_ai_response_succeeded extends \core\event\base {
-
     /**
      * Init function for this event, setting some basic attributes.
      */

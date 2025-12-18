@@ -29,7 +29,6 @@ use navigation_node;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class hook_callbacks {
-
     /**
      * Hook callback function to extend the primary navigation.
      *
@@ -44,8 +43,10 @@ class hook_callbacks {
         if (!$accessmanager->is_tenant_manager() || !$tenant->is_tenant_allowed()) {
             return;
         }
-        $node = navigation_node::create(get_string('aiadministrationlink', 'local_ai_manager'),
-                new moodle_url('/local/ai_manager/tenant_config.php'));
+        $node = navigation_node::create(
+            get_string('aiadministrationlink', 'local_ai_manager'),
+            new moodle_url('/local/ai_manager/tenant_config.php')
+        );
         $hook->get_primaryview()->add_node($node);
     }
 }

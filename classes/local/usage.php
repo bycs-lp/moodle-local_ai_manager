@@ -25,7 +25,6 @@ namespace local_ai_manager\local;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class usage {
-
     /**
      * Constructor for creating a usage object.
      *
@@ -34,12 +33,12 @@ class usage {
      * @param float $customvalue2 the second customvalue, for example the amount of tokens in the response
      */
     public function __construct(
-            /** @var float $value the value of the overall usage (summed up) */
-            public readonly float $value,
-            /** @var float $customvalue1 the first customvalue, for example the amount of tokens in the prompt */
-            public readonly float $customvalue1 = 0.0,
-            /** @var float $customvalue1 the second customvalue, for example the amount of tokens in the response */
-            public readonly float $customvalue2 = 0.0
+        /** @var float $value the value of the overall usage (summed up) */
+        public readonly float $value,
+        /** @var float $customvalue1 the first customvalue, for example the amount of tokens in the prompt */
+        public readonly float $customvalue1 = 0.0,
+        /** @var float $customvalue1 the second customvalue, for example the amount of tokens in the response */
+        public readonly float $customvalue2 = 0.0
     ) {
     }
 }

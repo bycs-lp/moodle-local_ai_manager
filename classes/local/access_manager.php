@@ -28,7 +28,6 @@ use local_ai_manager\hook\custom_tenant;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class access_manager {
-
     /**
      * Creates the access_manager object.
      *
@@ -36,7 +35,7 @@ class access_manager {
      */
     public function __construct(
         /** @var tenant $tenant the tenant the access manager should use */
-            private readonly tenant $tenant
+        private readonly tenant $tenant
     ) {
     }
 
@@ -87,7 +86,7 @@ class access_manager {
             // to manage it.
             $tenantfield = get_config('local_ai_manager', 'tenantcolumn');
             return has_capability('local/ai_manager:manage', $tenantcontext, $user) && $tenant->is_tenant_allowed()
-                    && $user->{$tenantfield} === $tenant->get_sql_identifier();
+                && $user->{$tenantfield} === $tenant->get_sql_identifier();
         }
         return has_capability('local/ai_manager:manage', $tenantcontext, $user) && $tenant->is_tenant_allowed();
     }

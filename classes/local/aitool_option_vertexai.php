@@ -28,7 +28,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class aitool_option_vertexai {
-
     /**
      * Extends the form definition of the edit instance form by adding the Vertex AI options.
      *
@@ -37,12 +36,20 @@ class aitool_option_vertexai {
     public static function extend_form_definition(\MoodleQuickForm $mform): void {
         global $OUTPUT;
         $mform->freeze('endpoint');
-        $mform->addElement('textarea', 'serviceaccountjson',
-                get_string('serviceaccountjson', 'local_ai_manager'), ['rows' => '20']);
+        $mform->addElement(
+            'textarea',
+            'serviceaccountjson',
+            get_string('serviceaccountjson', 'local_ai_manager'),
+            ['rows' => '20']
+        );
         $vertexcachestatushtml = $OUTPUT->render_from_template('local_ai_manager/vertexcachestatus', ['noStatus' => true]);
-        $mform->addElement('static', 'vertexcachestatus',
-                get_string('vertexcachestatus', 'local_ai_manager'),
-                $vertexcachestatushtml, ['class' => 'mw-100']);
+        $mform->addElement(
+            'static',
+            'vertexcachestatus',
+            get_string('vertexcachestatus', 'local_ai_manager'),
+            $vertexcachestatushtml,
+            ['class' => 'mw-100']
+        );
     }
 
     /**
@@ -69,8 +76,8 @@ class aitool_option_vertexai {
         $projectid = $serviceaccountinfo->project_id;
 
         $baseendpoint = 'https://europe-north1-aiplatform.googleapis.com/v1/projects/' . $projectid
-                . '/locations/europe-north1/publishers/google/models/'
-                . $data->model;
+            . '/locations/europe-north1/publishers/google/models/'
+            . $data->model;
         return [$serviceaccountjson, $baseendpoint];
     }
 
@@ -94,7 +101,7 @@ class aitool_option_vertexai {
             foreach (['private_key_id', 'private_key', 'client_email'] as $field) {
                 if (!property_exists($serviceaccountinfo, $field)) {
                     $errors['serviceaccountjson'] =
-                            get_string('error_vertexai_serviceaccountjsoninvalidmissing', 'local_ai_manager', $field);
+                        get_string('error_vertexai_serviceaccountjsoninvalidmissing', 'local_ai_manager', $field);
                     break;
                 }
             }

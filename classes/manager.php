@@ -39,7 +39,6 @@ use stdClass;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class manager {
-
     /** @var base_purpose The purpose which is being used for this request */
     private base_purpose $purpose;
 
@@ -113,8 +112,11 @@ class manager {
         try {
             $context = $contextid === 0 ? \context_system::instance() : context::instance_by_id($contextid);
         } catch (\moodle_exception $exception) {
-            return prompt_response::create_from_error(400, get_string('error_http400contextmissing', 'local_ai_manager'),
-                    $exception->getMessage());
+            return prompt_response::create_from_error(
+                400,
+                get_string('error_http400contextmissing', 'local_ai_manager'),
+                $exception->getMessage()
+            );
         }
         $requestoptions = new request_options($this->purpose, $context, $component, $options);
 
@@ -126,9 +128,9 @@ class manager {
             $requestoptions->sanitize_options();
         } catch (\Exception $exception) {
             return prompt_response::create_from_error(
-                    400,
-                    get_string('error_http400', 'local_ai_manager'),
-                    $exception->getMessage()
+                400,
+                get_string('error_http400', 'local_ai_manager'),
+                $exception->getMessage()
             );
         }
 
@@ -167,9 +169,10 @@ class manager {
         \core\di::get(\core\hook\manager::class)->dispatch($restrictionhook);
         if (!$restrictionhook->is_allowed()) {
             return prompt_response::create_from_error(
-                    $restrictionhook->get_code(),
-                    $restrictionhook->get_message(),
-                    $restrictionhook->get_debuginfo());
+                $restrictionhook->get_code(),
+                $restrictionhook->get_message(),
+                $restrictionhook->get_debuginfo()
+            );
         }
 
         if (intval($this->configmanager->get_max_requests($this->purpose, $userinfo->get_role())) === 0) {
@@ -181,17 +184,16 @@ class manager {
         if ($userusage->get_currentusage() >= $this->configmanager->get_max_requests($this->purpose, $userinfo->get_role())) {
             $period = format_time($this->configmanager->get_max_requests_period());
             return prompt_response::create_from_error(
-                    429,
-                    get_string(
-                            'error_http429',
-                            'local_ai_manager',
-                            ['count' => $this->configmanager->get_max_requests($this->purpose, $userinfo->get_role()),
-                                    'period' => $period]
-                    ),
-                    ''
+                429,
+                get_string(
+                    'error_http429',
+                    'local_ai_manager',
+                    ['count' => $this->configmanager->get_max_requests($this->purpose, $userinfo->get_role()),
+                        'period' => $period]
+                ),
+                ''
             );
         }
-
         $promptdata = $this->connector->get_prompt_data($prompttext, $requestoptions);
         $starttime = microtime(true);
         try {
@@ -208,12 +210,16 @@ class manager {
         $endtime = microtime(true);
         $duration = round($endtime - $starttime, 2);
         if ($requestresult->get_code() !== 200) {
-            $promptresponse = prompt_response::create_from_error($requestresult->get_code(), $requestresult->get_errormessage(),
-                    $requestresult->get_debuginfo());
+            $promptresponse = prompt_response::create_from_error(
+                $requestresult->get_code(),
+                $requestresult->get_errormessage(),
+                $requestresult->get_debuginfo()
+            );
             get_ai_response_failed::create_from_prompt_response($promptdata, $promptresponse, $duration)->trigger();
             return $promptresponse;
         }
         $promptcompletion = $this->connector->execute_prompt_completion($requestresult->get_response(), $requestoptions);
+  
         if (!empty($promptcompletion->get_errormessage())) {
             get_ai_response_failed::create_from_prompt_response($promptdata, $promptcompletion, $duration)->trigger();
             return $promptcompletion;
@@ -222,13 +228,20 @@ class manager {
         // This is to avoid race conditions and to ensure that a new itemid is being used for logging if the plugin needs unique
         // itemids.
         if (!empty($options['forcenewitemid']) && !empty($options['itemid'])) {
-            if ($DB->record_exists('local_ai_manager_request_log',
-                    ['component' => $component, 'contextid' => $context->id, 'itemid' => $options['itemid']])) {
+            if (
+                $DB->record_exists(
+                    'local_ai_manager_request_log',
+                    ['component' => $component, 'contextid' => $context->id, 'itemid' => $options['itemid']]
+                )
+            ) {
                 $existingitemid = $options['itemid'];
                 unset($options['itemid']);
                 $this->log_request($prompttext, $promptcompletion, $duration, $requestoptions);
-                $promptresponse = prompt_response::create_from_error(409, get_string('error_http409', 'local_ai_manager',
-                        $existingitemid), '');
+                $promptresponse = prompt_response::create_from_error(
+                    409,
+                    get_string('error_http409', 'local_ai_manager', $existingitemid),
+                    ''
+                );
                 get_ai_response_failed::create_from_prompt_response($promptdata, $promptresponse, $duration)->trigger();
                 return $promptresponse;
             }
@@ -251,8 +264,12 @@ class manager {
      * @param float $executiontime the duration that the request has taken
      * @return int the record id of the log record which has been stored to the database
      */
-    public function log_request(string $prompttext, prompt_response $promptcompletion, float $executiontime,
-            request_options $requestoptions): int {
+    public function log_request(
+        string $prompttext,
+        prompt_response $promptcompletion,
+        float $executiontime,
+        request_options $requestoptions
+    ): int {
         global $DB, $USER;
 
         // phpcs:disable moodle.Commenting.TodoComment.MissingInfoInline

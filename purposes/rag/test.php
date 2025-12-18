@@ -35,7 +35,7 @@ $PAGE->set_context($context);
 
 $PAGE->set_heading($SITE->fullname);
 echo $OUTPUT->header();
-
+$output = [];
 $manager = new \local_ai_manager\manager('rag');
 echo \html_writer::start_tag('pre');
 $action = optional_param('action', '', PARAM_ALPHA);
@@ -66,30 +66,57 @@ if ($action == "store") {
 }
 if ($action == "fetch") {
     // Test 2 retrive a doc.
-    $output = [];
-    $testvalues = ["Test Document", 'random'];
-    foreach($testvalues as $retrieveprompt) {
+    $query = optional_param('query', false, PARAM_RAW);
+    if ($query !== false) {
+        // we have a user query.
         $retrieveoptions = [
             'action' => 'retrieve',
             'topk' => 1,
         ];
         $retrieveresponse = $manager->perform_request(
-            $retrieveprompt,
+            $query,
             'aitool_rag',
             $context->id,
             $retrieveoptions
         );
-        $retrieveresult = json_decode($retrieveresponse->get_content());
+
+        if ($retrieveresponse->get_code() != 200) {
+            throw new \moodle_exception($retrieveresponse->get_errormessage());
+        } else {
+            $retrieveresult = json_decode($retrieveresponse->get_content());
+            $results = $retrieveresult->result->points;
+
+            form();
+            foreach($results as $r) {
+                $title = $r->payload->title ?? 'No Title';
+                echo "Result: {$title} ({$r->score})\n";
+                echo "Content: {$r->payload->content}\n";
+                echo "Metadata: \n";
+                echo print_r($r->payload->metadata, true)."\n";
+                // echo print_r($r->payload, true)."\n";
+            }
+        }
         
-        $results = $retrieveresult->result->points;
-        $docs = array_map(function($r) use ($retrieveprompt) {
-            return "\"{$retrieveprompt}\": {$r->payload->title} ({$r->score})";
-        }, $results);
-        // Append $docs to $output
-        $output = array_merge($output, $docs);
+        
+    } else { 
+        echo "Fetch test";
+        form();   
     }
 
 }
+
+function form() {
+    global $PAGE;
+    echo \core\output\html_writer::start_tag('form', [
+        'action' => new \moodle_url($PAGE->url,[
+            'action'=>'fetch'
+        ]),
+        'method' => 'POST',
+    ]);
+    echo \html_writer::tag('input', '', ['name' => 'query']);
+    echo \html_writer::tag('input', '', ['type' => 'submit', 'value' => 'Query']);
+    echo \html_writer::end_tag('form');
+}
 echo \html_writer::end_tag('pre');
-echo \html_writer::alist($output);
+// echo \html_writer::alist($output);
 echo $OUTPUT->footer();

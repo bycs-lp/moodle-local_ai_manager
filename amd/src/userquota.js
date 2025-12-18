@@ -67,6 +67,8 @@ export const renderUserQuota = async(selector, purposes) => {
     const userquotaData = await fetchUserquotaData();
     const purposeInfo = [];
 
+    purposes = purposes.filter(purpose => userquotaData.usage.hasOwnProperty(purpose));
+
     purposes.forEach(purpose => {
         purposeInfo.push(
             {

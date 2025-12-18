@@ -85,5 +85,3 @@ if ($confirmationrequired) {
 }
 
 echo $OUTPUT->footer();
-
-
