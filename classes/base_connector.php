@@ -125,6 +125,12 @@ abstract class base_connector {
      */
     abstract public function execute_prompt_completion(StreamInterface $result, request_options $requestoptions): prompt_response;
 
+    protected function conform_contents(string $content, request_options $requestoptions) {
+        return $content;
+    }
+    protected function apply_guard_rails($content, request_options $requestoptions) {
+        return $content;
+    }
     /**
      * Defines if the connector uses the first customvalue attribute.
      *
