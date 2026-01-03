@@ -105,21 +105,24 @@ class indexer_manager {
         }
 
         // First check if global search is enabled
-        if (!\core_search\manager::is_global_search_enabled()) {
-            self::$enabled = false;
-            return false;
-        }
+//        if (!\core_search\manager::is_global_search_enabled()) {
+//            self::$enabled = false;
+//            return false;
+//        }
 
         // Check if RAG purpose is enabled
-        if (!component_callback_exists('aipurpose_rag', 'is_available')) {
-            self::$enabled = false;
-            return false;
-        }
-        
-        if (!component_callback('aipurpose_rag', 'is_available')) {
-            self::$enabled = false;
-            return false;
-        }
+        // These checks are hallucinations.
+        // We need a deifferent way to ccheck the purpose is enabled.
+
+//        if (!component_callback_exists('aipurpose_rag', 'is_available')) {
+//            self::$enabled = false;
+//            return false;
+//        }
+//
+//        if (!component_callback('aipurpose_rag', 'is_available')) {
+//            self::$enabled = false;
+//            return false;
+//        }
 
         // Check if RAG indexing is enabled in settings
         $enabled = get_config('aipurpose_rag', 'enableindexing');
@@ -169,6 +172,7 @@ class indexer_manager {
             debugging('No search areas enabled');
             return false;
         }
+        debugging("Got ".count($searchareas) ." search areas", DEBUG_DEVELOPER);
 
         // Order search areas by previous indexing duration if time limited
         if ($timelimit) {
@@ -247,7 +251,9 @@ class indexer_manager {
             // Process each document
             foreach ($records as $record) {
                 $numrecords++;
-                
+                if (debugging('Records to index', DEBUG_DEVELOPER)) {
+                    print_r($record);
+                }
                 // Check if we should skip this item based on timemodified
                 // In a real implementation, we would use $searcharea->get_document_modified($record)
                 // For now, use a default property if it exists, otherwise use current time
