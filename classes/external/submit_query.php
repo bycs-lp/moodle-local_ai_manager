@@ -81,7 +81,16 @@ class submit_query extends external_api {
 
         try {
             $aimanager = new \local_ai_manager\manager($purpose);
-
+            //  Inserting branch to perform RAG if necessary.
+            if (!empty($options['RAG'])) {
+                // Perform extra RAG step.
+                $ragmanager = new \local_ai_manager\manager('rag');
+                $ragresult = $ragmanager->perform_request($prompt, $component, $contextid, $options);
+                if ($ragrequest->get_code == 200 && empty($ragresponse['result']['points'])) {
+                    $ragprompt = json_encode($ragresponse['result']['points']);
+                    $prompt = "Use the following information\n\n{$ragprompt} to answer: \n\n{$prompt}";
+                }
+            }
             $result = $aimanager->perform_request($prompt, $component, $contextid, $options);
 
             if ($result->get_code() !== 200) {
