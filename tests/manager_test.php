@@ -287,7 +287,11 @@ final class manager_test extends \advanced_testcase {
             'instancenotconfigured' => [
                 'configuration' => [...$defaultoptions, 'instanceconfigured' => false],
                 'expectedcode' => 403,
-                'message' => get_string('error_purposenotconfigured', 'local_ai_manager'),
+                'message' => get_string(
+                    'error_purposenotconfigured',
+                    'local_ai_manager',
+                    get_string('pluginname', 'aipurpose_chat')
+                ),
             ],
             'instanceconnectorenabled' => [
                 'configuration' => [...$defaultoptions, 'instanceconnectorenabled' => false],

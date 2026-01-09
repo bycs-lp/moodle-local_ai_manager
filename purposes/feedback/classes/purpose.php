@@ -40,4 +40,9 @@ class purpose extends base_purpose {
     public function get_additional_request_options(array $options): array {
         return [];
     }
+
+    #[\Override]
+    public function format_output(string $output): string {
+        return clean_text($output);
+    }
 }
