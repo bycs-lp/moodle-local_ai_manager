@@ -182,7 +182,7 @@ abstract class base_connector {
      */
     public function make_request(array $data, request_options $requestoptions): request_response {
         $client = new http_client([
-            'timeout' => get_config('local_ai_manager', 'requesttimeout'),
+            'timeout' => (int)get_config('local_ai_manager', 'requesttimeout'),
             'verify' => !empty(get_config('local_ai_manager', 'verifyssl')),
         ]);
 

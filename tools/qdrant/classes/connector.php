@@ -26,7 +26,8 @@ use Psr\Http\Message\StreamInterface;
 use Psr\Http\Client\ClientExceptionInterface;
 
 class connector extends \local_ai_manager\base_connector {
-
+    const INITIALISATION_OK = 0;
+    const INITIALISATION_ERROR_FAILED_TO_CREATE_COLLECTION = 1;
     #[\Override]
     public function get_models_by_purpose(): array {
         return [
@@ -39,10 +40,84 @@ class connector extends \local_ai_manager\base_connector {
         return unit::COUNT;
     }
 
+    /** 
+     * @var bool $initialized Indicates if the back end initialisation check has been performed
+     * **and succeeded**.
+     */
+    static protected $initialized = false;
+    /**
+     * This function is called to initialise the back end if needed, for instance creating a collection.
+     */
+    public function initialise() : void {
+        mtrace("Initialising Qdrant connector...");
+        
+        $client = new http_client([
+            'timeout' => (int)get_config('local_ai_manager', 'requesttimeout'),
+            'verify' => !empty(get_config('local_ai_manager', 'verifyssl')),
+        ]);
+        
+        // Step 1: GET request to list collections
+        $response = $client->request('GET', $this->instance->get_endpoint() . 'collections');
+        if ($response->getStatusCode() !== 200) {
+            throw new \moodle_exception('error_failedtogetcollections', 'aitool_qdrant');
+        }
+        
+        $body = json_decode($response->getBody()->getContents());
+        
+        // Step 2: Check if our collection exists
+        $collectionExists = false;
+        $targetCollection = $this->get_collection_name();
+        
+        if (!empty($body->result->collections)) {
+            foreach ($body->result->collections as $collection) {
+                if ($collection->name === $targetCollection) {
+                    $collectionExists = true;
+                    mtrace("Collection '{$targetCollection}' already exists.");
+                    break;
+                }
+            }
+        }
+        
+        // Step 3: If collection doesn't exist, create it
+        if (!$collectionExists) {
+            mtrace("Collection '{$targetCollection}' not found, creating it...");
+            
+            $createPayload = [
+                'vectors' => [
+                    $this->get_vector_name() => [
+                        'size' => 1536,
+                        'distance' => 'Cosine',
+                    ],
+                ],
+            ];
+            
+            $response = $client->request('PUT', $this->instance->get_endpoint() . 'collections/' . $targetCollection, [
+                'body' => json_encode($createPayload),
+            ]);
+            
+            if ($response->getStatusCode() !== 200) {
+                set_config('failedtoinitialise', self::INITIALISATION_ERROR_FAILED_TO_CREATE_COLLECTION, 'aitool_qdrant');
+                throw new \moodle_exception('error_failedtocreatecollection', 'aitool_qdrant');
+            }
+            
+            mtrace("Collection '{$targetCollection}' created successfully.");
+        }
+        self::$initialized = true;
+    }
+
     public function make_request(array $data, request_options $requestoptions): request_response
     {
+        $failedtoinitialise = get_config('aitool_qdrant', 'failedtoinitialise');
+        if ($failedtoinitialise) {  // Anything other than a 0 is a failure and this can't work until fixed.
+            throw new \moodle_exception('error_failedtoinitialise'.$failedtoinitialise, 'aitool_qdrant');
+        }
+        if (!self::$initialized) {
+            // We only check initialisation once per request lifecycle.
+            $this->initialise();
+        }
+    
         $client = new http_client([
-            'timeout' => get_config('local_ai_manager', 'requesttimeout'),
+            'timeout' => (int)get_config('local_ai_manager', 'requesttimeout'),
             'verify' => !empty(get_config('local_ai_manager', 'verifyssl')),
         ]);
 
@@ -52,14 +127,21 @@ class connector extends \local_ai_manager\base_connector {
         $options['body'] = json_encode($this->$payloadfunc($data, $requestoptions));
 
         [$method, $endpoint] = $this->get_endpoint($this->instance->get_endpoint(), $action);
+        mtrace("Attempting to send Qdrant request to endpoint: {$endpoint}");
+        // mtrace("With payload: " . $options['body']["points"][0]["payload"]);
+    
         try {
             $response = $client->request($method, $endpoint, $options);
         } catch (ClientExceptionInterface $exception) {
+            mtrace($exception->getMessage());
             return $this->create_error_response_from_exception($exception);
         }
         if ($response->getStatusCode() === 200) {
+            mtrace("Qdrant request successful.");
             $return = request_response::create_from_result($response->getBody());
         } else {
+            mtrace("Qdrant request failed with status code: " . $response->getStatusCode());
+            mtrace("Response body: " . $response->getBody()->getContents());
             $return = request_response::create_from_error(
                     $response->getStatusCode(),
                     get_string('error_sendingrequestfailed', 'local_ai_manager'),
@@ -89,14 +171,26 @@ class connector extends \local_ai_manager\base_connector {
         ];
         return $payload;
     }
+
+    protected function generate_uuid($data = null) {
+        // Generate 16 bytes (128 bits) of random data or use the data passed into the function.
+        $data = $data ?? random_bytes(16);
+        // Set version to 0100
+        $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+        // Set bits 6-7 to 10
+        $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+
+        // Output the 36 character UUID.
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+    }
+
     /**
      * Generate API Payload for a "store" action.
      */
     protected function get_payload_store($data, $requestoptions): array {
-        
         $embedding = $this->get_embedding($data['content']);        
-        $id = $this->make_guid();
-
+        $id = $this->generate_uuid($requestoptions->get_options()['metadata']['id']);
+        
         $payload = [
             'points' => [
                 [
@@ -111,7 +205,7 @@ class connector extends \local_ai_manager\base_connector {
                     ],
                     'payload' => [
                         'content' => $data['content'],
-                        'document' => (object) ($data['document'] ?? []),
+                        // 'document' => (object) ($data['document'] ?? []),    // This seems to be an unnecessary duplication of what is in the "content" field.
                         'metadata' => (object) ($requestoptions->get_options()['metadata'] ?? []),
                     ]
                 ]

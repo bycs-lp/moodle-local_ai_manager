@@ -20,19 +20,51 @@
 
 
 function local_ai_manager_coursemodule_edit_post_actions($data, $course) {
-//    if (\aipurpose_rag\indexer_manager::is_rag_indexing_enabled()) {
-//        // RAG indexing is enabled.
-//        // A "falsey" value will cause the resource to be not indexed.
-//        // Only a "proper" truth-y value will cause the resource to be indexed.
-//    }
+    global $DB, $USER;
+    if (\aipurpose_rag\indexer_manager::is_rag_indexing_enabled()) {
+       // RAG indexing is enabled.
+       // A "falsey" value will cause the resource to be not indexed.
+       // Only a "proper" truth-y value will cause the resource to be indexed.
+       debugging('RAG indexing is enabled - processing allowindexing form field', DEBUG_DEVELOPER);
+       $tx = $DB->start_delegated_transaction();
+       $oldvalue = null;
+       print_r($data);
+       if ($cmconfig = \local_ai_manager\cmconfig::get_record(['cmid' => $data->id])) {
+            $oldvalue = $cmconfig->get('intvalue');
+            $cmconfig->set('intvalue', !empty($data->allowindexing) ? 1 : 0);
+         } else {
+              $record = new \stdClass();
+              $record->cmid = $data->id;
+              $record->intvalue = !empty($data->allowindexing) ? 1 : 0;
+              $record->usermodified = $USER->id;
+              $cmconfig = new \local_ai_manager\cmconfig(0, $record);
+              print_r($cmconfig);
+              $cmconfig->save();
+       }
+       $tx->allow_commit();
+       if (!is_null($oldvalue)) {
+            if ($oldvalue === 0 & $data->allowindexing) {
+                // Turning off to on.
+            } else if ($oldvalue === 1 & empty($data->allowindexing)) {
+                // Turning on to off.
+                // We should schedule a deindexing task.
+            }
+       } // Otherwise a new record, we don't care if it's changing state.
+   }
+    return $data;
 }
 function local_ai_manager_coursemodule_standard_elements($formwrapper, $mform) {
 
     if (\aipurpose_rag\indexer_manager::is_rag_indexing_enabled()) {
+        $cmconfig = \local_ai_manager\cmconfig::get_record(['cmid' => $formwrapper->get_coursemodule()->id]);
         $mform->addElement('header', 'ragindexing', get_string('ragindexing', 'local_ai_manager'));
         $ynoptions = [0 => get_string('no'), 1 => get_string('yes')];
         $mform->addElement('select', 'allowindexing', get_string('allowindexing', 'local_ai_manager'), $ynoptions);
-        $mform->setDefault('allowindexing', 0);
+        if ($cmconfig && $cmconfig->get('intvalue') === 1) {
+            $mform->setDefault('allowindexing', 1);
+        } else {
+            $mform->setDefault('allowindexing', 0);
+        }
     }
 }
 
