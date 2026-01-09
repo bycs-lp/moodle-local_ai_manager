@@ -570,13 +570,13 @@ class base_instance {
         if (empty($data['name'])) {
             $errors['name'] = get_string('formvalidation_editinstance_name', 'local_ai_manager');
         }
-        if (
-            !empty($data['endpoint'])
-            && str_starts_with($data['endpoint'], 'http://')
-            && !str_starts_with($data['endpoint'], 'https://')
-        ) {
-            $errors['endpoint'] = get_string('formvalidation_editinstance_endpointnossl', 'local_ai_manager');
-        }
+        // if (
+        //     !empty($data['endpoint'])
+        //     && str_starts_with($data['endpoint'], 'http://')
+        //     && !str_starts_with($data['endpoint'], 'https://')
+        // ) {
+        //     $errors['endpoint'] = get_string('formvalidation_editinstance_endpointnossl', 'local_ai_manager');
+        // }
         return $errors + $this->extend_validation($data, $files);
     }
 

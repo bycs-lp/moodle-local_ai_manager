@@ -30,4 +30,8 @@ $callbacks = [
                 'hook' => \core\hook\navigation\primary_extend::class,
                 'callback' => \local_ai_manager\local\hook_callbacks::class . '::extend_primary_navigation',
         ],
+        [
+                'hook' => \core\hook\output\before_footer_html_generation::class,
+                'callback' => \local_ai_manager\local\hook_callbacks::class . '::before_footer_html_generation',
+        ]
 ];

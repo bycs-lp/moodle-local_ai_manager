@@ -202,7 +202,6 @@ class manager {
                 ''
             );
         }
-
         $promptdata = $this->connector->get_prompt_data($prompttext, $requestoptions);
         $starttime = microtime(true);
         try {
@@ -228,6 +227,7 @@ class manager {
             return $promptresponse;
         }
         $promptcompletion = $this->connector->execute_prompt_completion($requestresult->get_response(), $requestoptions);
+  
         if (!empty($promptcompletion->get_errormessage())) {
             get_ai_response_failed::create_from_prompt_response($promptdata, $promptcompletion, $duration)->trigger();
             return $promptcompletion;

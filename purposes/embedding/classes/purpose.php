@@ -14,28 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace aipurpose_embedding;
+
+use local_ai_manager\base_purpose;
+
 /**
- * Cache definitions.
- *
- * @package   local_ai_manager
- * @copyright 2024 ISB Bayern
- * @author    Philipp Memmel
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * Purpose class for embedding.
  */
+class purpose extends base_purpose {
+    // Optionally override methods here as needed.
 
-defined('MOODLE_INTERNAL') || die();
-
-$definitions = [
-        'googleauth' => [
-                'mode' => cache_store::MODE_APPLICATION,
-                'simplekeys' => true,
-                'simpledata' => true,
-                'canuselocalstore' => false,
-        ],
-        'textembeddingmodels' => [
-                'mode' => cache_store::MODE_APPLICATION,
-                'simplekeys' => true,
-                'simpledata' => true,
-                'canuselocalstore' => false,
-        ],
-];
+        #[\Override]
+    public function get_additional_purpose_options(): array {
+        return ['conversationcontext' => base_purpose::PARAM_ARRAY];
+    }
+       #[\Override]
+   public function format_output(string $output): string
+   {
+       return $output;
+   }
+}

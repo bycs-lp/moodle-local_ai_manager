@@ -14,19 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
- * Version file for local_ai_manager.
- *
- * @package    local_ai_manager
- * @copyright  ISB Bayern, 2024
- * @author     Dr. Peter Mayer
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->version  = 2026030301;
-$plugin->requires = 2025041400;
-$plugin->supported = [500, 501];
-$plugin->release = '2.3';
-$plugin->component = 'local_ai_manager';
-$plugin->maturity = MATURITY_BETA;
+$plugin->component = 'aipurpose_embedding';
+$plugin->version = 2025091800;
+$plugin->requires = 2022041900; // Moodle 4.0 or later.
+$plugin->maturity = MATURITY_ALPHA;
+$plugin->release = '0.1.0';
