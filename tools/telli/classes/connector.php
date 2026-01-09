@@ -71,14 +71,14 @@ class connector extends base_connector {
         asort($visionmodels);
 
         return [
-                'chat' => $models,
-                'feedback' => $models,
-                'singleprompt' => $models,
-                'translate' => $models,
-                'tts' => [],
-                'itt' => $visionmodels,
-                'imggen' => $imggenmodels,
-                'questiongeneration' => $models,
+            'chat' => $models,
+            'feedback' => $models,
+            'singleprompt' => $models,
+            'translate' => $models,
+            'tts' => [],
+            'itt' => $visionmodels,
+            'imggen' => $imggenmodels,
+            'questiongeneration' => $models,
         ];
     }
 
@@ -140,6 +140,15 @@ class connector extends base_connector {
                             }
                         }
                     }
+                }
+                break;
+            case 500:
+                // The Telli API behaves in a non-ideal way if an image cannot be generated when using imagen-4.0-generate-001.
+                // It returns with error code 500 and a badly parseable error message. To not confront the users with a general
+                // 500 internal server error message, we have to check for parts of the exception message and re-wrap the error
+                // in a way the user can understand what the problem is.
+                if (str_contains($exception->getMessage(), 'No image data received')) {
+                    $message = get_string('err_noimagedata', 'aitool_telli');
                 }
                 break;
         }
