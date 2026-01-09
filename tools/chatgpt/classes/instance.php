@@ -57,11 +57,13 @@ class instance extends base_instance {
     #[\Override]
     protected function extend_store_formdata(stdClass $data): void {
         $temperature = aitool_option_temperature::extract_temperature_to_store($data);
+        
         $this->set_customfield1($temperature);
 
         [$enabled] = aitool_option_azure::extract_azure_data_to_store($data);
 
-        if (!empty($enabled)) {
+        if (!empty($enabled)) { // This is the Azure option was enabled.
+            $endpoint = $data->endpoint;
             $this->set_model(aitool_option_azure::get_azure_model_name($this->get_connector()));
         } else {
             $endpoint = 'https://api.openai.com/v1/chat/completions';
