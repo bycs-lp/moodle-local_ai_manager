@@ -57,3 +57,8 @@ Each `aitool_vdb` implementation provides the necessary code to interact with a 
 Currently RAG is implemented with a qDrant backend, this will require a qdrant server instance to be available.
 
 This just needs to be available within the environment, by default it will expect it to be on port 6333 on localhost.
+
+
+# Indexing
+`php admin/cli/cfig.php --name=task_full_reindex --set=1 --component=aipurpose_rag; php admin/c
+li/scheduled_task.php --execute=\\aipurpose_rag\\task\\indexer_task`

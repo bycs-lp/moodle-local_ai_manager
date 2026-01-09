@@ -16,3 +16,5 @@
 
 $string['pluginname'] = 'QDrant Vector Database';
 $string['adddescription'] = 'QDrant is a vector database';
+
+$string['error_failedtoinitialise1'] = 'Failed to create collection on QDrant server during initialisation. Please check the server is running and the connection settings are correct.';

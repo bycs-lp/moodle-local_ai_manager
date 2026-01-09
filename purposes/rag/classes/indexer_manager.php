@@ -205,7 +205,7 @@ class indexer_manager {
         // Loop through each search area
         foreach ($searchareas as $areaid => $searcharea) {
             // Since we can't check if the area supports indexing, we'll just assume it does
-            
+            mtrace("\nIndexing area: {$areaid}");
             // Check time limit
             if ($stopat && time() >= $stopat) {
                 break;
@@ -222,8 +222,10 @@ class indexer_manager {
                 // Incremental index - start from the last indexed time
                 $startfrom = get_config('aipurpose_rag', 'lastindexrun' . $areaid);
                 if (!$startfrom) {
+                    mtrace("No previous index time found, starting from the beginning");
                     $startfrom = 0;
                 }
+                mtrace("Indexing content modified after ". userdate($startfrom));
             }
 
             // Add a delay buffer to avoid race conditions
@@ -236,6 +238,7 @@ class indexer_manager {
             try {
                 $records = $searcharea->get_recordset_by_timestamp($startfrom);
                 if (!$records->valid()) {
+                    mtrace("No records to index in this area");
                     continue;
                 }
             } catch (\Exception $e) {
@@ -250,13 +253,15 @@ class indexer_manager {
 
             // Process each document
             foreach ($records as $record) {
-                $numrecords++;
-                if (debugging('Records to index', DEBUG_DEVELOPER)) {
+                
+                if (debugging("{$numrecords} Records to index", DEBUG_DEVELOPER)) {
                     print_r($record);
                 }
+                $numrecords++;
                 // Check if we should skip this item based on timemodified
                 // In a real implementation, we would use $searcharea->get_document_modified($record)
                 // For now, use a default property if it exists, otherwise use current time
+                
                 $timemodified = time();
                 if (isset($record->timemodified)) {
                     $timemodified = $record->timemodified;
@@ -265,11 +270,13 @@ class indexer_manager {
                 }
                 
                 if ($timemodified > $endtime) {
+                    mtrace('Continuing due to timemodified '.$timemodified.' > endtime '.$endtime);
                     continue;
                 }
 
                 // Update the last indexed document time
                 $lastindexeddoc = $timemodified;
+                mtrace("Last indexed document time updated to ". userdate($lastindexeddoc));
 
                 // Skip deleted items - in a real implementation we'd use $searcharea->check_access($record->id)
                 // For now, assume all records are accessible
@@ -282,6 +289,7 @@ class indexer_manager {
                     // Get the document
                     $doc = $searcharea->get_document($record);
                     if (!$doc) {
+                        mtrace("couldn't get document for record id {$record->id}, skipping");
                         continue;
                     }
 
@@ -304,11 +312,13 @@ class indexer_manager {
                         $docstoadd = [];
                     }
                 } catch (\Exception $e) {
+                    mtrace($e->getMessage());
                     continue;
                 }
 
                 // Check time limit again
                 if ($stopat && time() >= $stopat) {
+                    mtrace("Time limit reached, stopping indexing");
                     break;
                 }
             }
@@ -324,6 +334,7 @@ class indexer_manager {
             
             // Update the last indexed time for this area
             if ($lastindexeddoc) {
+                mtrace("Updating last indexed time for area {$areaid} to ". userdate($lastindexeddoc));
                 set_config('lastindexrun' . $areaid, $lastindexeddoc, 'aipurpose_rag');
             }
 
