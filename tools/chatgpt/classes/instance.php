@@ -46,10 +46,7 @@ class instance extends base_instance {
         }
         foreach (
             aitool_option_azure::add_azure_options_to_form_data(
-                $this->get_customfield2(),
-                $this->get_customfield3(),
-                $this->get_customfield4(),
-                $this->get_customfield5()
+                $this->get_customfield2()
             ) as $key => $value
         ) {
             $data->{$key} = $value;
@@ -60,26 +57,20 @@ class instance extends base_instance {
     #[\Override]
     protected function extend_store_formdata(stdClass $data): void {
         $temperature = aitool_option_temperature::extract_temperature_to_store($data);
+        
         $this->set_customfield1($temperature);
 
-        [$enabled, $resourcename, $deploymentid, $apiversion] = aitool_option_azure::extract_azure_data_to_store($data);
+        [$enabled] = aitool_option_azure::extract_azure_data_to_store($data);
 
-        if (!empty($enabled)) {
-            $endpoint = 'https://' . $resourcename .
-                '.openai.azure.com/openai/deployments/'
-                . $deploymentid . '/chat/completions?api-version=' . $apiversion;
-            // We have an empty model because the model is preconfigured if we're using azure.
-            // So we overwrite the default "preconfigured" value by a better model name.
+        if (!empty($enabled)) { // This is the Azure option was enabled.
+            $endpoint = $data->endpoint;
             $this->set_model(aitool_option_azure::get_azure_model_name($this->get_connector()));
         } else {
             $endpoint = 'https://api.openai.com/v1/chat/completions';
         }
         $this->set_endpoint($endpoint);
-
+        // No longer set Azure custom fields, as they're all encoded in to the URL.
         $this->set_customfield2($enabled);
-        $this->set_customfield3($resourcename);
-        $this->set_customfield4($deploymentid);
-        $this->set_customfield5($apiversion);
     }
 
     #[\Override]
