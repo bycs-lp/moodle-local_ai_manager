@@ -125,7 +125,8 @@ class aitool extends base {
             return true;
         }
         $sqllike = $DB->sql_like('configkey', '?');
-        $params = ['purpose_%_tool'];
+        $underscoreescaped = $DB->sql_like_escape('_');
+        $params = ["purpose{$underscoreescaped}%{$underscoreescaped}tool%"];
         $select = $sqllike;
         [$insql, $inparams] = $DB->get_in_or_equal($deletedinstanceids);
         $params = array_merge($params, $inparams);
