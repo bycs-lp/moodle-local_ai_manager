@@ -35,7 +35,7 @@ require_login();
 global $CFG, $DB, $OUTPUT, $PAGE, $USER;
 
 global $PAGE;
-$tenantid = optional_param('tenant', '', PARAM_ALPHANUM);
+$tenantid = optional_param('tenant', '', PARAM_TEXT);
 $contextid = optional_param('contextid', '', PARAM_INT);
 
 if (!empty($tenantid) && !empty($contextid)) {
