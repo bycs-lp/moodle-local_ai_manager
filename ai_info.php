@@ -29,7 +29,7 @@ require_once(dirname(__FILE__) . '/../../config.php');
 
 global $CFG, $DB, $OUTPUT, $PAGE, $USER;
 
-$tenantid = optional_param('tenant', '', PARAM_ALPHANUM);
+$tenantid = optional_param('tenant', '', PARAM_TEXT);
 $purposes = optional_param_array('purposes', [], PARAM_TEXT);
 
 // Check permissions.
