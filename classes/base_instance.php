@@ -485,7 +485,7 @@ class base_instance {
         $mform->addElement('text', 'name', get_string('instancename', 'local_ai_manager'), $textelementparams);
         $mform->setType('name', PARAM_TEXT);
         $mform->addElement('text', 'tenant', get_string('tenant', 'local_ai_manager'), $textelementparams);
-        $mform->setType('tenant', PARAM_ALPHANUM);
+        $mform->setType('tenant', PARAM_TEXT);
         if (empty($this->_customdata['id'])) {
             $mform->setDefault('tenant', $customdata['tenant']);
         }

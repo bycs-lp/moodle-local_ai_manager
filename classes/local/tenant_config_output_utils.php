@@ -36,7 +36,7 @@ class tenant_config_output_utils {
      */
     public static function setup_tenant_config_page(moodle_url $url): void {
         global $PAGE, $SESSION;
-        $tenantid = optional_param('tenant', '', PARAM_ALPHANUM);
+        $tenantid = optional_param('tenant', '', PARAM_TEXT);
 
         if (!empty($tenantid)) {
             $tenant = new \local_ai_manager\local\tenant($tenantid);
