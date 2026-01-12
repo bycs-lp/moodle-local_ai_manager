@@ -44,7 +44,7 @@ class quota_config_form extends \moodleform {
         $mform = &$this->_form;
 
         $mform->addElement('hidden', 'tenant', $tenant);
-        $mform->setType('tenant', PARAM_ALPHANUM);
+        $mform->setType('tenant', PARAM_TEXT);
 
         $mform->addElement(
             'header',

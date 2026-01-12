@@ -62,7 +62,7 @@ class rights_config_form extends \moodleform {
         $mform = &$this->_form;
 
         $mform->addElement('hidden', 'tenant', $tenant->get_identifier());
-        $mform->setType('tenant', PARAM_ALPHANUM);
+        $mform->setType('tenant', PARAM_TEXT);
 
         $mform->addElement('hidden', 'userids', '', ['id' => 'rights-table-userids']);
         $mform->setType('userids', PARAM_TEXT);
