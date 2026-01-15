@@ -46,4 +46,11 @@ export const renderInfoBox = async(component, userId, selectorOrElement, purpose
     };
     const {html, js} = await Templates.renderForPromise('local_ai_manager/infobox', templateContext);
     Templates.prependNodeContents(targetElement, html, js);
+    if (window.innerWidth <= 576) {
+        const textElement = targetElement.querySelector('p');
+        textElement.classList.add('local_ai_manager-expandable_text');
+        textElement.addEventListener('click', () => {
+            textElement.classList.toggle('local_ai_manager-expanded');
+        });
+    }
 };

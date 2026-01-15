@@ -144,6 +144,28 @@ body.limitcontentwidth #page-content {
     margin: 0;
 }
 
+.local_ai_manager-infobox_text {
+    flex: 1;
+    min-width: 0;
+}
+
+.local_ai_manager-expandable_text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+
+    &:hover {
+        opacity: 0.8;
+    }
+
+    &.local_ai_manager-expanded {
+        white-space: normal;
+        overflow: visible;
+        word-break: break-word;
+    }
+}
+
 .local_ai_manager-caching_enabled {
     color: #f00;
 }
