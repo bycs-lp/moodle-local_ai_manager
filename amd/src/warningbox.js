@@ -49,4 +49,11 @@ export const renderWarningBox = async(selectorOrElement) => {
         aiwarningurl: aiConfig.aiwarningurl
     });
     Templates.appendNodeContents(targetElement, html, js);
+    if (window.innerWidth <= 576) {
+        const textElement = targetElement.querySelector('p');
+        textElement.classList.add('local_ai_manager-expandable_text');
+        textElement.addEventListener('click', () => {
+            textElement.classList.toggle('local_ai_manager-expanded');
+        });
+    }
 };
