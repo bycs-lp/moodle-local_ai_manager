@@ -23,6 +23,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['agentpromptsetting'] = 'Prompt for agent functionality';
+$string['agentpromptsettingdesc'] = 'This prompt is being used to make the LLM return the required agent response.<br/><br/><b>CARE: This setting is CRITICAL for the functionality of the whole agent mode. It is strongly recommended to make at most little changes to the default value.';
 $string['error_unusuableresponse'] = 'Unfortunately, no useful response could be generated.';
 $string['pluginname'] = 'Agent';
 $string['privacy:metadata'] = 'The local ai_manager purpose subplugin "Agent" does not store any personal data.';
