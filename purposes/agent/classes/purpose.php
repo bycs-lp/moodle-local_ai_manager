@@ -59,7 +59,7 @@ class purpose extends base_purpose {
         }
 
         // Build the prompt. Start with generic prompt.
-        $genericprompt = file_get_contents($CFG->dirroot . '/local/ai_manager/purposes/agent/assets/genericprompt.txt');
+        $genericprompt = get_config('aipurpose_agent', 'agentprompt');
 
         // Add formelement options.
         $formelementoptionsjson = json_encode(['formelements' => $this->storedoptions['agentoptions']['formelements']]);
