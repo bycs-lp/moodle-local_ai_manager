@@ -184,7 +184,7 @@ class base_purpose {
      * @param string $prompttext The prompt text to be formatted.
      * @param array $sanitizedoptions An array of sanitized options for formatting.
      *
-     * @return array The formatted prompt text as an array.
+     * @return string The formatted prompt text as string.
      */
     public function format_prompt_text(string $prompttext, request_options $requestoptions): string {
         return $prompttext;

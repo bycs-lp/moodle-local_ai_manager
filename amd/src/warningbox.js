@@ -25,14 +25,16 @@
 import {getAiInfo} from 'local_ai_manager/config';
 import Log from 'core/log';
 import Templates from 'core/templates';
+import {events} from 'local_ai_manager/events';
 
 
 /**
  * Renders the warning box.
  *
  * @param {string} selectorOrElement the selector where the warning box should be rendered into
+ * @param {boolean} forceMaximize whether to show the full text or if it should be collapsed in mobile view
  */
-export const renderWarningBox = async(selectorOrElement) => {
+export const renderWarningBox = async(selectorOrElement, forceMaximize = false) => {
     let aiConfig = null;
     try {
         aiConfig = await getAiInfo();
@@ -49,11 +51,22 @@ export const renderWarningBox = async(selectorOrElement) => {
         aiwarningurl: aiConfig.aiwarningurl
     });
     Templates.appendNodeContents(targetElement, html, js);
-    if (window.innerWidth <= 576) {
-        const textElement = targetElement.querySelector('p');
+    const textElement = targetElement.querySelector('p');
+    const warningboxListener = () => {
+        textElement.classList.toggle('local_ai_manager-expanded');
+    };
+    if (window.innerWidth <= 576 && !forceMaximize) {
         textElement.classList.add('local_ai_manager-expandable_text');
-        textElement.addEventListener('click', () => {
-            textElement.classList.toggle('local_ai_manager-expanded');
-        });
+        textElement.addEventListener('click', warningboxListener);
     }
+    targetElement.addEventListener(events.collapseWarningBox, () => {
+        textElement.classList.add('local_ai_manager-expandable_text');
+        // Remove it first in case it has already been added (in mobile view for example).
+        textElement.removeEventListener('click', warningboxListener);
+        textElement.addEventListener('click', warningboxListener);
+    });
+    targetElement.addEventListener(events.maximizeWarningBox, () => {
+        textElement.classList.remove('local_ai_manager-expandable_text');
+        textElement.removeEventListener('click', warningboxListener);
+    });
 };
