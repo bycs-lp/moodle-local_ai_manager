@@ -15,18 +15,25 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for local_ai_manager.
+ * Settings for aitool_openaitts.
  *
- * @package    local_ai_manager
- * @copyright  ISB Bayern, 2024
- * @author     Dr. Peter Mayer
+ * @package    aitool_openaitts
+ * @copyright  2026 ISB Bayern
+ * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2025120401;
-$plugin->requires = 2025041400;
-$plugin->supported = [500, 501];
-$plugin->release = '2.3';
-$plugin->component = 'local_ai_manager';
-$plugin->maturity = MATURITY_BETA;
+defined('MOODLE_INTERNAL') || die;
+
+global $CFG;
+
+if ($hassiteconfig) {
+    $settings->add(
+        new admin_setting_configtext(
+            'aitool_openaitts/globalapikey',
+            new lang_string('globalapikeysetting', 'local_ai_manager'),
+            new lang_string('globalapikeysettingdesc', 'local_ai_manager'),
+            ''
+        )
+    );
+}
