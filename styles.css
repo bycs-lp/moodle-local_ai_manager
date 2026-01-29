@@ -180,3 +180,7 @@ body.limitcontentwidth #page-content {
 .local_ai_manager-purpose_info_icon .icon {
     cursor: pointer;
 }
+
+#page-local-ai_manager-tenant_config .instanceaddmodal a:hover .card-title {
+    text-decoration: underline;
+}
