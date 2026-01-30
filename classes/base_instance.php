@@ -56,6 +56,9 @@ class base_instance {
     /** @var ?string The API key of the instance */
     protected ?string $apikey = null;
 
+    /** @var ?string If a eventually configured global API key should be used */
+    protected ?string $useglobalapikey = null;
+
     /** @var ?string The model which is configured for this instance */
     protected ?string $model = null;
 
@@ -104,6 +107,7 @@ class base_instance {
             $this->connector,
             $this->endpoint,
             $this->apikey,
+            $this->useglobalapikey,
             $this->model,
             $this->infolink,
             $this->customfield1,
@@ -118,6 +122,7 @@ class base_instance {
             $record->connector,
             $record->endpoint,
             $record->apikey,
+            $record->useglobalapikey,
             $record->model,
             $record->infolink,
             $record->customfield1,
@@ -140,6 +145,7 @@ class base_instance {
         $record->connector = $this->connector;
         $record->endpoint = $this->endpoint;
         $record->apikey = $this->apikey;
+        $record->useglobalapikey = $this->get_useglobalapikey() ? 1 : 0;
         $record->model = $this->model;
         $record->infolink = $this->infolink;
         $record->customfield1 = $this->customfield1;
@@ -290,6 +296,24 @@ class base_instance {
      */
     public function set_apikey(?string $apikey): void {
         $this->apikey = $apikey;
+    }
+
+    /**
+     * Standard getter.
+     *
+     * @return bool if an eventually global api key should be used
+     */
+    public function get_useglobalapikey(): bool {
+        return !empty($this->useglobalapikey);
+    }
+
+    /**
+     * Standard setter.
+     *
+     * @param bool $useglobalapikey The API key of this instance
+     */
+    public function set_useglobalapikey(bool $useglobalapikey): void {
+        $this->useglobalapikey = $useglobalapikey;
     }
 
     /**
@@ -447,6 +471,7 @@ class base_instance {
         $data->connector = $this->get_connector();
         $data->endpoint = $this->get_endpoint();
         $data->apikey = $this->get_apikey();
+        $data->useglobalapikey = $this->get_useglobalapikey();
         $data->model = $this->get_model();
         $data->infolink = $this->get_infolink();
         foreach ($this->get_extended_formdata() as $key => $value) {
@@ -503,6 +528,22 @@ class base_instance {
         $mform->addElement('text', 'endpoint', get_string('endpoint', 'local_ai_manager'), $textelementparams);
         $mform->setType('endpoint', PARAM_URL);
 
+        $connectorfactory = \core\di::get(connector_factory::class);
+        $connectorcomponentname =
+            aitool::get_component_name_by_connector($connectorfactory->get_connector_by_connectorname($this->connector));
+        if (get_config($connectorcomponentname, 'globalapikey')) {
+            // Only show the "use global apikey" checkbox if there is a global apikey configured.
+            // Otherwise, it would not make sense to show that option.
+            $mform->addElement(
+                'advcheckbox',
+                'useglobalapikey',
+                get_string('globalapikey', 'local_ai_manager'),
+                get_string('useglobalapikey', 'local_ai_manager')
+            );
+            $mform->setType('useglobalapikey', PARAM_BOOL);
+            $mform->hideIf('apikey', 'useglobalapikey', 'checked');
+        }
+
         $mform->addElement('passwordunmask', 'apikey', get_string('apikey', 'local_ai_manager'), $textelementparams);
         $mform->setType('apikey', PARAM_TEXT);
 
@@ -534,6 +575,7 @@ class base_instance {
             $this->set_endpoint(trim($data->endpoint));
         }
         $this->set_apikey(!empty($data->apikey) ? trim($data->apikey) : '');
+        $this->set_useglobalapikey(!empty($data->useglobalapikey));
         $this->set_connector($data->connector);
         $this->set_tenant(trim($data->tenant));
         if (empty($data->model)) {

@@ -32,6 +32,11 @@ use stdClass;
 class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
+        // We do not want the checkbox to use a global API key if there is one. But instead want to force the usage of
+        // a global API key in this specific connector plugin.
+        if ($mform->elementExists('useglobalapikey')) {
+            $mform->removeElement('useglobalapikey');
+        }
         $globalapikey = get_config('aitool_telli', 'globalapikey');
         if (!empty($globalapikey)) {
             $mform->removeElement('apikey');

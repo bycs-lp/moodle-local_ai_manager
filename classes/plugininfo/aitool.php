@@ -17,7 +17,9 @@
 namespace local_ai_manager\plugininfo;
 
 use core\plugininfo\base;
+use core_component;
 use core_plugin_manager;
+use local_ai_manager\base_connector;
 
 /**
  * Plugininfo class for the subplugintype aitool.
@@ -133,5 +135,16 @@ class aitool extends base {
 
         $DB->delete_records_select('local_ai_manager_config', $select, $params);
         return true;
+    }
+
+    /**
+     * Get the component name of the aitool plugin by passing a connector object.
+     *
+     * @param base_connector $connector The connector object to return the component name for
+     * @return string the component name as string, for example 'aitool_gemini'
+     */
+    public static function get_component_name_by_connector(base_connector $connector): string {
+        $classname = get_class($connector);
+        return core_component::get_component_from_classname($classname);
     }
 }
