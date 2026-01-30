@@ -36,8 +36,8 @@ $tasks = [
         ],
         [
                 'classname' => 'local_ai_manager\task\data_wiper',
-                'minute' => '2',
-                'hour' => '53',
+                'minute' => '53',
+                'hour' => '2',
                 'day' => '*',
                 'dayofweek' => '*',
                 'month' => '*',
