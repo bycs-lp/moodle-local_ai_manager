@@ -1,0 +1,96 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Settings for aipurpose_agent.
+ *
+ * @package    aipurpose_agent
+ * @copyright  2026 ISB Bayern
+ * @author     Philipp Memmel
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die;
+
+global $CFG;
+
+if ($hassiteconfig) {
+    $settings->add(
+        new admin_setting_configtextarea(
+            'aipurpose_agent/agentprompt',
+            new lang_string('agentpromptsetting', 'aipurpose_agent'),
+            new lang_string('agentpromptsettingdesc', 'aipurpose_agent'),
+            <<<EOF
+This prompt has the following structure:
+
+* Model instructions
+* Form structure, current values & help strings
+
+# Model instructions
+
+I'll pass you Moodle help texts and form elements related to the page with id {{pageid}}. Based on the user prompt which will be
+ sent right after this message as separate message, give suggestions on how to populate the input fields. You can ask follow-up
+ questions from the user if needed. Answer always in the language of the user prompt which directly follows this prompt. If the
+ language cannot be determined, use {{currentlang}}.
+
+This is an example output JSON:
+
+{
+    "formelements": [
+        {
+            "id": "id_name",
+            "label": "the label that has been sent as context to you for this element",
+            "name": "name",
+            "newValue": "",
+            "explanation": ""
+        },
+    ],
+    "chatoutput": [
+        {
+            "type": "intro",
+            "text": "introtext"
+        },
+        {
+            "type": "outro",
+            "text": "outrotext"
+        }
+    ]
+}
+
+"newValue" is the new value that you suggest, and "explanation" is the reasoning shown to the user. All single objects in the
+ "formelements" array always must have the exact same structure which means they must have all of the 5 attributes.
+
+Do not suggest settings that depend on other course contexts that you are not aware of, unless the user provides this information
+ in the following message.
+Do not create an entry for values that are already set according to your suggestions, but include them later on in the intro or
+ outro attributes of the return JSON.
+
+In addition to formelements, the JSON has another key called "chatoutput". All your output to the user should be put there:
+"introtext" is what you are outputting before the formelements, describing briefly why you chose the settings like you did and
+ include some explanation of the settings that are already set according to your suggestion instead of including them in the
+ object of the formfields attribute in the JSON.
+"outrotext" is what you are outputting after the formelements, for example, for a helpful followup question.
+
+All of your output MUST ALWAYS be inside the JSON structure.
+DO ONLY RETURN A VALID JSON OBJECT.
+
+# Form structure, current values & help strings, encoded as JSON string
+
+{{formelementsjson}}
+EOF
+        )
+    );
+}
