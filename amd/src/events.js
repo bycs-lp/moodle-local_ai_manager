@@ -1,4 +1,3 @@
-<?php
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -15,18 +14,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for local_ai_manager.
+ * Module handling the retrieving of the ai config object.
  *
- * @package    local_ai_manager
- * @copyright  ISB Bayern, 2024
- * @author     Dr. Peter Mayer
+ * @module     local_ai_manager/config
+ * @copyright  2024 ISB Bayern
+ * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2026020100;
-$plugin->requires = 2025041400;
-$plugin->supported = [500, 501];
-$plugin->release = '2.4';
-$plugin->component = 'local_ai_manager';
-$plugin->maturity = MATURITY_STABLE;
+export const events = {
+    collapseInfoBox: 'local_ai_manager/collapse_infobox',
+    maximizeInfoBox: 'local_ai_manager/maximize_infobox',
+    collapseWarningBox: 'local_ai_manager/collapse_warningbox',
+    maximizeWarningBox: 'local_ai_manager/maximize_warningbox',
+};
