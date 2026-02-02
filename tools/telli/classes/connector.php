@@ -79,6 +79,7 @@ class connector extends base_connector {
             'itt' => $visionmodels,
             'imggen' => $imggenmodels,
             'questiongeneration' => $models,
+            'agent' => $models,
         ];
     }
 

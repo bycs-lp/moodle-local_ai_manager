@@ -43,6 +43,9 @@ class prompt_response {
     /** @var string If there has been an error, this variable contains additional debugging information */
     private string $debuginfo;
 
+    /** @var ?int the id of the log record or null if it does not (yet) exist */
+    private ?int $logrecordid;
+
     /**
      * Private constructor to avoid object creation without static create function.
      *
@@ -106,6 +109,15 @@ class prompt_response {
     }
 
     /**
+     * Standard setter.
+     *
+     * @param int $logrecordid the id of the log record associated with this prompt response
+     */
+    public function set_logrecordid(int $logrecordid): void {
+        $this->logrecordid = $logrecordid;
+    }
+
+    /**
      * Standard getter.
      *
      * @return string the model name which has been returned by the external AI tool
@@ -157,6 +169,15 @@ class prompt_response {
      */
     public function get_code(): int {
         return $this->code;
+    }
+
+    /**
+     * Standard getter for the log record id.
+     *
+     * @return ?int the id of the log record associated with this prompt response or null if it does not (yet) exist
+     */
+    public function get_logrecordid(): ?int {
+        return $this->logrecordid;
     }
 
     /**

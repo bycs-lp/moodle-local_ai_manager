@@ -1,0 +1,68 @@
+{
+    "formelements": [
+        {
+            "id": "id_name",
+            "name": "name",
+            "newValue": "Draft and Final Submission (Feedback Only)",
+            "explanation": "A clear title reflecting the two-stage submission and feedback-only nature of the assignment."
+        },
+        {
+            "id": "id_introeditor",
+            "name": "introeditor[text]",
+            "newValue": "This assignment has two stages:\n1) Submit a draft. Your teacher will provide comments.\n2) Revise and submit your final version.\n\nNotes:\n- There are no grades for this activity; you will receive verbal/written feedback only.\n- Use the comments provided on your draft to improve your final submission.",
+            "explanation": "Provides students with concise instructions about the two-step process and that there is no grading, only feedback."
+        },
+        {
+            "id": "id_assignsubmission_onlinetext_enabled",
+            "name": "assignsubmission_onlinetext_enabled",
+            "newValue": "1",
+            "explanation": "Enables online text so you can comment directly on student drafts without requiring file downloads. This supports iterative feedback."
+        },
+        {
+            "id": "id_assignfeedback_comments_enabled",
+            "name": "assignfeedback_comments_enabled",
+            "newValue": "1",
+            "explanation": "Ensures feedback comments are available for giving verbal/written feedback on both draft and final submissions."
+        },
+        {
+            "id": "id_assignfeedback_editpdf_enabled",
+            "name": "assignfeedback_editpdf_enabled",
+            "newValue": "1",
+            "explanation": "Allows annotating submitted PDFs if students upload files; useful for in-context comments on drafts."
+        },
+        {
+            "id": "id_submissiondrafts",
+            "name": "submissiondrafts",
+            "newValue": "1",
+            "explanation": "Requires students to click a submit button. This lets them save a draft, receive comments, then submit the final version when ready."
+        },
+        {
+            "id": "id_maxattempts",
+            "name": "maxattempts",
+            "newValue": "2",
+            "explanation": "Limits the workflow to exactly two attempts: one draft and one final submission."
+        },
+        {
+            "id": "id_grade_modgrade_type",
+            "name": "grade[modgrade_type]",
+            "newValue": "none",
+            "explanation": "Disables numeric grading since you only want to provide verbal/written feedback."
+        },
+        {
+            "id": "id_sendstudentnotifications",
+            "name": "sendstudentnotifications",
+            "newValue": "1",
+            "explanation": "Keeps the default to notify students when you give feedback, supporting the iterative process."
+        }
+    ],
+    "chatoutput": [
+        {
+            "type": "intro",
+            "text": "I configured the assignment for a two-stage workflow: students submit a draft, you provide feedback, and they submit a final version. Grading is disabled so you can focus on comments only. I enabled online text and PDF annotation to make giving feedback flexible and convenient, and required the submit button to clearly separate draft and final attempts."
+        },
+        {
+            "type": "outro",
+            "text": "Would you like me to restrict accepted file types (e.g., PDF only) or set dates for draft and final submissions? I can also add more detailed student instructions if you have specific criteria."
+        }
+    ]
+}

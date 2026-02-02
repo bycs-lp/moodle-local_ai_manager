@@ -30,6 +30,9 @@ const constants = {
     MAXUSAGE_UNLIMITED: 999999
 };
 
+// Currently here have to be defined default strings for each purpose.
+// If a purpose has no strings here, they won't be shown even if the new purpose
+// correctly defines the lang strings in the purpose's lang file.
 const queryCountStrings = {
     chat: 'chat requests',
     chatShortened: 'chat',
@@ -46,7 +49,9 @@ const queryCountStrings = {
     itt: 'image analyse requests',
     ittShortened: 'image analyse',
     questiongeneration: 'question generation requests',
-    questiongenerationShortened: 'question generation'
+    questiongenerationShortened: 'question generation',
+    agent: 'agent',
+    agentShortened: 'agent requests'
 };
 
 const fetchUserquotaData = () => fetchMany([{
@@ -57,13 +62,13 @@ const fetchUserquotaData = () => fetchMany([{
 /**
  * Renders the current user usage information into the element identified by the given selector.
  *
- * @param {string} selector the id of the element to insert the infobox
+ * @param {string} selectorOrElement a selector or element to insert the infobox into
  * @param {string[]} purposes the purposes to show user quota for
  */
-export const renderUserQuota = async(selector, purposes) => {
+export const renderUserQuota = async(selectorOrElement, purposes) => {
     await localizeQueryCountTexts();
 
-    const targetElement = document.querySelector(selector);
+    const targetElement = (selectorOrElement instanceof Element) ? selectorOrElement : document.querySelector(selectorOrElement);
     const userquotaData = await fetchUserquotaData();
     const purposeInfo = [];
 
@@ -90,7 +95,7 @@ export const renderUserQuota = async(selector, purposes) => {
         unlimited: userquotaData.role === 'role_unlimited'
     };
     const {html, js} = await Templates.renderForPromise('local_ai_manager/userquota', userquotaContentTemplateContext);
-    Templates.appendNodeContents(targetElement, html, js);
+    Templates.replaceNodeContents(targetElement, html, js);
 };
 
 const localizeQueryCountTexts = async() => {

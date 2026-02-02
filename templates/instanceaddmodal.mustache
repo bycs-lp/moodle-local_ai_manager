@@ -40,15 +40,17 @@
         {{#pix}} aiicon, local_ai_manager {{/pix}} {{#str}} instanceaddmodal_heading, local_ai_manager{{/str}}
     {{/title}}
     {{$body}}
-        <div class="row">
+        <div class="row instanceaddmodal">
             {{#tools}}
                 <div class="col-4 mb-3">
-                    <div class="card">
-                        <h4 class="card-title"><a class="btn btn-link" href="{{{addurl}}}">{{linklabel}}</a></h4>
-                        <div class="card-body">
-                            <p>{{adddescription}}</p>
+                    <a class="text-decoration-none" href="{{{addurl}}}">
+                        <div class="card">
+                            <h5 class="card-title text-center pt-3">{{linklabel}}</h5>
+                            <div class="card-body">
+                                <p>{{adddescription}}</p>
+                            </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
             {{/tools}}
         </div>
