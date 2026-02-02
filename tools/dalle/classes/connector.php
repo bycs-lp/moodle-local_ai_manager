@@ -79,7 +79,7 @@ class connector extends base_connector {
         }
         if (in_array('Authorization', array_keys($headers))) {
             unset($headers['Authorization']);
-            $headers['api-key'] = $this->instance->get_apikey();
+            $headers['api-key'] = $this->get_api_key();
         }
         return $headers;
     }

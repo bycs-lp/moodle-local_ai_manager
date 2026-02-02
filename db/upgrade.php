@@ -336,5 +336,16 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025082900, 'local', 'ai_manager');
     }
 
+    if ($oldversion < 2025120401) {
+        $table = new xmldb_table('local_ai_manager_instance');
+        $field = new xmldb_field('useglobalapikey', XMLDB_TYPE_INTEGER, '1', null, null, null, null, 'apikey');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2025120401, 'local', 'ai_manager');
+    }
+
     return true;
 }

@@ -90,6 +90,8 @@ class connector extends base_connector {
 
     #[\Override]
     protected function get_api_key(): string {
+        // We intentionally override the default behavior and also handle the use of "globalapikey" admin setting differently,
+        // see self::setup_wrapped_connector.
         return $this->wrappedconnector->instance->get_apikey();
     }
 
