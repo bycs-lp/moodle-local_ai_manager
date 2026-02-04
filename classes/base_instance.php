@@ -519,18 +519,21 @@ class base_instance {
         }
 
         $connector = $customdata['connector'];
-        $mform->addElement('text', 'connector', get_string('aitool', 'local_ai_manager'), $textelementparams);
+        $mform->addElement('hidden', 'connector', $connector);
+        $connectorfactory = \core\di::get(connector_factory::class);
+        $connectorcomponentname =
+            aitool::get_component_name_by_connector($connectorfactory->get_connector_by_connectorname($connector));
+        $mform->addElement(
+            'static',
+            'connectordisplayname',
+            get_string('aitool', 'local_ai_manager'),
+            get_string('pluginname', $connectorcomponentname)
+        );
         $mform->setType('connector', PARAM_TEXT);
-        // That we have a valid connector here is being ensured by edit_instance.php.
-        $mform->setDefault('connector', $connector);
-        $mform->freeze('connector');
 
         $mform->addElement('text', 'endpoint', get_string('endpoint', 'local_ai_manager'), $textelementparams);
         $mform->setType('endpoint', PARAM_URL);
 
-        $connectorfactory = \core\di::get(connector_factory::class);
-        $connectorcomponentname =
-            aitool::get_component_name_by_connector($connectorfactory->get_connector_by_connectorname($this->connector));
         if (get_config($connectorcomponentname, 'globalapikey')) {
             // Only show the "use global apikey" checkbox if there is a global apikey configured.
             // Otherwise, it would not make sense to show that option.
