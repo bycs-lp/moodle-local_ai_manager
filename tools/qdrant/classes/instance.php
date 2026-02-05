@@ -14,28 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace aitool_qdrant;
+
+use local_ai_manager\base_instance;
+
 /**
- * Cache definitions.
+ * Instance class for the connector instance of aitool_googlesynthesize.
  *
- * @package   local_ai_manager
- * @copyright 2024 ISB Bayern
- * @author    Philipp Memmel
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    aitool_qdrant
+ * @copyright  University of Strathclyde, 2025
+ * @author     Michael Hughes
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+class instance extends base_instance {
 
-defined('MOODLE_INTERNAL') || die();
-
-$definitions = [
-        'googleauth' => [
-                'mode' => cache_store::MODE_APPLICATION,
-                'simplekeys' => true,
-                'simpledata' => true,
-                'canuselocalstore' => false,
-        ],
-        'textembeddingmodels' => [
-                'mode' => cache_store::MODE_APPLICATION,
-                'simplekeys' => true,
-                'simpledata' => true,
-                'canuselocalstore' => false,
-        ],
-];
+    #[\Override]
+    protected function extend_form_definition(\MoodleQuickForm $mform): void {
+//        $mform->setDefault('endpoint', 'https://texttospeech.googleapis.com/v1/text:synthesize');
+//        $mform->freeze('endpoint');
+    }
+}

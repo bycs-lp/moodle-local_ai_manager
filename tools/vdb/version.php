@@ -15,27 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Cache definitions.
+ * Version file for aitool_vdb.
  *
- * @package   local_ai_manager
- * @copyright 2024 ISB Bayern
- * @author    Philipp Memmel
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    aitool_vdb
+ * @copyright  2025 University of Strathclyde
+ * @author     Michael Hughes
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 defined('MOODLE_INTERNAL') || die();
 
-$definitions = [
-        'googleauth' => [
-                'mode' => cache_store::MODE_APPLICATION,
-                'simplekeys' => true,
-                'simpledata' => true,
-                'canuselocalstore' => false,
-        ],
-        'textembeddingmodels' => [
-                'mode' => cache_store::MODE_APPLICATION,
-                'simplekeys' => true,
-                'simpledata' => true,
-                'canuselocalstore' => false,
-        ],
-];
+$plugin->version  = 2025093000;
+$plugin->requires = 2023042403;
+$plugin->release = '1.0.0';
+$plugin->component = 'aitool_vdb';
+$plugin->maturity = MATURITY_ALPHA;

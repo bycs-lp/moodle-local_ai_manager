@@ -15,27 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Cache definitions.
+ * Version file for aipurpose_rag.
  *
- * @package   local_ai_manager
- * @copyright 2024 ISB Bayern
- * @author    Philipp Memmel
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    aipurpose_rag
+ * @copyright  ISB Bayern, 2024
+ * @author     Dr. Peter Mayer
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 defined('MOODLE_INTERNAL') || die();
 
-$definitions = [
-        'googleauth' => [
-                'mode' => cache_store::MODE_APPLICATION,
-                'simplekeys' => true,
-                'simpledata' => true,
-                'canuselocalstore' => false,
-        ],
-        'textembeddingmodels' => [
-                'mode' => cache_store::MODE_APPLICATION,
-                'simplekeys' => true,
-                'simpledata' => true,
-                'canuselocalstore' => false,
-        ],
-];
+$plugin->version  = 2025092601;
+$plugin->requires = 2023042403;
+$plugin->release = '0.0.2';
+$plugin->component = 'aipurpose_rag';
+$plugin->maturity = MATURITY_ALPHA;

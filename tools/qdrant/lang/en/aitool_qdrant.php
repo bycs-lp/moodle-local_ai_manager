@@ -14,28 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
- * Cache definitions.
- *
- * @package   local_ai_manager
- * @copyright 2024 ISB Bayern
- * @author    Philipp Memmel
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
+$string['pluginname'] = 'QDrant Vector Database';
+$string['adddescription'] = 'QDrant is a vector database';
 
-defined('MOODLE_INTERNAL') || die();
-
-$definitions = [
-        'googleauth' => [
-                'mode' => cache_store::MODE_APPLICATION,
-                'simplekeys' => true,
-                'simpledata' => true,
-                'canuselocalstore' => false,
-        ],
-        'textembeddingmodels' => [
-                'mode' => cache_store::MODE_APPLICATION,
-                'simplekeys' => true,
-                'simpledata' => true,
-                'canuselocalstore' => false,
-        ],
-];
+$string['error_failedtoinitialise1'] = 'Failed to create collection on QDrant server during initialisation. Please check the server is running and the connection settings are correct.';

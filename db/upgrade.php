@@ -347,5 +347,33 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025120401, 'local', 'ai_manager');
     }
 
+    if ($oldversion < 2026020100) {
+
+        // Define table local_ai_manager_cmconfig to be created.
+        $table = new xmldb_table('local_ai_manager_cmconfig');
+
+        // Adding fields to table local_ai_manager_cmconfig.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('cmid', XMLDB_TYPE_INTEGER, '11', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('intvalue', XMLDB_TYPE_INTEGER, '20', null, null, null, null);
+        $table->add_field('stringvalue', XMLDB_TYPE_TEXT, null, null, null, null, null);
+
+        // Adding keys to table local_ai_manager_cmconfig.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('usermodified', XMLDB_KEY_FOREIGN, ['usermodified'], 'user', ['id']);
+        $table->add_key('cmid', XMLDB_KEY_UNIQUE, ['cmid']);
+
+        // Conditionally launch create table for local_ai_manager_cmconfig.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Ai_manager savepoint reached.
+        upgrade_plugin_savepoint(true, 2026020100, 'local', 'ai_manager');
+    }
+
     return true;
 }
