@@ -24,6 +24,7 @@
 
 import * as Templates from 'core/templates';
 import * as config from 'core/config';
+import {events} from 'local_ai_manager/events';
 
 /**
  * Inserts the infobox into the beginning of element with the given selector.
@@ -32,11 +33,12 @@ import * as config from 'core/config';
  *
  * @param {string} component The component name from which this is being called
  * @param {int} userId id of the user
- * @param {string} selector the id of the element to insert the infobox
+ * @param {string} selectorOrElement a selector or element to insert the infobox into
  * @param {string[]} purposes the purposes which are being used
+ * @param {boolean} forceMaximize whether to show the full text or if it should be collapsed in mobile view
  */
-export const renderInfoBox = async(component, userId, selector, purposes = []) => {
-    const targetElement = document.querySelector(selector);
+export const renderInfoBox = async(component, userId, selectorOrElement, purposes = [], forceMaximize = false) => {
+    const targetElement = (selectorOrElement instanceof Element) ? selectorOrElement : document.querySelector(selectorOrElement);
     const aiInfoUrl = new URL(config.wwwroot + '/local/ai_manager/ai_info.php');
     purposes.forEach(purpose => {
         aiInfoUrl.searchParams.append('purposes[]', purpose);
@@ -46,4 +48,22 @@ export const renderInfoBox = async(component, userId, selector, purposes = []) =
     };
     const {html, js} = await Templates.renderForPromise('local_ai_manager/infobox', templateContext);
     Templates.prependNodeContents(targetElement, html, js);
+    const textElement = targetElement.querySelector('p');
+    const infoboxClickListener = () => {
+        textElement.classList.toggle('local_ai_manager-expanded');
+    };
+    if (window.innerWidth <= 576 && !forceMaximize) {
+        textElement.classList.add('local_ai_manager-expandable_text');
+        textElement.addEventListener('click', infoboxClickListener);
+    }
+    targetElement.addEventListener(events.collapseInfoBox, () => {
+        textElement.classList.add('local_ai_manager-expandable_text');
+        // Remove it first in case it has already been added (in mobile view for example).
+        textElement.removeEventListener('click', infoboxClickListener);
+        textElement.addEventListener('click', infoboxClickListener);
+    });
+    targetElement.addEventListener(events.maximizeInfoBox, () => {
+        textElement.classList.remove('local_ai_manager-expandable_text');
+        textElement.removeEventListener('click', infoboxClickListener);
+    });
 };

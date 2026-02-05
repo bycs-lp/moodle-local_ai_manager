@@ -39,16 +39,17 @@ class connector extends \local_ai_manager\base_connector {
     #[\Override]
     public function get_models_by_purpose(): array {
         $chatgptmodels =
-            ['gpt-3.5-turbo', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'];
-        $modelsbypurpose = [
-            'chat' => $chatgptmodels,
-            'feedback' => $chatgptmodels,
-            'singleprompt' => $chatgptmodels,
-            'translate' => $chatgptmodels,
-            'tts' => [],
-            'imggen' => [],
-            'itt' => ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o3', 'o4-mini'],
-            'questiongeneration' => $chatgptmodels,
+                ['gpt-3.5-turbo', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'];
+        return [
+                'chat' => $chatgptmodels,
+                'feedback' => $chatgptmodels,
+                'singleprompt' => $chatgptmodels,
+                'translate' => $chatgptmodels,
+                'tts' => [],
+                'imggen' => [],
+                'itt' => ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o3', 'o4-mini'],
+                'questiongeneration' => $chatgptmodels,
+                'agent' => $chatgptmodels,
         ];
         foreach ($modelsbypurpose as $purpose => $models) {
             $modelsbypurpose[$purpose][] = aitool_option_azure::get_azure_model_name('chatgpt');
@@ -163,7 +164,7 @@ class connector extends \local_ai_manager\base_connector {
         }
         if (in_array('Authorization', array_keys($headers))) {
             unset($headers['Authorization']);
-            $headers['api-key'] = $this->instance->get_apikey();
+            $headers['api-key'] = $this->get_api_key();
         }
         return $headers;
     }

@@ -15,31 +15,25 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tasks definition for local_ai_manager.
+ * Settings for aitool_openaitts.
  *
- * @package    local_ai_manager
- * @copyright  2024 ISB Bayern
+ * @package    aitool_openaitts
+ * @copyright  2026 ISB Bayern
  * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+defined('MOODLE_INTERNAL') || die;
 
-$tasks = [
-        [
-                'classname' => 'local_ai_manager\task\reset_user_usage',
-                'minute' => '0',
-                'hour' => '*',
-                'day' => '*',
-                'dayofweek' => '*',
-                'month' => '*',
-        ],
-        [
-                'classname' => 'local_ai_manager\task\data_wiper',
-                'minute' => '53',
-                'hour' => '2',
-                'day' => '*',
-                'dayofweek' => '*',
-                'month' => '*',
-        ],
-];
+global $CFG;
+
+if ($hassiteconfig) {
+    $settings->add(
+        new admin_setting_configtext(
+            'aitool_openaitts/globalapikey',
+            new lang_string('globalapikeysetting', 'local_ai_manager'),
+            new lang_string('globalapikeysettingdesc', 'local_ai_manager'),
+            ''
+        )
+    );
+}

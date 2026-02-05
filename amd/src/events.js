@@ -1,4 +1,3 @@
-<?php
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -15,31 +14,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tasks definition for local_ai_manager.
+ * Module handling the retrieving of the ai config object.
  *
- * @package    local_ai_manager
+ * @module     local_ai_manager/config
  * @copyright  2024 ISB Bayern
  * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
-
-$tasks = [
-        [
-                'classname' => 'local_ai_manager\task\reset_user_usage',
-                'minute' => '0',
-                'hour' => '*',
-                'day' => '*',
-                'dayofweek' => '*',
-                'month' => '*',
-        ],
-        [
-                'classname' => 'local_ai_manager\task\data_wiper',
-                'minute' => '53',
-                'hour' => '2',
-                'day' => '*',
-                'dayofweek' => '*',
-                'month' => '*',
-        ],
-];
+export const events = {
+    collapseInfoBox: 'local_ai_manager/collapse_infobox',
+    maximizeInfoBox: 'local_ai_manager/maximize_infobox',
+    collapseWarningBox: 'local_ai_manager/collapse_warningbox',
+    maximizeWarningBox: 'local_ai_manager/maximize_warningbox',
+};

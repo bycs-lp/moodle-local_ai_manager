@@ -111,7 +111,15 @@ If you do not need to provide any extra configuration parameters, you can just i
 
 For further information have a look at the examples in the existing aitool plugins and the PhpDocs of the `\local_ai_manager\base_instance` class.
 
-### 3.2.5 General recommendations
+### 3.2.5 Settings
+
+You can define a setting with the name 'globalapikey' in the settings.php of the aitool plugin. If it is present and contains a value
+the instance edit form will automatically add a checkbox 'use global api key'. If checked the global api key which has been inserted
+in the admin setting 'aitool_youraitoolpluginname | globalapikey' will be used instead of the api key defined in the instance form.
+
+See aitool_openaitts for an example usage.
+
+### 3.2.6 General recommendations
 
 AI tools tend to provide OpenAI compatible APIs. In this case you probably want to create a separate connector plugin, but of course **you want to avoid code duplication as hard as possible*.
 

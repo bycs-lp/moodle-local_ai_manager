@@ -15,31 +15,32 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tasks definition for local_ai_manager.
+ * aipurpose_agent privacy provider class.
  *
- * @package    local_ai_manager
- * @copyright  2024 ISB Bayern
- * @author     Philipp Memmel
+ * @package    aipurpose_agent
+ * @copyright  ISB Bayern, 2024
+ * @author     Andreas Wagner
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+namespace aipurpose_agent\privacy;
 
-$tasks = [
-        [
-                'classname' => 'local_ai_manager\task\reset_user_usage',
-                'minute' => '0',
-                'hour' => '*',
-                'day' => '*',
-                'dayofweek' => '*',
-                'month' => '*',
-        ],
-        [
-                'classname' => 'local_ai_manager\task\data_wiper',
-                'minute' => '53',
-                'hour' => '2',
-                'day' => '*',
-                'dayofweek' => '*',
-                'month' => '*',
-        ],
-];
+/**
+ * aipurpose_agent privacy provider class.
+ *
+ * @package    aipurpose_agent
+ * @copyright  ISB Bayern, 2024
+ * @author     Andreas Wagner
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class provider implements \core_privacy\local\metadata\null_provider {
+    /**
+     * Get the language string identifier with the component's language
+     * file to explain why this plugin stores no data.
+     *
+     * @return string the language string identifier
+     */
+    public static function get_reason(): string {
+        return 'privacy:metadata';
+    }
+}

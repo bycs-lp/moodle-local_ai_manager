@@ -15,31 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Tasks definition for local_ai_manager.
+ * Version file for aipurpose_agent.
  *
- * @package    local_ai_manager
- * @copyright  2024 ISB Bayern
- * @author     Philipp Memmel
+ * @package    aipurpose_agent
+ * @copyright  ISB Bayern, 2025
+ * @author     Andreas Wagner
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 defined('MOODLE_INTERNAL') || die();
 
-$tasks = [
-        [
-                'classname' => 'local_ai_manager\task\reset_user_usage',
-                'minute' => '0',
-                'hour' => '*',
-                'day' => '*',
-                'dayofweek' => '*',
-                'month' => '*',
-        ],
-        [
-                'classname' => 'local_ai_manager\task\data_wiper',
-                'minute' => '53',
-                'hour' => '2',
-                'day' => '*',
-                'dayofweek' => '*',
-                'month' => '*',
-        ],
-];
+$plugin->version  = 2026020100;
+$plugin->requires = 2023042403;
+$plugin->release = '0.1';
+$plugin->component = 'aipurpose_agent';
+$plugin->maturity = MATURITY_BETA;

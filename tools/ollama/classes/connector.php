@@ -48,6 +48,7 @@ class connector extends \local_ai_manager\base_connector {
             'imggen' => [],
             'itt' => $visionmodels,
             'questiongeneration' => $textmodels,
+            'agent' => $textmodels,
         ];
     }
 
