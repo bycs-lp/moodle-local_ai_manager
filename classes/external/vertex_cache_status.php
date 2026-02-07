@@ -59,6 +59,7 @@ class vertex_cache_status extends external_api {
      * Retrieve the purpose config.
      *
      * @param string $serviceaccountinfo The service account info stringified JSON
+     * @param bool|null $newstatus The new status to set the caching config to
      * @return array associative array containing the result of the request
      */
     public static function execute(string $serviceaccountinfo, ?bool $newstatus = null): array {

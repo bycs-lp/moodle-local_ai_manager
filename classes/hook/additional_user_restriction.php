@@ -44,6 +44,10 @@ class additional_user_restriction {
 
     /**
      * Constructor for the hook.
+     *
+     * @param userinfo $userinfo The userinfo object of the user that tries to access an AI tool
+     * @param ?context $context The context or null if no context has been specified
+     * @param base_purpose $purpose The purpose which is being tried to use
      */
     public function __construct(
         /** @var userinfo The userinfo object of the user that tries to access an AI tool */

@@ -55,6 +55,8 @@ class submit_query extends external_api {
      *
      * @param string $purpose the purpose to use
      * @param string $prompt the user's prompt
+     * @param string $component the component from which the request is being made, e.g. 'mod_forum'
+     * @param int $contextid the context id of the context from which the request is
      * @param string $options additional options which should be passed to the request to the AI tool
      * @return array associative array containing the result of the request
      */
