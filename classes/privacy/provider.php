@@ -43,8 +43,8 @@ use local_ai_manager\local\data_wiper;
  */
 class provider implements
     \core_privacy\local\request\core_userlist_provider,
-    \core_privacy\local\metadata\provider,
-    \core_privacy\local\request\plugin\provider {
+    \core_privacy\local\request\plugin\provider,
+    \core_privacy\local\metadata\provider {
     #[\Override]
     public static function get_metadata(collection $collection): collection {
         $collection->add_database_table(

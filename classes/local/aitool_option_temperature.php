@@ -31,6 +31,7 @@ class aitool_option_temperature {
      * Extends the form definition of the edit instance form by adding the temperature option.
      *
      * @param \MoodleQuickForm $mform the mform object
+     * @param array $modelswithouttemperature array with model names for which the temperature option should be hidden
      */
     public static function extend_form_definition(\MoodleQuickForm $mform, array $modelswithouttemperature = []): void {
         $radioarray = [];

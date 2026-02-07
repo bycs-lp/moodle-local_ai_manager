@@ -45,6 +45,7 @@ class view_prompts_table extends table_sql {
      * @param string $uniqid a unique id to use for the table
      * @param tenant $tenant the tenant to display the table for
      * @param moodle_url $baseurl the current base url on which the table is being displayed
+     * @param \context $context the context in which the table is being displayed
      */
     public function __construct(
         string $uniqid,
