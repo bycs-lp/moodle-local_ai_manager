@@ -55,6 +55,8 @@ class ai_manager_utils {
      * @param bool $includedeleted if log entries which are marked as deleted, should be included in the result
      * @param string $fields Comma separated list of SQL fields that should be contained in the result, defaults to all fields
      * @param array $purposes Array of purpose name strings that should be returned. If empty, all purposes will be returned.
+     * @param int $limit the maximum number of records to return, sorted by timecreated descending.
+     *  If 0, all records will be returned.
      * @return array array of records of the log table
      */
     public static function get_log_entries(
@@ -122,8 +124,9 @@ class ai_manager_utils {
     /**
      * Retrieves the entries from the request_log table and structures it for delivering them to the "view prompts" table.
      *
-     * External function that delivers this data: @param int $contextid The main context id the prompts should be retrieved
+     * External function that delivers this data: int $contextid The main context id the prompts should be retrieved
      *
+     * @param int $contextid the main context id the prompts should be retrieved for
      * @param int $userid the id of the user to retrieve the prompts
      * @param int $time the time since when the prompts should be retrieved
      * @return array complex structured array containing the prompts
@@ -309,7 +312,9 @@ class ai_manager_utils {
      * API function to get all needed information about the AI configuration for a user.
      *
      * @param stdClass $user the user to retrieve the information for
+     * @param int $contextid the contextid on which the availability should be determined
      * @param ?string $tenant the tenant to retrieve the information for. If null, the current tenant will be used
+     * @param ?array $selectedpurposes array of purpose strings to check. If empty all purposes will be checked
      * @return array complex associative array containing all the needed configurations
      */
     public static function get_ai_config(

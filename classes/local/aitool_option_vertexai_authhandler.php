@@ -31,6 +31,9 @@ use Psr\Http\Client\ClientExceptionInterface;
 class aitool_option_vertexai_authhandler {
     /**
      * Constructor for the auth handler.
+     *
+     * @param int $instanceid The ID of the instance being used. Will be used as key for the cache handling.
+     * @param string $serviceaccountinfo The serviceaccountinfo stringified JSON
      */
     public function __construct(
         /** @var int The ID of the instance being used. Will be used as key for the cache handling. */
