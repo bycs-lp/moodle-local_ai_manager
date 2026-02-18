@@ -171,7 +171,7 @@ if ($hassiteconfig) {
                 'local_ai_manager/datawiperanonymizedate',
                 get_string('datawiperanonymizedate', 'local_ai_manager'),
                 get_string('datawiperanonymizedatedesc', 'local_ai_manager'),
-                '1759269600'
+                ['year' => 2025, 'mon' => 10, 'mday' => 1, 'hours' => 0, 'minutes' => 0]
             )
         );
         $settings->add(
@@ -179,7 +179,7 @@ if ($hassiteconfig) {
                 'local_ai_manager/datawiperdeletedate',
                 get_string('datawiperdeletedate', 'local_ai_manager'),
                 get_string('datawiperdeletedatedesc', 'local_ai_manager'),
-                '1759269600'
+                ['year' => 2025, 'mon' => 10, 'mday' => 1, 'hours' => 0, 'minutes' => 0]
             )
         );
     }
