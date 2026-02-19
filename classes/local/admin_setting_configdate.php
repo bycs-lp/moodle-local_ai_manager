@@ -55,9 +55,13 @@ class admin_setting_configdate extends \admin_setting {
     public function output_html($data, $query = '') {
         $default = $this->get_defaultsetting();
         if ($default && is_array($default)) {
-            $defaultinfo = sprintf('%02d.%02d.%04d %02d:%02d',
-                $default['mday'], $default['mon'], $default['year'],
-                $default['hours'], $default['minutes']
+            $defaultinfo = sprintf(
+                '%02d.%02d.%04d %02d:%02d',
+                $default['mday'],
+                $default['mon'],
+                $default['year'],
+                $default['hours'],
+                $default['minutes']
             );
         } else {
             $defaultinfo = 0;
