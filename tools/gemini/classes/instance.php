@@ -51,6 +51,23 @@ class instance extends base_instance {
         $mform->hideIf('serviceaccountjson', 'googlebackend', 'neq', 'vertexai');
         $mform->hideIf('apikey', 'googlebackend', 'eq', 'vertexai');
 
+        $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
+        $mform->insertElementBefore(
+            $mform->createElement('static', 'endpointexample_googleai', '',
+                get_string('endpointexample', 'local_ai_manager',
+                    'https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent')),
+            $insertat
+        );
+        $mform->hideIf('endpointexample_googleai', 'googlebackend', 'neq', self::GOOGLE_BACKEND_GOOGLEAI);
+
+        $mform->insertElementBefore(
+            $mform->createElement('static', 'endpointexample_vertexai', '',
+                get_string('endpointexample', 'local_ai_manager',
+                    'https://$REGION-aiplatform.googleapis.com/v1/projects/$PROJECT_ID/locations/$REGION/publishers/google/models/$MODEL:generateContent')),
+            $insertat
+        );
+        $mform->hideIf('endpointexample_vertexai', 'googlebackend', 'neq', self::GOOGLE_BACKEND_VERTEXAI);
+
         aitool_option_temperature::extend_form_definition($mform);
     }
 
@@ -78,12 +95,8 @@ class instance extends base_instance {
         $this->set_customfield1($temperature);
         $this->set_customfield2($data->googlebackend);
         if ($data->googlebackend === self::GOOGLE_BACKEND_VERTEXAI) {
-            [$serviceaccountjson, $baseendpoint] = aitool_option_vertexai::extract_vertexai_to_store($data);
+            [$serviceaccountjson] = aitool_option_vertexai::extract_vertexai_to_store($data);
             $this->set_customfield3($serviceaccountjson);
-            $this->set_endpoint($baseendpoint . ':generateContent');
-        } else {
-            $this->set_endpoint('https://generativelanguage.googleapis.com/v1beta/models/' . $this->get_model() .
-                ':generateContent');
         }
     }
 

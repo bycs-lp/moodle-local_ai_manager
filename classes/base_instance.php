@@ -574,9 +574,7 @@ class base_instance {
      */
     final public function store_formdata(stdClass $data): void {
         $this->set_name(trim($data->name));
-        if (!empty($data->endpoint)) {
-            $this->set_endpoint(trim($data->endpoint));
-        }
+        $this->endpoint = !empty($data->endpoint) ? trim($data->endpoint) : null;
         $this->set_apikey(!empty($data->apikey) ? trim($data->apikey) : '');
         $this->set_useglobalapikey(!empty($data->useglobalapikey));
         $this->set_connector($data->connector);

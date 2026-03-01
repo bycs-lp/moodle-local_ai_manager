@@ -18,7 +18,6 @@ namespace aitool_openaitts;
 
 use local_ai_manager\base_instance;
 use local_ai_manager\local\aitool_option_azure;
-use local_ai_manager\local\aitool_option_temperature;
 use stdClass;
 
 /**
@@ -32,20 +31,28 @@ use stdClass;
 class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
-        aitool_option_azure::extend_form_definition($mform, true);
+        aitool_option_azure::extend_form_definition($mform);
+        $defaultendpoint = 'https://api.openai.com/v1/audio/speech';
+        $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
+        $mform->insertElementBefore(
+            $mform->createElement('static', 'endpointdefault', '',
+                get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)),
+            $insertat
+        );
+        $mform->hideIf('endpointdefault', 'azure_enabled', 'eq', '1');
+        $mform->insertElementBefore(
+            $mform->createElement('static', 'endpointexample_azure', '',
+                get_string('endpointexample', 'local_ai_manager',
+                    'https://$RESOURCE_NAME.openai.azure.com/openai/deployments/$DEPLOYMENT_ID/audio/speech?api-version=$API_VERSION')),
+            $insertat
+        );
+        $mform->hideIf('endpointexample_azure', 'azure_enabled', 'neq', '1');
     }
 
     #[\Override]
     protected function get_extended_formdata(): stdClass {
         $data = new stdClass();
-        foreach (
-            aitool_option_azure::add_azure_options_to_form_data(
-                $this->get_customfield2(),
-                $this->get_customfield3(),
-                $this->get_customfield4(),
-                $this->get_customfield5()
-            ) as $key => $value
-        ) {
+        foreach (aitool_option_azure::add_azure_options_to_form_data($this->get_customfield2()) as $key => $value) {
             $data->{$key} = $value;
         }
 
@@ -55,24 +62,11 @@ class instance extends base_instance {
 
     #[\Override]
     protected function extend_store_formdata(stdClass $data): void {
-        [$enabled, $resourcename, $deploymentid, $apiversion] = aitool_option_azure::extract_azure_data_to_store($data);
-
-        if (!empty($enabled)) {
-            $endpoint = 'https://' . $resourcename .
-                '.openai.azure.com/openai/deployments/'
-                . $deploymentid . '/audio/speech?api-version=' . $apiversion;
-            // We have an empty model because the model is preconfigured if we're using azure.
-            // So we overwrite the default "preconfigured" value by a better model name.
+        $enabled = aitool_option_azure::extract_azure_data_to_store($data);
+        if ($enabled) {
             $this->set_model(self::get_model_specific_azure_model_name($data->model));
-        } else {
-            $endpoint = 'https://api.openai.com/v1/audio/speech';
         }
-        $this->set_endpoint($endpoint);
-
         $this->set_customfield2($enabled);
-        $this->set_customfield3($resourcename);
-        $this->set_customfield4($deploymentid);
-        $this->set_customfield5($apiversion);
     }
 
     /**

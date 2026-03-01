@@ -34,6 +34,13 @@ class instance extends base_instance {
         aitool_option_vertexai::extend_form_definition($mform);
         // Condition is always true, but there does not seem to be an easy way to always hide an element.
         $mform->hideIf('apikey', 'connector', 'imagen');
+        $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
+        $mform->insertElementBefore(
+            $mform->createElement('static', 'endpointexample', '',
+                get_string('endpointexample', 'local_ai_manager',
+                    'https://$REGION-aiplatform.googleapis.com/v1/projects/$PROJECT_ID/locations/$REGION/publishers/google/models/$MODEL:predict')),
+            $insertat
+        );
     }
 
     #[\Override]
@@ -43,11 +50,8 @@ class instance extends base_instance {
 
     #[\Override]
     protected function extend_store_formdata(stdClass $data): void {
-
-        [$serviceaccountjson, $baseendpoint] = aitool_option_vertexai::extract_vertexai_to_store($data);
-
+        [$serviceaccountjson] = aitool_option_vertexai::extract_vertexai_to_store($data);
         $this->set_customfield1($serviceaccountjson);
-        $this->set_endpoint($baseendpoint . ':predict');
     }
 
     #[\Override]

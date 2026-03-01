@@ -36,6 +36,11 @@ use Psr\Http\Message\StreamInterface;
  */
 class connector extends \local_ai_manager\base_connector {
     #[\Override]
+    protected function get_endpoint_url(): string {
+        return $this->instance->get_endpoint() ?: 'https://texttospeech.googleapis.com/v1/text:synthesize';
+    }
+
+    #[\Override]
     public function get_models_by_purpose(): array {
         $modelsbypurpose = base_purpose::get_installed_purposes_array();
         $modelsbypurpose['tts'] = ['googletts'];

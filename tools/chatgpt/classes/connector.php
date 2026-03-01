@@ -176,6 +176,11 @@ class connector extends \local_ai_manager\base_connector {
     }
 
     #[\Override]
+    protected function get_endpoint_url(): string {
+        return $this->instance->get_endpoint() ?: 'https://api.openai.com/v1/chat/completions';
+    }
+
+    #[\Override]
     public function allowed_mimetypes(): array {
         return ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
     }
