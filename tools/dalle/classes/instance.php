@@ -36,14 +36,16 @@ class instance extends base_instance {
         $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
         $mform->insertElementBefore(
             $mform->createElement('static', 'endpointdefault', '',
-                get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)),
+                get_string('endpointhint_openai', 'local_ai_manager')
+                . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)),
             $insertat
         );
         $mform->hideIf('endpointdefault', 'azure_enabled', 'eq', '1');
         $mform->insertElementBefore(
             $mform->createElement('static', 'endpointexample_azure', '',
-                get_string('endpointexample', 'local_ai_manager',
-                    'https://$RESOURCE_NAME.openai.azure.com/openai/deployments/$DEPLOYMENT_ID/images/generations?api-version=$API_VERSION')),
+                get_string('endpointhint_openai_azure', 'local_ai_manager')
+                . '<br>' . get_string('endpointexample', 'local_ai_manager',
+                    'https://$RESOURCE.openai.azure.com/openai/deployments/$DEPLOYMENT_ID/images/generations?api-version=$API_VERSION')),
             $insertat
         );
         $mform->hideIf('endpointexample_azure', 'azure_enabled', 'neq', '1');

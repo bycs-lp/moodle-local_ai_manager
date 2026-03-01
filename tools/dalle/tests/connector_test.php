@@ -14,15 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace aitool_chatgpt;
-
-use local_ai_manager\local\aitool_option_azure;
-use local_ai_manager\local\connector_factory;
+namespace aitool_dalle;
 
 /**
- * Tests for ChatGPT connector.
+ * Tests for the aitool_dalle connector.
  *
- * @package    aitool_chatgpt
+ * @package    aitool_dalle
  * @copyright  2026 ISB Bayern
  * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -48,36 +45,16 @@ final class connector_test extends \advanced_testcase {
 
     public function test_get_endpoint_url_returns_default_when_empty(): void {
         $this->assertEquals(
-            'https://api.openai.com/v1/chat/completions',
+            'https://api.openai.com/v1/images/generations',
             $this->call_get_endpoint_url($this->make_connector(''))
         );
     }
 
     public function test_get_endpoint_url_returns_custom_when_set(): void {
-        $customurl = 'https://my-proxy.example.com/v1/chat/completions';
+        $customurl = 'https://my-proxy.example.com/v1/images/generations';
         $this->assertEquals(
             $customurl,
             $this->call_get_endpoint_url($this->make_connector($customurl))
         );
-    }
-
-    /**
-     * Test that the Azure model is only available for supported purposes.
-     *
-     * @throws \coding_exception
-     * @covers \aitool_chatgpt\connector::get_models_by_purpose
-     */
-    public function test_get_models_by_purpose_contains_azure_model_only_for_supported_purposes(): void {
-        $connectorfactory = \core\di::get(connector_factory::class);
-        $connector = $connectorfactory->get_connector_by_connectorname('chatgpt');
-        $modelname = aitool_option_azure::get_azure_model_name('chatgpt');
-        $modelsbypurpose = $connector->get_models_by_purpose();
-
-        foreach (['chat', 'feedback', 'singleprompt', 'translate', 'itt', 'questiongeneration', 'agent'] as $purpose) {
-            $this->assertContains($modelname, $modelsbypurpose[$purpose]);
-        }
-
-        $this->assertNotContains($modelname, $modelsbypurpose['tts']);
-        $this->assertNotContains($modelname, $modelsbypurpose['imggen']);
     }
 }
