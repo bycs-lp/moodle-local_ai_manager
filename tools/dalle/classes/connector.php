@@ -90,6 +90,11 @@ class connector extends base_connector {
     }
 
     #[\Override]
+    protected function get_endpoint_url(): string {
+        return $this->instance->get_endpoint() ?: 'https://api.openai.com/v1/images/generations';
+    }
+
+    #[\Override]
     public function execute_prompt_completion(StreamInterface $result, request_options $requestoptions): prompt_response {
         global $USER;
         $options = $requestoptions->get_options();

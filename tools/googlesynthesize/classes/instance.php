@@ -31,7 +31,12 @@ use local_ai_manager\local\aitool_option_vertexai;
 class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
-        $mform->setDefault('endpoint', 'https://texttospeech.googleapis.com/v1/text:synthesize');
-        $mform->freeze('endpoint');
+        $defaultendpoint = 'https://texttospeech.googleapis.com/v1/text:synthesize';
+        $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
+        $mform->insertElementBefore(
+            $mform->createElement('static', 'endpointdefault', '',
+                get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)),
+            $insertat
+        );
     }
 }
