@@ -23,7 +23,7 @@ namespace aitool_imagen;
  * @copyright  2026 ISB Bayern
  * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @coversDefaultClass \aitool_imagen\connector
+ * @covers \aitool_imagen\connector
  */
 final class connector_test extends \advanced_testcase {
     /** @var string Service account JSON used in tests. */

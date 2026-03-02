@@ -26,7 +26,7 @@ use local_ai_manager\local\connector_factory;
  * @copyright  2026 ISB Bayern
  * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @coversDefaultClass \aitool_chatgpt\connector
+ * @covers \aitool_chatgpt\connector
  */
 final class connector_test extends \advanced_testcase {
     /**

@@ -23,7 +23,7 @@ namespace aitool_googlesynthesize;
  * @copyright  2026 ISB Bayern
  * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @coversDefaultClass \aitool_googlesynthesize\connector
+ * @covers \aitool_googlesynthesize\connector
  */
 final class connector_test extends \advanced_testcase {
     /**
