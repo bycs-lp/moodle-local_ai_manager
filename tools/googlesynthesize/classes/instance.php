@@ -34,9 +34,13 @@ class instance extends base_instance {
         $defaultendpoint = 'https://texttospeech.googleapis.com/v1/text:synthesize';
         $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
         $mform->insertElementBefore(
-            $mform->createElement('static', 'endpointdefault', '',
+            $mform->createElement(
+                'static',
+                'endpointdefault',
+                '',
                 get_string('endpointhint_google_fixed', 'local_ai_manager')
-                . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)),
+                . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)
+            ),
             $insertat
         );
     }

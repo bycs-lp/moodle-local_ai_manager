@@ -53,19 +53,28 @@ class instance extends base_instance {
 
         $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
         $mform->insertElementBefore(
-            $mform->createElement('static', 'endpointexample_googleai', '',
+            $mform->createElement(
+                'static',
+                'endpointexample_googleai',
+                '',
                 get_string('endpointhint_gemini_googleai', 'local_ai_manager')
                 . '<br>' . get_string('endpointexample', 'local_ai_manager',
-                    'https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent')),
+                    'https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent')
+            ),
             $insertat
         );
         $mform->hideIf('endpointexample_googleai', 'googlebackend', 'neq', self::GOOGLE_BACKEND_GOOGLEAI);
 
         $mform->insertElementBefore(
-            $mform->createElement('static', 'endpointexample_vertexai', '',
+            $mform->createElement(
+                'static',
+                'endpointexample_vertexai',
+                '',
                 get_string('endpointhint_gemini_vertexai', 'local_ai_manager')
                 . '<br>' . get_string('endpointexample', 'local_ai_manager',
-                    'https://$REGION-aiplatform.googleapis.com/v1/projects/$PROJECT_ID/locations/$REGION/publishers/google/models/$MODEL:generateContent')),
+                    'https://$REGION-aiplatform.googleapis.com/v1/projects/'
+                    . '$PROJECT_ID/locations/$REGION/publishers/google/models/$MODEL:generateContent')
+            ),
             $insertat
         );
         $mform->hideIf('endpointexample_vertexai', 'googlebackend', 'neq', self::GOOGLE_BACKEND_VERTEXAI);

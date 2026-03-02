@@ -198,8 +198,10 @@ class connector extends \local_ai_manager\base_connector {
     protected function get_endpoint_url(): string {
         if ($this->instance->get_endpoint()) {
             return $this->instance->get_endpoint();
-        } else if ($this->instance->get_customfield2() ===
-                instance::GOOGLE_BACKEND_VERTEXAI) {
+        } else if (
+            $this->instance->get_customfield2() ===
+                instance::GOOGLE_BACKEND_VERTEXAI
+        ) {
             if (empty($this->instance->get_customfield3())) {
                 return '';
             }
