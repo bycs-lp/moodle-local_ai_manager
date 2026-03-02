@@ -58,8 +58,11 @@ class instance extends base_instance {
                 'endpointexample_googleai',
                 '',
                 get_string('endpointhint_gemini_googleai', 'local_ai_manager')
-                . '<br>' . get_string('endpointexample', 'local_ai_manager',
-                    'https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent')
+                . '<br>' . get_string(
+                    'endpointexample',
+                    'local_ai_manager',
+                    'https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent'
+                )
             ),
             $insertat
         );
@@ -71,9 +74,12 @@ class instance extends base_instance {
                 'endpointexample_vertexai',
                 '',
                 get_string('endpointhint_gemini_vertexai', 'local_ai_manager')
-                . '<br>' . get_string('endpointexample', 'local_ai_manager',
+                . '<br>' . get_string(
+                    'endpointexample',
+                    'local_ai_manager',
                     'https://$REGION-aiplatform.googleapis.com/v1/projects/'
-                    . '$PROJECT_ID/locations/$REGION/publishers/google/models/$MODEL:generateContent')
+                    . '$PROJECT_ID/locations/$REGION/publishers/google/models/$MODEL:generateContent'
+                )
             ),
             $insertat
         );
