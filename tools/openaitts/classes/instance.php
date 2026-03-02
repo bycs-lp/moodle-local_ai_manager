@@ -35,17 +35,25 @@ class instance extends base_instance {
         $defaultendpoint = 'https://api.openai.com/v1/audio/speech';
         $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
         $mform->insertElementBefore(
-            $mform->createElement('static', 'endpointdefault', '',
+            $mform->createElement(
+                'static',
+                'endpointdefault',
+                '',
                 get_string('endpointhint_openai', 'local_ai_manager')
-                . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)),
+                . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)
+            ),
             $insertat
         );
         $mform->hideIf('endpointdefault', 'azure_enabled', 'eq', '1');
         $mform->insertElementBefore(
-            $mform->createElement('static', 'endpointexample_azure', '',
+            $mform->createElement(
+                'static',
+                'endpointexample_azure',
+                '',
                 get_string('endpointhint_openai_azure', 'local_ai_manager')
                 . '<br>' . get_string('endpointexample', 'local_ai_manager',
-                    'https://$RESOURCE.openai.azure.com/openai/deployments/$DEPLOYMENT_ID/audio/speech?api-version=$API_VERSION')),
+                    'https://$RESOURCE.openai.azure.com/openai/deployments/$DEPLOYMENT_ID/audio/speech?api-version=$API_VERSION')
+            ),
             $insertat
         );
         $mform->hideIf('endpointexample_azure', 'azure_enabled', 'neq', '1');
