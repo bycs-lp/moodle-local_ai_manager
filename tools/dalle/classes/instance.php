@@ -51,9 +51,12 @@ class instance extends base_instance {
                 'endpointexample_azure',
                 '',
                 get_string('endpointhint_openai_azure', 'local_ai_manager')
-                . '<br>' . get_string('endpointexample', 'local_ai_manager',
+                . '<br>' . get_string(
+                    'endpointexample',
+                    'local_ai_manager',
                     'https://$RESOURCE.openai.azure.com/openai/deployments/'
-                    . '$DEPLOYMENT_ID/images/generations?api-version=$API_VERSION')
+                    . '$DEPLOYMENT_ID/images/generations?api-version=$API_VERSION'
+                )
             ),
             $insertat
         );
