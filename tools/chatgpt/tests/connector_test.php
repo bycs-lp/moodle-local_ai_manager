@@ -32,6 +32,7 @@ final class connector_test extends \advanced_testcase {
      * Test that the Azure model is available for every supported purpose.
      *
      * @throws \coding_exception
+     * @covers \aitool_chatgpt\connector::get_models_by_purpose
      */
     public function test_get_models_by_purpose_contains_azure_model(): void {
         $connectorfactory = \core\di::get(connector_factory::class);
