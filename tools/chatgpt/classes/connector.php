@@ -52,7 +52,9 @@ class connector extends \local_ai_manager\base_connector {
                 'agent' => $chatgptmodels,
         ];
         foreach ($modelsbypurpose as $purpose => $models) {
-            $modelsbypurpose[$purpose][] = aitool_option_azure::get_azure_model_name('chatgpt');
+            if (!empty($models)) {
+                $modelsbypurpose[$purpose][] = aitool_option_azure::get_azure_model_name('chatgpt');
+            }
         }
         return $modelsbypurpose;
     }

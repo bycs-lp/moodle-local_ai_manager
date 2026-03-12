@@ -29,18 +29,22 @@ use local_ai_manager\local\connector_factory;
  */
 final class connector_test extends \advanced_testcase {
     /**
-     * Test that the Azure model is available for every supported purpose.
+     * Test that the Azure model is only available for supported purposes.
      *
      * @throws \coding_exception
      * @covers \aitool_chatgpt\connector::get_models_by_purpose
      */
-    public function test_get_models_by_purpose_contains_azure_model(): void {
+    public function test_get_models_by_purpose_contains_azure_model_only_for_supported_purposes(): void {
         $connectorfactory = \core\di::get(connector_factory::class);
         $connector = $connectorfactory->get_connector_by_connectorname('chatgpt');
         $modelname = aitool_option_azure::get_azure_model_name('chatgpt');
+        $modelsbypurpose = $connector->get_models_by_purpose();
 
-        foreach ($connector->get_models_by_purpose() as $models) {
-            $this->assertContains($modelname, $models);
+        foreach (['chat', 'feedback', 'singleprompt', 'translate', 'itt', 'questiongeneration', 'agent'] as $purpose) {
+            $this->assertContains($modelname, $modelsbypurpose[$purpose]);
         }
+
+        $this->assertNotContains($modelname, $modelsbypurpose['tts']);
+        $this->assertNotContains($modelname, $modelsbypurpose['imggen']);
     }
 }
