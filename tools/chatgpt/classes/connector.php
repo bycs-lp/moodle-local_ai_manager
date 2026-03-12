@@ -52,6 +52,10 @@ class connector extends \local_ai_manager\base_connector {
                 'agent' => $chatgptmodels,
         ];
         foreach ($modelsbypurpose as $purpose => $models) {
+            // We assume that the azure models support all the purposes. This is kind of a blind guess, because in case
+            // of azure we do not have any information which model lies behind the azure endpoint. So we will go for the less
+            // restrictive definition, but of course it could be that there's a model behind the azure endpoint that, for example,
+            // does not support vision (itt). In this case we let the user run into an error, but that's not avoidable right now.
             if (!empty($models)) {
                 $modelsbypurpose[$purpose][] = aitool_option_azure::get_azure_model_name('chatgpt');
             }
