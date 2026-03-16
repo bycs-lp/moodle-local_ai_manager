@@ -205,7 +205,10 @@ class connector extends \local_ai_manager\base_connector {
             if (empty($this->instance->get_customfield3())) {
                 return '';
             }
-            $projectid = json_decode($this->instance->get_customfield3())->project_id;
+            $projectid = json_decode($this->instance->get_customfield3())?->project_id;
+            if (empty($projectid)) {
+                return '';
+            }
             return 'https://europe-north1-aiplatform.googleapis.com/v1/projects/' . $projectid
                 . '/locations/europe-north1/publishers/google/models/' . $this->instance->get_model()
                 . ':generateContent';

@@ -72,4 +72,11 @@ final class connector_test extends \advanced_testcase {
             $this->call_get_endpoint_url($this->make_connector('', ''))
         );
     }
+
+    public function test_get_endpoint_url_invalid_serviceaccount_returns_empty(): void {
+        $this->assertEquals(
+            '',
+            $this->call_get_endpoint_url($this->make_connector('', '{'))
+        );
+    }
 }
