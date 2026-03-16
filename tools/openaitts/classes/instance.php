@@ -31,7 +31,7 @@ use stdClass;
 class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
-        aitool_option_azure::extend_form_definition($mform);
+        aitool_option_azure::extend_form_definition($mform, true);
         $defaultendpoint = 'https://api.openai.com/v1/audio/speech';
         $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
         $mform->insertElementBefore(
@@ -80,6 +80,11 @@ class instance extends base_instance {
             $this->set_model(self::get_model_specific_azure_model_name($data->model));
         }
         $this->set_customfield2($enabled);
+    }
+
+    #[\Override]
+    protected function extend_validation(array $data, array $files): array {
+        return aitool_option_azure::validate_azure_options($data);
     }
 
     /**

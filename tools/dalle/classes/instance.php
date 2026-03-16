@@ -69,6 +69,10 @@ class instance extends base_instance {
         foreach (aitool_option_azure::add_azure_options_to_form_data($this->get_customfield2()) as $key => $value) {
             $data->{$key} = $value;
         }
+        if ($this->azure_enabled()) {
+            $selectablemodels = \core\di::get(connector::class)->get_selectable_models();
+            $data->model = reset($selectablemodels);
+        }
         return $data;
     }
 

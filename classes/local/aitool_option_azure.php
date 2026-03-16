@@ -31,10 +31,14 @@ class aitool_option_azure {
      * Extends the form definition of the edit instance form by adding the azure toggle.
      *
      * @param \MoodleQuickForm $mform the mform object
+     * @param bool $showmodel if the model should be shown in the form
      */
-    public static function extend_form_definition(\MoodleQuickForm $mform): void {
+    public static function extend_form_definition(\MoodleQuickForm $mform, bool $showmodel = false): void {
         $mform->addElement('selectyesno', 'azure_enabled', get_string('use_openai_by_azure_heading', 'local_ai_manager'));
         $mform->setDefault('azure_enabled', false);
+        if (!$showmodel) {
+            $mform->hideIf('model', 'azure_enabled', 'eq', '1');
+        }
     }
 
     /**
@@ -66,7 +70,11 @@ class aitool_option_azure {
      * @return array associative array ['mformelementname' => 'error string'] if there are validation errors, otherwise empty array
      */
     public static function validate_azure_options(array $data): array {
-        return [];
+        $errors = [];
+        if (!empty($data['azure_enabled']) && empty($data['endpoint'])) {
+            $errors['endpoint'] = get_string('formvalidation_editinstance_azureendpoint', 'local_ai_manager');
+        }
+        return $errors;
     }
 
     /**

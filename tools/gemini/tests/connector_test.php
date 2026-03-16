@@ -84,4 +84,11 @@ final class connector_test extends \advanced_testcase {
             $this->call_get_endpoint_url($this->make_connector('', instance::GOOGLE_BACKEND_VERTEXAI, ''))
         );
     }
+
+    public function test_get_endpoint_url_vertexai_invalid_serviceaccount_returns_empty(): void {
+        $this->assertEquals(
+            '',
+            $this->call_get_endpoint_url($this->make_connector('', instance::GOOGLE_BACKEND_VERTEXAI, '{'))
+        );
+    }
 }
