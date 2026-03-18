@@ -31,7 +31,8 @@ use local_ai_manager\local\userinfo;
  * @param int $oldversion Version number the plugin is being upgraded from.
  */
 function xmldb_local_ai_manager_upgrade($oldversion) {
-    global $DB;
+    global $CFG, $DB;
+    require_once($CFG->dirroot . '/local/ai_manager/db/upgradelib.php');
     $dbman = $DB->get_manager();
 
     if ($oldversion < 2024080101) {
@@ -345,6 +346,12 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         }
 
         upgrade_plugin_savepoint(true, 2026020600, 'local', 'ai_manager');
+    }
+
+    if ($oldversion < 2026031600) {
+        local_ai_manager_cleanup_legacy_azure_instance_data();
+
+        upgrade_plugin_savepoint(true, 2026031600, 'local', 'ai_manager');
     }
 
     return true;
