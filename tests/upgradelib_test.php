@@ -23,6 +23,7 @@ namespace local_ai_manager;
  * @copyright 2026 ISB Bayern
  * @author    Thomas Schönlein
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers    ::local_ai_manager_cleanup_legacy_azure_instance_data
  */
 final class upgradelib_test extends \advanced_testcase {
     #[\Override]
