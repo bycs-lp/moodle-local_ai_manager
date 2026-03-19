@@ -40,7 +40,7 @@ class instance extends base_instance {
                 'static',
                 'endpointexample',
                 '',
-                get_string('endpointhint_gemini_vertexai', 'local_ai_manager')
+                get_string('endpointhint_vertexai', 'aitool_imagen')
                 . '<br>' . get_string(
                     'endpointexample',
                     'local_ai_manager',
@@ -65,6 +65,13 @@ class instance extends base_instance {
 
     #[\Override]
     protected function extend_validation(array $data, array $files): array {
-        return aitool_option_vertexai::validate_vertexai($data);
+        $errors = aitool_option_vertexai::validate_vertexai($data);
+        // Google endpoint URLs encode the model name (e.g. ".../models/imagen-3.0-generate-002:predict").
+        // We require the selected model to appear in the custom URL to prevent mismatches, since the
+        // ai_manager architecture depends on knowing the active model at request time.
+        if (!empty($data['endpoint']) && !str_contains($data['endpoint'], $data['model'])) {
+            $errors['endpoint'] = get_string('formvalidation_editinstance_endpointmodelnotinurl', 'local_ai_manager');
+        }
+        return $errors;
     }
 }

@@ -39,7 +39,7 @@ class instance extends base_instance {
                 'static',
                 'endpointdefault',
                 '',
-                get_string('endpointhint_openai', 'local_ai_manager')
+                get_string('endpointhint', 'aitool_openaitts')
                 . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)
             ),
             $insertat
@@ -50,7 +50,7 @@ class instance extends base_instance {
                 'static',
                 'endpointexample_azure',
                 '',
-                get_string('endpointhint_openai_azure', 'local_ai_manager')
+                get_string('endpointhint_azure', 'aitool_openaitts')
                 . '<br>' . get_string(
                     'endpointexample',
                     'local_ai_manager',

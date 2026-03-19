@@ -34,9 +34,6 @@
 function local_ai_manager_cleanup_legacy_azure_instance_data(): void {
     global $DB;
 
-    $DB->set_field_select('local_ai_manager_instance', 'customfield4', null, 'customfield4 IS NOT NULL');
-    $DB->set_field_select('local_ai_manager_instance', 'customfield5', null, 'customfield5 IS NOT NULL');
-
     [$insql, $params] = $DB->get_in_or_equal(['chatgpt', 'dalle', 'openaitts'], SQL_PARAMS_NAMED);
     $DB->set_field_select(
         'local_ai_manager_instance',
@@ -45,4 +42,19 @@ function local_ai_manager_cleanup_legacy_azure_instance_data(): void {
         "connector $insql AND customfield3 IS NOT NULL",
         $params
     );
+    $DB->set_field_select(
+        'local_ai_manager_instance',
+        'customfield4',
+        null,
+        "connector $insql AND customfield4 IS NOT NULL",
+        $params
+    );
+
+     $DB->set_field_select(
+        'local_ai_manager_instance',
+        'customfield5',
+        null,
+        "connector $insql AND customfield5 IS NOT NULL",
+        $params
+        );
 }
