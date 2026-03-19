@@ -38,7 +38,7 @@ class instance extends base_instance {
                 'static',
                 'endpointdefault',
                 '',
-                get_string('endpointhint_google_fixed', 'local_ai_manager')
+                get_string('endpointhint', 'aitool_googlesynthesize')
                 . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)
             ),
             $insertat

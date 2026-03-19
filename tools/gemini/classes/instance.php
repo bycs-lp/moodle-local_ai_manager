@@ -57,7 +57,7 @@ class instance extends base_instance {
                 'static',
                 'endpointexample_googleai',
                 '',
-                get_string('endpointhint_gemini_googleai', 'local_ai_manager')
+                get_string('endpointhint_googleai', 'aitool_gemini')
                 . '<br>' . get_string(
                     'endpointexample',
                     'local_ai_manager',
@@ -73,7 +73,7 @@ class instance extends base_instance {
                 'static',
                 'endpointexample_vertexai',
                 '',
-                get_string('endpointhint_gemini_vertexai', 'local_ai_manager')
+                get_string('endpointhint_vertexai', 'aitool_gemini')
                 . '<br>' . get_string(
                     'endpointexample',
                     'local_ai_manager',
@@ -124,6 +124,12 @@ class instance extends base_instance {
             $errors = array_merge($errors, aitool_option_vertexai::validate_vertexai($data));
         }
         $errors = array_merge($errors, aitool_option_temperature::validate_temperature($data));
+        // Google endpoint URLs encode the model name (e.g. ".../models/gemini-2.0-flash:generateContent").
+        // We require the selected model to appear in the custom URL to prevent mismatches, since the
+        // ai_manager architecture depends on knowing the active model at request time.
+        if (!empty($data['endpoint']) && !str_contains($data['endpoint'], $data['model'])) {
+            $errors['endpoint'] = get_string('formvalidation_editinstance_endpointmodelnotinurl', 'local_ai_manager');
+        }
         return $errors;
     }
 

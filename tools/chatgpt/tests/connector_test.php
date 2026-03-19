@@ -47,6 +47,11 @@ final class connector_test extends \advanced_testcase {
         return new connector($instance);
     }
 
+    /**
+     * Tests that get_endpoint_url() returns the hardcoded default when no endpoint is configured.
+     *
+     * @covers ::get_endpoint_url
+     */
     public function test_get_endpoint_url_returns_default_when_empty(): void {
         $this->assertEquals(
             'https://api.openai.com/v1/chat/completions',
@@ -54,6 +59,11 @@ final class connector_test extends \advanced_testcase {
         );
     }
 
+    /**
+     * Tests that get_endpoint_url() returns the configured custom endpoint when one is set.
+     *
+     * @covers ::get_endpoint_url
+     */
     public function test_get_endpoint_url_returns_custom_when_set(): void {
         $customurl = 'https://my-proxy.example.com/v1/chat/completions';
         $this->assertEquals(

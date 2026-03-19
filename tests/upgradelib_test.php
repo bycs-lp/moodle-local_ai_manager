@@ -33,6 +33,11 @@ final class upgradelib_test extends \advanced_testcase {
         require_once($CFG->dirroot . '/local/ai_manager/db/upgradelib.php');
     }
 
+    /**
+     * Tests that the cleanup removes Azure legacy data from chatgpt instances while preserving Gemini's customfield3.
+     *
+     * @covers ::local_ai_manager_cleanup_legacy_azure_instance_data
+     */
     public function test_cleanup_legacy_azure_instance_data_keeps_gemini_customfield3(): void {
         global $DB;
         $this->resetAfterTest();
@@ -74,10 +79,29 @@ final class upgradelib_test extends \advanced_testcase {
             'timemodified' => 0,
         ]);
 
+        $faketoolid = $DB->insert_record('local_ai_manager_instance', (object) [
+            'name' => 'Fake Tool',
+            'tenant' => 'tenant1',
+            'connector' => 'myTool',
+            'endpoint' => 'https://myTool.example.com:11434/api',
+            'apikey' => 'abc123',
+            'useglobalapikey' => 0,
+            'model' => 'gemma3',
+            'infolink' => null,
+            'customfield1' => null,
+            'customfield2' => '1',
+            'customfield3' => 'fake-resource',
+            'customfield4' => 'fake-deployment',
+            'customfield5' => 'fake-version',
+            'timecreated' => 0,
+            'timemodified' => 0,
+        ]);
+
         \local_ai_manager_cleanup_legacy_azure_instance_data();
 
         $chatgptrecord = $DB->get_record('local_ai_manager_instance', ['id' => $chatgptid], '*', MUST_EXIST);
         $geminirecord = $DB->get_record('local_ai_manager_instance', ['id' => $geminiid], '*', MUST_EXIST);
+        $faketoolrecord = $DB->get_record('local_ai_manager_instance', ['id' => $faketoolid], '*', MUST_EXIST);
 
         $this->assertNull($chatgptrecord->customfield3);
         $this->assertNull($chatgptrecord->customfield4);
@@ -86,5 +110,9 @@ final class upgradelib_test extends \advanced_testcase {
         $this->assertSame($geminijson, $geminirecord->customfield3);
         $this->assertNull($geminirecord->customfield4);
         $this->assertNull($geminirecord->customfield5);
+
+        $this->assertSame('fake-resource', $faketoolrecord->customfield3);
+        $this->assertSame('fake-deployment', $faketoolrecord->customfield4);
+        $this->assertSame('fake-version', $faketoolrecord->customfield5);
     }
 }

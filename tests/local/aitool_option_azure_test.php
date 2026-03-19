@@ -26,6 +26,11 @@ namespace local_ai_manager\local;
  * @covers \local_ai_manager\local\aitool_option_azure
  */
 final class aitool_option_azure_test extends \advanced_testcase {
+    /**
+     * Tests that validation returns an endpoint error when Azure is enabled but no endpoint is given.
+     *
+     * @covers ::validate_azure_options
+     */
     public function test_validate_azure_options_requires_endpoint_when_enabled(): void {
         $errors = aitool_option_azure::validate_azure_options([
             'azure_enabled' => 1,
@@ -35,6 +40,11 @@ final class aitool_option_azure_test extends \advanced_testcase {
         $this->assertArrayHasKey('endpoint', $errors);
     }
 
+    /**
+     * Tests that no validation errors are returned when Azure is disabled, even with an empty endpoint.
+     *
+     * @covers ::validate_azure_options
+     */
     public function test_validate_azure_options_allows_empty_endpoint_when_disabled(): void {
         $errors = aitool_option_azure::validate_azure_options([
             'azure_enabled' => 0,
