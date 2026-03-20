@@ -32,6 +32,8 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends \local_ai_manager\base_connector {
+
+    public const DEFAULT_OPENAI_TTS_ENDPOINT = 'https://api.openai.com/v1/audio/speech';
     #[\Override]
     public function get_models_by_purpose(): array {
         $modelsbypurpose = base_purpose::get_installed_purposes_array();
@@ -97,7 +99,7 @@ class connector extends \local_ai_manager\base_connector {
 
     #[\Override]
     protected function get_endpoint_url(): string {
-        return $this->instance->get_endpoint() ?: 'https://api.openai.com/v1/audio/speech';
+        return $this->instance->get_endpoint() ?: self::DEFAULT_OPENAI_TTS_ENDPOINT;
     }
 
     #[\Override]
