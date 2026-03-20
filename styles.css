@@ -208,5 +208,6 @@ body.limitcontentwidth #page-content {
 }
 
 .local_ai_manager-purposeinfo table tr.local_ai_manager-purpose-highlight {
-    background-color: var(--bs-info-bg-subtle, var(--info-bg-subtle, #cff4fc));
+    background-color: var(--bs-info-bg-subtle);
+    color: var(--bs-info-text-emphasis);
 }
