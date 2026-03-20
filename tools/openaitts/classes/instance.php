@@ -32,7 +32,7 @@ class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
         aitool_option_azure::extend_form_definition($mform, true);
-        $defaultendpoint = 'https://api.openai.com/v1/audio/speech';
+        $defaultendpoint = connector::DEFAULT_OPENAI_TTS_ENDPOINT;
         $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
         $mform->insertElementBefore(
             $mform->createElement(

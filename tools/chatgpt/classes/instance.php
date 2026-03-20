@@ -34,7 +34,7 @@ class instance extends base_instance {
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
         aitool_option_temperature::extend_form_definition($mform, ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini']);
         aitool_option_azure::extend_form_definition($mform);
-        $defaultendpoint = 'https://api.openai.com/v1/chat/completions';
+        $defaultendpoint = connector::DEFAULT_OPENAI_COMPLETIONS_ENDPOINT;
         $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
         $mform->insertElementBefore(
             $mform->createElement(

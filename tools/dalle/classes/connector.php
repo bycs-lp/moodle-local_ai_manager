@@ -35,6 +35,8 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends base_connector {
+
+    public const DEFAULT_DALLE_COMPLETIONS_ENDPOINT = 'https://api.openai.com/v1/images/generations';
     #[\Override]
     public function get_models_by_purpose(): array {
         $modelsbypurpose = base_purpose::get_installed_purposes_array();
@@ -91,7 +93,7 @@ class connector extends base_connector {
 
     #[\Override]
     protected function get_endpoint_url(): string {
-        return $this->instance->get_endpoint() ?: 'https://api.openai.com/v1/images/generations';
+        return $this->instance->get_endpoint() ?: self::DEFAULT_DALLE_COMPLETIONS_ENDPOINT;
     }
 
     #[\Override]
