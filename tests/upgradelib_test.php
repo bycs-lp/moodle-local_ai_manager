@@ -108,8 +108,8 @@ final class upgradelib_test extends \advanced_testcase {
         $this->assertNull($chatgptrecord->customfield5);
 
         $this->assertSame($geminijson, $geminirecord->customfield3);
-        $this->assertNull($geminirecord->customfield4);
-        $this->assertNull($geminirecord->customfield5);
+        $this->assertSame('old-deployment', $geminirecord->customfield4);
+        $this->assertSame('2024-02-01', $geminirecord->customfield5);
 
         $this->assertSame('fake-resource', $faketoolrecord->customfield3);
         $this->assertSame('fake-deployment', $faketoolrecord->customfield4);

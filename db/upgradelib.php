@@ -50,11 +50,11 @@ function local_ai_manager_cleanup_legacy_azure_instance_data(): void {
         $params
     );
 
-     $DB->set_field_select(
+    $DB->set_field_select(
         'local_ai_manager_instance',
         'customfield5',
         null,
         "connector $insql AND customfield5 IS NOT NULL",
         $params
-        );
+    );
 }
