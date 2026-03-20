@@ -82,10 +82,10 @@
         </thead>
         <tbody>
         {{#purposes}}
-            <tr class="{{#highlight}}table-info{{/highlight}}">
+            <tr class="{{#highlight}}local_ai_manager-purpose-highlight{{/highlight}}">
                 <td>
                     <div class="d-flex flex-row justify-content-between align-items-center">
-                        <span>{{purpose}}</span>
+                        <span>{{purpose}}{{#highlight}}<span class="sr-only"> ({{#str}}highlighted, local_ai_manager{{/str}})</span>{{/highlight}}</span>
                         {{> local_ai_manager/purposeinfoicon}}
                     </div>
                 </td>

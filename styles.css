@@ -206,3 +206,7 @@ body.limitcontentwidth #page-content {
 #page-local-ai_manager-tenant_config .instanceaddmodal a:hover .card-title {
     text-decoration: underline;
 }
+
+.local_ai_manager-purposeinfo table tr.local_ai_manager-purpose-highlight {
+    background-color: #cff4fc;
+}
