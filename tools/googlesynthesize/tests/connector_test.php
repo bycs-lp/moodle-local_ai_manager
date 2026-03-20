@@ -46,7 +46,7 @@ final class connector_test extends \advanced_testcase {
 
     public function test_get_endpoint_url_returns_default_when_empty(): void {
         $this->assertEquals(
-            'https://texttospeech.googleapis.com/v1/text:synthesize',
+            connector::DEFAULT_GOOGLE_SYNTHESIZE_ENDPOINT,
             $this->call_get_endpoint_url($this->make_connector(''))
         );
     }
