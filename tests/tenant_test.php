@@ -21,7 +21,7 @@ namespace local_ai_manager;
  *
  * @package    local_ai_manager
  * @copyright  2026 ISB Bayern
- * @author     Philipp Memmel
+ * @author     Johannes Funk
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class tenant_test extends \advanced_testcase {
