@@ -25,8 +25,9 @@ namespace local_ai_manager;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class tenant_test extends \advanced_testcase {
-
     /**
+     * Tests the validation of identifier string in the tenant constructor (valid identifier)).
+     *
      * @dataProvider valid_identifier_provider
      * @covers \local_ai_manager\local\tenant::__construct
      */
@@ -53,6 +54,8 @@ final class tenant_test extends \advanced_testcase {
     }
 
     /**
+     * Tests the validation of identifier string in the tenant constructor (invalid identifier).
+     *
      * @dataProvider invalid_identifier_provider
      * @covers \local_ai_manager\local\tenant::__construct
      */
@@ -78,7 +81,7 @@ final class tenant_test extends \advanced_testcase {
             ['comma,comma'],
             ['HTML-Tag<br />'],
             [' Whitespace University'],
-            ['Whitespace School ']
+            ['Whitespace School '],
         ];
     }
 }
