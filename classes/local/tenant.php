@@ -49,8 +49,11 @@ class tenant {
             }
         }
 
+        if ($identifier !== trim($identifier)) {
+            throw new \invalid_parameter_exception('Tenant identifier must not contain leading or trailing whitespace.');
+        }
         if (!preg_match('/^[A-Za-z0-9_\- ]+$/', $identifier)) {
-            $debuginfo = 'Tenant identifiers can only contain alphanumeric letters, hyphens, underscores or blank spaces.';
+            $debuginfo = 'Tenant identifiers may only contain alphanumeric letters, hyphens, underscores or blank spaces.';
             throw new \invalid_parameter_exception($debuginfo);
         }
 
