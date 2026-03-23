@@ -225,6 +225,7 @@ $string['purposedescription'] = 'What is purpose "{$a}"?';
 $string['purposesdescription'] = 'Which of your configured AI tools should be used for which purpose?';
 $string['purposesheading'] = 'Purposes for {$a->role} ({$a->currentcount}/{$a->maxcount} assigned)';
 $string['purposeusageinfoheading'] = 'Usage of the purpose "{$a}"';
+$string['purposeusedbytool'] = 'This purpose is being used by the tool from which you landed on this page';
 $string['quotaconfig'] = 'Limits configuration';
 $string['quotadescription'] = 'Set the time window and the maximum number of requests per student and teacher here. After the time window expires, the number of requests will automatically reset.';
 $string['request_count'] = 'Request count';
