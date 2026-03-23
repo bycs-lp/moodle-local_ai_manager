@@ -28,10 +28,10 @@ final class tenant_test extends \advanced_testcase {
     /**
      * Tests the validation of identifier string in the tenant constructor.
      *
-     * @dataProvider identifier_provider
+     * @dataProvider tenant_name_validation_provider
      * @covers \local_ai_manager\local\tenant::__construct
      */
-    public function test_validation($name, $valid): void {
+    public function test_tenant_name_validation($name, $valid): void {
         if ($valid) {
             $tenant = new \local_ai_manager\local\tenant($name);
             $this->assertSame($name, $tenant->get_identifier());
@@ -44,9 +44,9 @@ final class tenant_test extends \advanced_testcase {
     /**
      * Data provider.
      *
-     * @return array
+     * @return array identifiers with name and validity
      */
-    public static function identifier_provider(): array {
+    public static function tenant_name_validation_provider(): array {
         return [
             'default_identifier' => [
                 'name' => 'default',
@@ -60,7 +60,7 @@ final class tenant_test extends \advanced_testcase {
                 'name' => 'Maths Department',
                 'valid' => true,
             ],
-            'identifier_with_hypen_and_numbers' => [
+            'identifier_with_hyphen_and_numbers' => [
                 'name' => 'School-123 Munich',
                 'valid' => true,
             ],
