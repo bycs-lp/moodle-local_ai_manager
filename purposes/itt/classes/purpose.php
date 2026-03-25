@@ -17,7 +17,8 @@
 namespace aipurpose_itt;
 
 use coding_exception;
-use local_ai_manager\base_connector;
+use core_files\redactor\services\exifremover_service;
+use Exception;
 use local_ai_manager\base_purpose;
 use local_ai_manager\local\connector_factory;
 use local_ai_manager\local\userinfo;
@@ -61,5 +62,78 @@ class purpose extends base_purpose {
             throw new coding_exception('Connector does not declare allowed mimetypes. Cannot be used for image to text');
         }
         return $connector->allowed_mimetypes();
+    }
+
+    #[\Override]
+    public function get_additional_request_options(array $options): array {
+        if (!empty($options['image'])) {
+            $options['image'] = $this->strip_metadata_from_data_url($options['image']);
+        }
+        return $options;
+    }
+
+    /**
+     * Strips metadata from a base64 encoded data URL (image or PDF).
+     *
+     * Uses Moodle's exifremover_service if available and enabled.
+     *
+     * @param string $dataurl The data URL containing the base64 encoded file content
+     * @return string The data URL with metadata stripped, or original if stripping fails/not supported
+     */
+    private function strip_metadata_from_data_url(string $dataurl): string {
+        // Parse the data URL to extract mimetype and content.
+        if (!preg_match('/^data:([^;]+);base64,(.+)$/', $dataurl, $matches)) {
+            // Not a valid data URL, return as-is.
+            return $dataurl;
+        }
+
+        $mimetype = $matches[1];
+        $base64content = $matches[2];
+        $filecontent = base64_decode($base64content);
+
+        if ($filecontent === false) {
+            // Failed to decode, return original.
+            return $dataurl;
+        }
+
+        // Try to strip metadata using the exifremover_service.
+        $strippedcontent = $this->strip_metadata($mimetype, $filecontent);
+
+        if ($strippedcontent === null) {
+            // Stripping not supported or failed, return original.
+            return $dataurl;
+        }
+
+        // Re-encode and return.
+        return 'data:' . $mimetype . ';base64,' . base64_encode($strippedcontent);
+    }
+
+    /**
+     * Strips metadata from file content using the exifremover_service.
+     *
+     * @param string $mimetype The MIME type of the file
+     * @param string $filecontent The raw file content
+     * @return string|null The file content with metadata stripped, or null if not supported
+     */
+    private function strip_metadata(string $mimetype, string $filecontent): ?string {
+        // Check if exifremover_service class exists (Moodle 4.5+).
+        if (!class_exists('\core_files\redactor\services\exifremover_service')) {
+            return null;
+        }
+
+        $exifremover = new exifremover_service();
+
+        // Check if the service supports this mimetype.
+        if (!$exifremover->is_mimetype_supported($mimetype)) {
+            return null;
+        }
+
+        try {
+            return $exifremover->redact_file_by_content($mimetype, $filecontent);
+        } catch (Exception $e) {
+            // Log the error but don't fail the request.
+            debugging('Failed to strip metadata from file: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return null;
+        }
     }
 }
