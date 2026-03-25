@@ -67,4 +67,445 @@ final class base_purpose_test extends \advanced_testcase {
         }
         return $testcases;
     }
+
+    /**
+     * Data provider for HTML escaping tests in code blocks.
+     *
+     * @return array test cases for HTML escaping
+     */
+    public static function format_output_html_escaping_provider(): array {
+        $codeblock = "\x60\x60\x60";
+        $backtick = "\x60";
+
+        return [
+            'html_in_fenced_code_block' => [
+                'input' => 'Here is HTML:' . "\n\n"
+                    . $codeblock . 'html' . "\n"
+                    . '<div class="test"><p>Hello</p></div>' . "\n"
+                    . $codeblock,
+                'mustcontain' => ['&lt;div', '&lt;p&gt;', '<pre>', '<code'],
+                'mustnotcontain' => ['<div class="test">'],
+            ],
+            'javascript_in_code_block' => [
+                'input' => 'Example:' . "\n\n"
+                    . $codeblock . 'javascript' . "\n"
+                    . '<script>alert(\'XSS\');</script>' . "\n"
+                    . 'document.cookie;' . "\n"
+                    . $codeblock,
+                'mustcontain' => ['alert(', '&lt;script&gt;'],
+                'mustnotcontain' => ['<script>alert'],
+            ],
+            'script_tags_in_code_block' => [
+                'input' => 'Code:' . "\n\n"
+                    . $codeblock . 'html' . "\n"
+                    . '<script>alert(\'evil\')</script>' . "\n"
+                    . $codeblock,
+                'mustcontain' => ['&lt;script&gt;', '<pre>', '<code'],
+                'mustnotcontain' => ['<script>alert'],
+            ],
+            'inline_code_html' => [
+                'input' => 'Use the ' . $backtick . '<div>' . $backtick . ' element for containers.',
+                'mustcontain' => ['&lt;div&gt;', '<code>'],
+                'mustnotcontain' => [],
+            ],
+            'inline_code_script' => [
+                'input' => 'Never use ' . $backtick . '<script>alert(\'xss\')</script>' . $backtick . ' inline.',
+                'mustcontain' => ['&lt;script&gt;'],
+                'mustnotcontain' => ['<script>alert'],
+            ],
+            'event_handlers_in_code' => [
+                'input' => 'Example:' . "\n\n"
+                    . $codeblock . 'html' . "\n"
+                    . '<img src="x" onerror="alert(\'xss\')">' . "\n"
+                    . '<button onclick="evil()">Click</button>' . "\n"
+                    . $codeblock,
+                'mustcontain' => ['onerror=', 'onclick=', '&lt;img', '&lt;button'],
+                'mustnotcontain' => [],
+            ],
+            'multiple_code_blocks' => [
+                'input' => 'HTML:' . "\n\n"
+                    . $codeblock . 'html' . "\n"
+                    . '<div>Test</div>' . "\n"
+                    . $codeblock . "\n\n"
+                    . 'JS:' . "\n\n"
+                    . $codeblock . 'javascript' . "\n"
+                    . 'alert(\'hi\');' . "\n"
+                    . $codeblock,
+                'mustcontain' => ['&lt;div&gt;', 'alert('],
+                'mustnotcontain' => ['<div>Test</div>'],
+            ],
+            'special_characters_in_code' => [
+                'input' => 'Example:' . "\n\n"
+                    . $codeblock . "\n"
+                    . '<>&"\'' . "\n"
+                    . $codeblock,
+                'mustcontain' => ['&lt;&gt;&amp;'],
+                'mustnotcontain' => [],
+            ],
+            'windows_line_endings' => [
+                'input' => "Code:\r\n\r\n" . $codeblock . "html\r\n<div>Test</div>\r\n" . $codeblock,
+                'mustcontain' => ['&lt;div&gt;'],
+                'mustnotcontain' => [],
+            ],
+            'mixed_content' => [
+                'input' => '# Tutorial' . "\n\n"
+                    . 'Here\'s how:' . "\n\n"
+                    . '1. Write HTML' . "\n"
+                    . '2. Add CSS' . "\n\n"
+                    . $codeblock . 'html' . "\n"
+                    . '<p>Hello</p>' . "\n"
+                    . $codeblock . "\n\n"
+                    . 'That\'s **all**!',
+                'mustcontain' => ['<h1>', '<ol>', '&lt;p&gt;Hello&lt;/p&gt;', '<strong>all</strong>'],
+                'mustnotcontain' => [],
+            ],
+        ];
+    }
+
+    /**
+     * Test that HTML in code blocks is escaped and displayed as text.
+     *
+     * @param string $input The markdown input
+     * @param array $mustcontain Strings that must be in the output
+     * @param array $mustnotcontain Strings that must not be in the output
+     * @covers \local_ai_manager\base_purpose::format_output
+     * @dataProvider format_output_html_escaping_provider
+     */
+    public function test_format_output_html_escaping(string $input, array $mustcontain, array $mustnotcontain): void {
+        $purpose = new base_purpose();
+        $output = $purpose->format_output($input);
+
+        foreach ($mustcontain as $expected) {
+            $this->assertStringContainsString($expected, $output);
+        }
+        foreach ($mustnotcontain as $notexpected) {
+            $this->assertStringNotContainsString($notexpected, $output);
+        }
+    }
+
+    /**
+     * Data provider for XSS sanitization tests outside code blocks.
+     *
+     * @return array test cases for XSS sanitization
+     */
+    public static function format_output_xss_sanitization_provider(): array {
+        return [
+            'raw_script_outside_code_block' => [
+                'input' => 'Hello <script>alert(\'xss\')</script> world',
+                'mustcontain' => ['Hello', 'world'],
+                'mustnotcontain' => ['<script>', 'alert('],
+            ],
+            'svg_script_payload' => [
+                'input' => 'Image: <svg onload="alert(\'xss\')"><circle r="50"/></svg>',
+                'mustcontain' => [],
+                'mustnotcontain' => ['onload='],
+            ],
+        ];
+    }
+
+    /**
+     * Test that XSS payloads outside code blocks are sanitized.
+     *
+     * @param string $input The input with potential XSS
+     * @param array $mustcontain Strings that must be in the output
+     * @param array $mustnotcontain Strings that must not be in the output
+     * @covers \local_ai_manager\base_purpose::format_output
+     * @dataProvider format_output_xss_sanitization_provider
+     */
+    public function test_format_output_xss_sanitization(string $input, array $mustcontain, array $mustnotcontain): void {
+        $purpose = new base_purpose();
+        $output = $purpose->format_output($input);
+
+        foreach ($mustcontain as $expected) {
+            $this->assertStringContainsString($expected, $output);
+        }
+        foreach ($mustnotcontain as $notexpected) {
+            $this->assertStringNotContainsString($notexpected, $output);
+        }
+    }
+
+    /**
+     * Data provider for markdown formatting tests.
+     *
+     * @return array test cases for markdown formatting
+     */
+    public static function format_output_markdown_formatting_provider(): array {
+        $codeblock = "\x60\x60\x60";
+
+        return [
+            'bold_text' => [
+                'input' => 'This is **bold** text.',
+                'mustcontain' => ['<strong>bold</strong>'],
+            ],
+            'italic_text' => [
+                'input' => 'This is *italic* text.',
+                'mustcontain' => ['<em>italic</em>'],
+            ],
+            'unordered_list' => [
+                'input' => 'List:' . "\n" . "\n" . '- Item 1' . "\n" . '- Item 2' . "\n" . '- Item 3',
+                'mustcontain' => ['<ul>', '<li>'],
+            ],
+            'ordered_list' => [
+                'input' => 'Steps:' . "\n" . "\n" . '1. First' . "\n" . '2. Second' . "\n" . '3. Third',
+                'mustcontain' => ['<ol>', '<li>'],
+            ],
+            'headings' => [
+                'input' => '# Heading 1' . "\n" . "\n" . '## Heading 2' . "\n" . "\n" . '### Heading 3',
+                'mustcontain' => ['<h1>', '<h2>', '<h3>'],
+            ],
+            'link' => [
+                'input' => 'Visit [Moodle](https://moodle.org) for more info.',
+                'mustcontain' => ['href="https://moodle.org"', '>Moodle</a>'],
+            ],
+            'blockquote' => [
+                'input' => '> This is a quote.',
+                'mustcontain' => ['<blockquote>'],
+            ],
+            'code_block_structure' => [
+                'input' => $codeblock . 'php' . "\n" . 'echo \'Hello\';' . "\n" . $codeblock,
+                'mustcontain' => ['<pre>', '<code'],
+            ],
+            'mathjax_inline_delimiters' => [
+                'input' => 'The formula is \\(x^2 + y^2 = z^2\\)',
+                'mustcontain' => ['\\(', '\\)'],
+            ],
+            'mathjax_display_delimiters' => [
+                'input' => 'Display math: \\[E = mc^2\\]',
+                'mustcontain' => ['\\[', '\\]'],
+            ],
+            'empty_input' => [
+                'input' => '',
+                'mustcontain' => [],
+            ],
+            'plain_text' => [
+                'input' => 'Just plain text without any formatting.',
+                'mustcontain' => ['Just plain text'],
+            ],
+        ];
+    }
+
+    /**
+     * Test that markdown formatting produces expected HTML.
+     *
+     * @param string $input The markdown input
+     * @param array $mustcontain Strings that must be in the output
+     * @covers \local_ai_manager\base_purpose::format_output
+     * @dataProvider format_output_markdown_formatting_provider
+     */
+    public function test_format_output_markdown_formatting(string $input, array $mustcontain): void {
+        $purpose = new base_purpose();
+        $output = $purpose->format_output($input);
+
+        foreach ($mustcontain as $expected) {
+            $this->assertStringContainsString($expected, $output);
+        }
+    }
+
+    /**
+     * Data provider for format_ai_markdown_output tests.
+     *
+     * Provides test cases for typical code blocks in various languages, ensuring that
+     * HTML and potentially dangerous content inside code blocks is properly escaped,
+     * while the surrounding markdown structure is correctly converted.
+     *
+     * @return array test cases with markdown input, mustcontain and mustnotcontain arrays
+     */
+    public static function format_ai_markdown_output_provider(): array {
+        $codeblock = "\x60\x60\x60";
+
+        return [
+            'html_with_js_in_code_block' => [
+                'input' => 'Here is some HTML with JavaScript:' . "\n\n"
+                    . $codeblock . 'html' . "\n"
+                    . '<!DOCTYPE html>' . "\n"
+                    . '<html>' . "\n"
+                    . '<head>' . "\n"
+                    . '    <script>' . "\n"
+                    . '        document.getElementById("demo").innerHTML = "Hello";' . "\n"
+                    . '        alert("test");' . "\n"
+                    . '    </script>' . "\n"
+                    . '</head>' . "\n"
+                    . '<body>' . "\n"
+                    . '    <div class="container">' . "\n"
+                    . '        <p onclick="evil()">Click me</p>' . "\n"
+                    . '    </div>' . "\n"
+                    . '</body>' . "\n"
+                    . '</html>' . "\n"
+                    . $codeblock,
+                'mustcontain' => [
+                    '<pre>',
+                    '<code',
+                    '&lt;html&gt;',
+                    '&lt;script&gt;',
+                    '&lt;/script&gt;',
+                    '&lt;div class=',
+                    '&lt;p onclick=',
+                    'alert("test")',
+                ],
+                'mustnotcontain' => [
+                    '<script>',
+                    '<div class="container">',
+                ],
+            ],
+            'python_code_in_code_block' => [
+                'input' => 'A Python example:' . "\n\n"
+                    . $codeblock . 'python' . "\n"
+                    . 'import os' . "\n"
+                    . '' . "\n"
+                    . 'def greet(name: str) -> str:' . "\n"
+                    . '    """Return a greeting."""' . "\n"
+                    . '    return f"Hello, {name}!"' . "\n"
+                    . '' . "\n"
+                    . 'if __name__ == "__main__":' . "\n"
+                    . '    print(greet("World"))' . "\n"
+                    . $codeblock,
+                'mustcontain' => [
+                    '<pre>',
+                    '<code class="python"',
+                    'import os',
+                    'def greet(name: str)',
+                    'print(greet(',
+                ],
+                'mustnotcontain' => [],
+            ],
+            'java_code_in_code_block' => [
+                'input' => 'A Java example:' . "\n\n"
+                    . $codeblock . 'java' . "\n"
+                    . 'public class HelloWorld {' . "\n"
+                    . '    public static void main(String[] args) {' . "\n"
+                    . '        System.out.println("Hello, World!");' . "\n"
+                    . '    }' . "\n"
+                    . '}' . "\n"
+                    . $codeblock,
+                'mustcontain' => [
+                    '<pre>',
+                    '<code class="java"',
+                    'public class HelloWorld',
+                    'System.out.println',
+                ],
+                'mustnotcontain' => [],
+            ],
+            'html_with_style_and_script_tags_in_code_block' => [
+                'input' => 'Full HTML page:' . "\n\n"
+                    . $codeblock . 'html' . "\n"
+                    . '<style>' . "\n"
+                    . '    .red { color: red; }' . "\n"
+                    . '</style>' . "\n"
+                    . '<div class="red">Styled</div>' . "\n"
+                    . '<script src="https://evil.com/xss.js"></script>' . "\n"
+                    . $codeblock,
+                'mustcontain' => [
+                    '&lt;style&gt;',
+                    '&lt;div class=',
+                    '&lt;script src=',
+                    '<pre>',
+                    '<code',
+                ],
+                'mustnotcontain' => [
+                    '<style>',
+                    '<script src=',
+                    '<div class="red">',
+                ],
+            ],
+            'plain_markdown_without_code_blocks' => [
+                'input' => '# Title' . "\n\n"
+                    . 'Some **bold** and *italic* text.' . "\n\n"
+                    . '- Item 1' . "\n"
+                    . '- Item 2',
+                'mustcontain' => [
+                    '<h1>',
+                    '<strong>bold</strong>',
+                    '<em>italic</em>',
+                    '<ul>',
+                    '<li>',
+                ],
+                'mustnotcontain' => [],
+            ],
+            'mixed_markdown_and_code_blocks' => [
+                'input' => '## Setup' . "\n\n"
+                    . 'Install the package:' . "\n\n"
+                    . $codeblock . 'python' . "\n"
+                    . 'pip install moodle-client' . "\n"
+                    . $codeblock . "\n\n"
+                    . 'Then create a **config file**:' . "\n\n"
+                    . $codeblock . 'html' . "\n"
+                    . '<form action="/submit" method="post">' . "\n"
+                    . '    <input type="text" name="user">' . "\n"
+                    . '</form>' . "\n"
+                    . $codeblock,
+                'mustcontain' => [
+                    '<h2>',
+                    '<strong>config file</strong>',
+                    '<code class="python"',
+                    'pip install moodle-client',
+                    '&lt;form action=',
+                    '&lt;input type=',
+                ],
+                'mustnotcontain' => [
+                    '<form action=',
+                    '<input type=',
+                ],
+            ],
+            'options_are_passed_through' => [
+                'input' => '**Bold** text.',
+                'mustcontain' => ['<strong>Bold</strong>'],
+                'mustnotcontain' => [],
+                'options' => ['noclean' => true],
+            ],
+            'empty_input' => [
+                'input' => '',
+                'mustcontain' => [],
+                'mustnotcontain' => [],
+            ],
+            'single_quotes_in_html_attributes_in_code_block' => [
+                'input' => 'Example with single quotes:' . "\n\n"
+                    . $codeblock . 'html' . "\n"
+                    . '<div class=\'container\'>' . "\n"
+                    . '    <a href=\'https://example.com\' title=\'It\\\'s a link\'>Click</a>' . "\n"
+                    . '    <input type=\'text\' value=\'Hello World\'>' . "\n"
+                    . '    <button onclick=\'alert("test")\'>Submit</button>' . "\n"
+                    . '</div>' . "\n"
+                    . $codeblock,
+                'mustcontain' => [
+                    '<pre>',
+                    '<code',
+                    '&lt;div class=',
+                    '&lt;a href=',
+                    '&lt;input type=',
+                    '&lt;button onclick=',
+                ],
+                'mustnotcontain' => [
+                    '<div class=',
+                    '<button onclick=',
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Test that format_ai_markdown_output correctly converts markdown with code blocks.
+     *
+     * @param string $input The markdown input
+     * @param array $mustcontain Strings that must be in the output
+     * @param array $mustnotcontain Strings that must not be in the output
+     * @param array $options Optional format_text options to pass
+     * @covers \local_ai_manager\base_purpose::format_ai_markdown_output
+     * @dataProvider format_ai_markdown_output_provider
+     */
+    public function test_format_ai_markdown_output(
+        string $input,
+        array $mustcontain,
+        array $mustnotcontain,
+        array $options = []
+    ): void {
+        $purpose = new base_purpose();
+        $output = $purpose->format_ai_markdown_output($input, $options);
+
+        foreach ($mustcontain as $expected) {
+            $this->assertStringContainsString($expected, $output);
+        }
+        foreach ($mustnotcontain as $notexpected) {
+            $this->assertStringNotContainsString($notexpected, $output);
+        }
+    }
 }
