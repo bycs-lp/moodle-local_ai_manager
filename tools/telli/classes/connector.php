@@ -134,12 +134,38 @@ class connector extends base_connector {
                 if (method_exists($exception, 'getResponse') && !empty($exception->getResponse())) {
                     $responsebody = json_decode($exception->getResponse()->getBody()->getContents());
                     if (property_exists($responsebody, 'error')) {
-                        if (property_exists($responsebody, 'details')) {
-                            // We have no proper specific error code if the safety system rejects the prompt. So we have to
-                            // do some fishing for strings in the detailed error message. If we don't succeed a general error
-                            // message will be displayed by the manager itself.
-                            if (str_contains(mb_strtolower($responsebody->details), 'safety')) {
+                        // Handle case where error is a direct string (Telli Imagen API format).
+                        if (is_string($responsebody->error)) {
+                            $errormessage = mb_strtolower($responsebody->error);
+                            if (
+                                str_contains($errormessage, 'unangemessen') ||
+                                str_contains($errormessage, 'blockiert') ||
+                                str_contains($errormessage, 'safety') ||
+                                str_contains($errormessage, 'content policy') ||
+                                str_contains($errormessage, 'blocked') ||
+                                str_contains($errormessage, 'inappropriate') ||
+                                str_contains($errormessage, 'violates')
+                            ) {
                                 $message = get_string('err_contentfilter', 'aitool_telli');
+                            }
+                        } else {
+                            // Handle case where error is an object (original format).
+                            if (property_exists($responsebody, 'details')) {
+                                if (str_contains(mb_strtolower($responsebody->details), 'safety')) {
+                                    $message = get_string('err_contentfilter', 'aitool_telli');
+                                }
+                            }
+                            if (empty($message) && property_exists($responsebody->error, 'message')) {
+                                $errormessage = mb_strtolower($responsebody->error->message);
+                                if (
+                                    str_contains($errormessage, 'safety') ||
+                                    str_contains($errormessage, 'content policy') ||
+                                    str_contains($errormessage, 'blocked') ||
+                                    str_contains($errormessage, 'inappropriate') ||
+                                    str_contains($errormessage, 'violates')
+                                ) {
+                                    $message = get_string('err_contentfilter', 'aitool_telli');
+                                }
                             }
                         }
                     }
