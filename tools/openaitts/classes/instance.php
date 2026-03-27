@@ -33,22 +33,15 @@ class instance extends base_instance {
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
         aitool_option_azure::extend_form_definition($mform, true);
         $defaultendpoint = connector::DEFAULT_OPENAI_TTS_ENDPOINT;
-        $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
-        $mform->insertElementBefore(
-            $mform->createElement(
-                'static',
-                'endpointdefault',
-                '',
-                get_string('endpointhint', 'aitool_openaitts')
-                . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)
-            ),
-            $insertat
+        $mform->getElement('endpointdescription')->setValue(
+            get_string('endpointhint', 'aitool_openaitts')
+            . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)
         );
-        $mform->hideIf('endpointdefault', 'azure_enabled', 'eq', '1');
+        $mform->hideIf('endpointdescription', 'azure_enabled', 'eq', '1');
         $mform->insertElementBefore(
             $mform->createElement(
                 'static',
-                'endpointexample_azure',
+                'endpointdescription_azure',
                 '',
                 get_string('endpointhint_azure', 'aitool_openaitts')
                 . '<br>' . get_string(
@@ -57,9 +50,9 @@ class instance extends base_instance {
                     'https://$RESOURCE.openai.azure.com/openai/deployments/$DEPLOYMENT_ID/audio/speech?api-version=$API_VERSION'
                 )
             ),
-            $insertat
+            'endpointdescription'
         );
-        $mform->hideIf('endpointexample_azure', 'azure_enabled', 'neq', '1');
+        $mform->hideIf('endpointdescription_azure', 'azure_enabled', 'neq', '1');
     }
 
     #[\Override]

@@ -35,7 +35,7 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends base_connector {
-
+    /** @var string Default DALL-E image generations endpoint. */
     public const DEFAULT_DALLE_COMPLETIONS_ENDPOINT = 'https://api.openai.com/v1/images/generations';
     #[\Override]
     public function get_models_by_purpose(): array {

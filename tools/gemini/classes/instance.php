@@ -51,27 +51,19 @@ class instance extends base_instance {
         $mform->hideIf('serviceaccountjson', 'googlebackend', 'neq', 'vertexai');
         $mform->hideIf('apikey', 'googlebackend', 'eq', 'vertexai');
 
-        $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
-        $mform->insertElementBefore(
-            $mform->createElement(
-                'static',
-                'endpointexample_googleai',
-                '',
-                get_string('endpointhint_googleai', 'aitool_gemini')
-                . '<br>' . get_string(
-                    'endpointexample',
-                    'local_ai_manager',
-                    'https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent'
-                )
-            ),
-            $insertat
+        $mform->getElement('endpointdescription')->setValue(
+            get_string('endpointhint_googleai', 'aitool_gemini')
+            . '<br>' . get_string(
+                'endpointexample',
+                'local_ai_manager',
+                'https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent'
+            )
         );
-        $mform->hideIf('endpointexample_googleai', 'googlebackend', 'neq', self::GOOGLE_BACKEND_GOOGLEAI);
-
+        $mform->hideIf('endpointdescription', 'googlebackend', 'neq', self::GOOGLE_BACKEND_GOOGLEAI);
         $mform->insertElementBefore(
             $mform->createElement(
                 'static',
-                'endpointexample_vertexai',
+                'endpointdescription_vertexai',
                 '',
                 get_string('endpointhint_vertexai', 'aitool_gemini')
                 . '<br>' . get_string(
@@ -81,9 +73,9 @@ class instance extends base_instance {
                     . '$PROJECT_ID/locations/$REGION/publishers/google/models/$MODEL:generateContent'
                 )
             ),
-            $insertat
+            'endpointdescription'
         );
-        $mform->hideIf('endpointexample_vertexai', 'googlebackend', 'neq', self::GOOGLE_BACKEND_VERTEXAI);
+        $mform->hideIf('endpointdescription_vertexai', 'googlebackend', 'neq', self::GOOGLE_BACKEND_VERTEXAI);
 
         aitool_option_temperature::extend_form_definition($mform);
     }

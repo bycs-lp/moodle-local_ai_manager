@@ -32,7 +32,7 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends \local_ai_manager\base_connector {
-
+    /** @var string Default OpenAI text-to-speech endpoint. */
     public const DEFAULT_OPENAI_TTS_ENDPOINT = 'https://api.openai.com/v1/audio/speech';
     #[\Override]
     public function get_models_by_purpose(): array {
