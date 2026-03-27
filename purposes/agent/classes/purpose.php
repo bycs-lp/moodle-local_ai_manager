@@ -220,6 +220,26 @@ class purpose extends base_purpose {
             return $erroroutput;
         }
 
+        // Format formelements text fields to prevent HTML/Markdown from breaking the layout.
+        foreach ($outputrecord['formelements'] as $key => $formelement) {
+            if (isset($formelement['label'])) {
+                $outputrecord['formelements'][$key]['label'] = format_text(
+                    $formelement['label'],
+                    FORMAT_MARKDOWN,
+                    ['filter' => false]
+                );
+            }
+            if (isset($formelement['explanation'])) {
+                $outputrecord['formelements'][$key]['explanation'] = format_text(
+                    $formelement['explanation'],
+                    FORMAT_MARKDOWN,
+                    ['filter' => false]
+                );
+            }
+            // Note: newValue is intentionally NOT formatted as it needs to be injected into form fields as-is.
+            // The display value (suggestiondisplayvalue) is handled separately in the frontend template with proper escaping.
+        }
+
         // Checking the correct structure of chat output.
         $outputrecord['chatoutput'] = $this->validate_chatoutput($outputrecord['chatoutput']);
         foreach ($outputrecord['chatoutput'] as $key => $outputobject) {
