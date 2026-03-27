@@ -32,6 +32,9 @@ class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
         aitool_option_azure::extend_form_definition($mform);
+        $azureelement = $mform->removeElement('azure_enabled', false);
+        $mform->insertElementBefore($azureelement, 'endpoint');
+        $mform->setDefault('azure_enabled', false);
         $defaultendpoint = connector::DEFAULT_DALLE_COMPLETIONS_ENDPOINT;
         $mform->getElement('endpointdescription')->setValue(
             get_string('endpointhint', 'aitool_dalle')

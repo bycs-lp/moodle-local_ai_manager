@@ -47,8 +47,11 @@ class instance extends base_instance {
                 self::GOOGLE_BACKEND_VERTEXAI => get_string('googlebackendvertexai', 'aitool_gemini'),
             ]
         );
+        $backendelement = $mform->removeElement('googlebackend', false);
+        $mform->insertElementBefore($backendelement, 'endpoint');
         aitool_option_vertexai::extend_form_definition($mform);
         $mform->hideIf('serviceaccountjson', 'googlebackend', 'neq', 'vertexai');
+        $mform->hideIf('vertexcachestatus', 'googlebackend', 'neq', 'vertexai');
         $mform->hideIf('apikey', 'googlebackend', 'eq', 'vertexai');
 
         $mform->getElement('endpointdescription')->setValue(
