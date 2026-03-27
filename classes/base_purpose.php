@@ -180,8 +180,9 @@ class base_purpose {
         // It uses MarkdownExtra which already escapes HTML inside code blocks by default.
         $html = markdown_to_html($output);
 
-        // Final security layer: sanitize HTML while preserving markdown-generated structure.
-        // This prevents XSS from raw HTML that the LLM might return outside of code blocks.
+        // Finally apply moodle output function for both sanitizing and other moodle specific formatting.
+        // Previously converted markdown-generated structure is being preserved.
+        // This prevents XSS from raw HTML that the LLM might return.
         return format_text($html, FORMAT_MOODLE, ['filter' => false, 'newlines' => false]);
     }
 
