@@ -35,22 +35,16 @@ class instance extends base_instance {
         aitool_option_temperature::extend_form_definition($mform, ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini']);
         aitool_option_azure::extend_form_definition($mform);
         $defaultendpoint = connector::DEFAULT_OPENAI_COMPLETIONS_ENDPOINT;
-        $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
-        $mform->insertElementBefore(
-            $mform->createElement(
-                'static',
-                'endpointdefault',
-                '',
-                get_string('endpointhint', 'aitool_chatgpt')
-                . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)
-            ),
-            $insertat
+
+        $mform->getElement('endpointdescription')->setValue(
+            get_string('endpointhint', 'aitool_chatgpt')
+            . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)
         );
-        $mform->hideIf('endpointdefault', 'azure_enabled', 'eq', '1');
+        $mform->hideIf('endpointdescription', 'azure_enabled', 'eq', '1');
         $mform->insertElementBefore(
             $mform->createElement(
                 'static',
-                'endpointexample_azure',
+                'endpointdescription_azure',
                 '',
                 get_string('endpointhint_azure', 'aitool_chatgpt')
                 . '<br>' . get_string(
@@ -59,9 +53,10 @@ class instance extends base_instance {
                     'https://$RESOURCE.openai.azure.com/openai/deployments/$DEPLOYMENT_ID/chat/completions?api-version=$API_VERSION'
                 )
             ),
-            $insertat
+            'endpointdescription'
         );
-        $mform->hideIf('endpointexample_azure', 'azure_enabled', 'neq', '1');
+        $mform->hideIf('endpointdescription_azure', 'azure_enabled', 'neq', '1');
+
     }
 
     #[\Override]

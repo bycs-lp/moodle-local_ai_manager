@@ -36,7 +36,7 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends \local_ai_manager\base_connector {
-
+    /** @var string Default OpenAI Chat Completions endpoint. */
     public const DEFAULT_OPENAI_COMPLETIONS_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 
     #[\Override]

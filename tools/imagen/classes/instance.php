@@ -34,21 +34,14 @@ class instance extends base_instance {
         aitool_option_vertexai::extend_form_definition($mform);
         // Condition is always true, but there does not seem to be an easy way to always hide an element.
         $mform->hideIf('apikey', 'connector', 'imagen');
-        $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
-        $mform->insertElementBefore(
-            $mform->createElement(
-                'static',
+        $mform->getElement('endpointdescription')->setValue(
+            get_string('endpointhint_vertexai', 'aitool_imagen')
+            . '<br>' . get_string(
                 'endpointexample',
-                '',
-                get_string('endpointhint_vertexai', 'aitool_imagen')
-                . '<br>' . get_string(
-                    'endpointexample',
-                    'local_ai_manager',
-                    'https://$REGION-aiplatform.googleapis.com/v1/projects/'
-                    . '$PROJECT_ID/locations/$REGION/publishers/google/models/$MODEL:predict'
-                )
-            ),
-            $insertat
+                'local_ai_manager',
+                'https://$REGION-aiplatform.googleapis.com/v1/projects/'
+                . '$PROJECT_ID/locations/$REGION/publishers/google/models/$MODEL:predict'
+            )
         );
     }
 

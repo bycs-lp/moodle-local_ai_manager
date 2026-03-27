@@ -32,16 +32,9 @@ class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
         $defaultendpoint = connector::DEFAULT_GOOGLE_SYNTHESIZE_ENDPOINT;
-        $insertat = $mform->elementExists('useglobalapikey') ? 'useglobalapikey' : 'apikey';
-        $mform->insertElementBefore(
-            $mform->createElement(
-                'static',
-                'endpointdefault',
-                '',
-                get_string('endpointhint', 'aitool_googlesynthesize')
-                . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)
-            ),
-            $insertat
+        $mform->getElement('endpointdescription')->setValue(
+            get_string('endpointhint', 'aitool_googlesynthesize')
+            . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)
         );
     }
 }

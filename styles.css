@@ -211,3 +211,18 @@ body.limitcontentwidth #page-content {
     background-color: var(--bs-info-bg-subtle);
     color: var(--bs-info-text-emphasis);
 }
+
+#page-local-ai_manager-edit_instance [data-name="endpointdescription"],
+#page-local-ai_manager-edit_instance [data-name="endpointdescription_azure"],
+#page-local-ai_manager-edit_instance [data-name="endpointdescription_vertexai"] {
+    color: var(--color-text-muted);
+    font-size: 14px;
+    margin-top: -1.5rem;
+    word-break: break-word;
+}
+
+#page-local-ai_manager-edit_instance [data-name="endpointdescription"] .col-md-9,
+#page-local-ai_manager-edit_instance [data-name="endpointdescription_azure"] .col-md-9,
+#page-local-ai_manager-edit_instance [data-name="endpointdescription_vertexai"] .col-md-9 {
+    padding-left: 0;
+}

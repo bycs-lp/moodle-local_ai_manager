@@ -533,6 +533,7 @@ class base_instance {
 
         $mform->addElement('text', 'endpoint', get_string('endpoint', 'local_ai_manager'), $textelementparams);
         $mform->setType('endpoint', PARAM_URL);
+        $mform->addElement('static', 'endpointdescription', '', '');
 
         if (get_config($connectorcomponentname, 'globalapikey')) {
             // Only show the "use global apikey" checkbox if there is a global apikey configured.
