@@ -75,283 +75,203 @@ final class base_purpose_test extends \advanced_testcase {
     }
 
     /**
-     * Test that HTML in fenced code blocks is escaped and displayed as text.
+     * Data provider for HTML escaping tests in code blocks.
      *
-     * @covers \local_ai_manager\base_purpose::format_output
+     * @return array test cases for HTML escaping
      */
-    public function test_format_output_html_in_fenced_code_block_is_escaped(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
+    public static function format_output_html_escaping_provider(): array {
+        $codeblock = "\x60\x60\x60";
+        $backtick = "\x60";
 
-        $input = 'Here is HTML:
-
-' . self::CODEBLOCK . 'html
-<div class="test"><p>Hello</p></div>
-' . self::CODEBLOCK;
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('&lt;div', $output);
-        $this->assertStringContainsString('&lt;p&gt;', $output);
-        $this->assertStringNotContainsString('<div class="test">', $output);
+        return [
+            'html_in_fenced_code_block' => [
+                'input' => 'Here is HTML:' . PHP_EOL . PHP_EOL
+                    . $codeblock . 'html' . PHP_EOL
+                    . '<div class="test"><p>Hello</p></div>' . PHP_EOL
+                    . $codeblock,
+                'mustcontain' => ['&lt;div', '&lt;p&gt;', '<pre>', '<code'],
+                'mustnotcontain' => ['<div class="test">'],
+            ],
+            'javascript_in_code_block' => [
+                'input' => 'Example:' . PHP_EOL . PHP_EOL
+                    . $codeblock . 'javascript' . PHP_EOL
+                    . '<script>alert(\'XSS\');</script>' . PHP_EOL
+                    . 'document.cookie;' . PHP_EOL
+                    . $codeblock,
+                'mustcontain' => ['alert(', '&lt;script&gt;'],
+                'mustnotcontain' => ['<script>alert'],
+            ],
+            'script_tags_in_code_block' => [
+                'input' => 'Code:' . PHP_EOL . PHP_EOL
+                    . $codeblock . 'html' . PHP_EOL
+                    . '<script>alert(\'evil\')</script>' . PHP_EOL
+                    . $codeblock,
+                'mustcontain' => ['&lt;script&gt;', '<pre>', '<code'],
+                'mustnotcontain' => ['<script>alert'],
+            ],
+            'inline_code_html' => [
+                'input' => 'Use the ' . $backtick . '<div>' . $backtick . ' element for containers.',
+                'mustcontain' => ['&lt;div&gt;', '<code>'],
+                'mustnotcontain' => [],
+            ],
+            'inline_code_script' => [
+                'input' => 'Never use ' . $backtick . '<script>alert(\'xss\')</script>' . $backtick . ' inline.',
+                'mustcontain' => ['&lt;script&gt;'],
+                'mustnotcontain' => ['<script>alert'],
+            ],
+            'event_handlers_in_code' => [
+                'input' => 'Example:' . PHP_EOL . PHP_EOL
+                    . $codeblock . 'html' . PHP_EOL
+                    . '<img src="x" onerror="alert(\'xss\')">' . PHP_EOL
+                    . '<button onclick="evil()">Click</button>' . PHP_EOL
+                    . $codeblock,
+                'mustcontain' => ['onerror=', 'onclick=', '&lt;img', '&lt;button'],
+                'mustnotcontain' => [],
+            ],
+            'multiple_code_blocks' => [
+                'input' => 'HTML:' . PHP_EOL . PHP_EOL
+                    . $codeblock . 'html' . PHP_EOL
+                    . '<div>Test</div>' . PHP_EOL
+                    . $codeblock . PHP_EOL . PHP_EOL
+                    . 'JS:' . PHP_EOL . PHP_EOL
+                    . $codeblock . 'javascript' . PHP_EOL
+                    . 'alert(\'hi\');' . PHP_EOL
+                    . $codeblock,
+                'mustcontain' => ['&lt;div&gt;', 'alert('],
+                'mustnotcontain' => ['<div>Test</div>'],
+            ],
+            'special_characters_in_code' => [
+                'input' => 'Example:' . PHP_EOL . PHP_EOL
+                    . $codeblock . PHP_EOL
+                    . '<>&"\'' . PHP_EOL
+                    . $codeblock,
+                'mustcontain' => ['&lt;&gt;&amp;'],
+                'mustnotcontain' => [],
+            ],
+        ];
     }
 
     /**
-     * Test that JavaScript in code blocks cannot execute (XSS prevention).
+     * Test that HTML in code blocks is escaped and displayed as text.
      *
+     * @param string $input The markdown input
+     * @param array $mustcontain Strings that must be in the output
+     * @param array $mustnotcontain Strings that must not be in the output
      * @covers \local_ai_manager\base_purpose::format_output
+     * @dataProvider format_output_html_escaping_provider
      */
-    public function test_format_output_javascript_in_code_block_is_escaped(): void {
-        $this->resetAfterTest();
+    public function test_format_output_html_escaping(string $input, array $mustcontain, array $mustnotcontain): void {
         $purpose = new base_purpose();
-
-        $input = 'Example:
-
-' . self::CODEBLOCK . 'javascript
-alert(\'XSS\');
-document.cookie;
-' . self::CODEBLOCK;
         $output = $purpose->format_output($input);
 
-        $this->assertStringContainsString('alert(', $output);
-        $this->assertStringNotContainsString('<script>', $output);
+        foreach ($mustcontain as $expected) {
+            $this->assertStringContainsString($expected, $output);
+        }
+        foreach ($mustnotcontain as $notexpected) {
+            $this->assertStringNotContainsString($notexpected, $output);
+        }
     }
 
     /**
-     * Test that script tags inside code blocks are escaped.
+     * Data provider for XSS sanitization tests outside code blocks.
      *
-     * @covers \local_ai_manager\base_purpose::format_output
+     * @return array test cases for XSS sanitization
      */
-    public function test_format_output_script_tags_in_code_block_are_escaped(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
-
-        $input = 'Code:
-
-' . self::CODEBLOCK . 'html
-<script>alert(\'evil\')</script>
-' . self::CODEBLOCK;
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('&lt;script&gt;', $output);
-        $this->assertStringNotContainsString('<script>alert', $output);
+    public static function format_output_xss_sanitization_provider(): array {
+        return [
+            'raw_script_outside_code_block' => [
+                'input' => 'Hello <script>alert(\'xss\')</script> world',
+                'mustcontain' => ['Hello', 'world'],
+                'mustnotcontain' => ['<script>', 'alert('],
+            ],
+            'svg_script_payload' => [
+                'input' => 'Image: <svg onload="alert(\'xss\')"><circle r="50"/></svg>',
+                'mustcontain' => [],
+                'mustnotcontain' => ['onload='],
+            ],
+        ];
     }
 
     /**
-     * Test that inline code with HTML is escaped.
+     * Test that XSS payloads outside code blocks are sanitized.
      *
+     * @param string $input The input with potential XSS
+     * @param array $mustcontain Strings that must be in the output
+     * @param array $mustnotcontain Strings that must not be in the output
      * @covers \local_ai_manager\base_purpose::format_output
+     * @dataProvider format_output_xss_sanitization_provider
      */
-    public function test_format_output_inline_code_html_is_escaped(): void {
-        $this->resetAfterTest();
+    public function test_format_output_xss_sanitization(string $input, array $mustcontain, array $mustnotcontain): void {
         $purpose = new base_purpose();
-
-        $input = 'Use the ' . self::BACKTICK . '<div>' . self::BACKTICK . ' element for containers.';
         $output = $purpose->format_output($input);
 
-        $this->assertStringContainsString('&lt;div&gt;', $output);
-        $this->assertStringContainsString('<code>', $output);
+        foreach ($mustcontain as $expected) {
+            $this->assertStringContainsString($expected, $output);
+        }
+        foreach ($mustnotcontain as $notexpected) {
+            $this->assertStringNotContainsString($notexpected, $output);
+        }
     }
 
     /**
-     * Test that inline code with script is escaped.
+     * Data provider for markdown formatting tests.
      *
-     * @covers \local_ai_manager\base_purpose::format_output
+     * @return array test cases for markdown formatting
      */
-    public function test_format_output_inline_code_script_is_escaped(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
+    public static function format_output_markdown_formatting_provider(): array {
+        $codeblock = "\x60\x60\x60";
 
-        $input = 'Never use ' . self::BACKTICK . '<script>alert(\'xss\')</script>' . self::BACKTICK . ' inline.';
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('&lt;script&gt;', $output);
-        $this->assertStringNotContainsString('<script>alert', $output);
+        return [
+            'bold_text' => [
+                'input' => 'This is **bold** text.',
+                'mustcontain' => ['<strong>bold</strong>'],
+            ],
+            'italic_text' => [
+                'input' => 'This is *italic* text.',
+                'mustcontain' => ['<em>italic</em>'],
+            ],
+            'unordered_list' => [
+                'input' => 'List:' . PHP_EOL . PHP_EOL . '- Item 1' . PHP_EOL . '- Item 2' . PHP_EOL . '- Item 3',
+                'mustcontain' => ['<ul>', '<li>'],
+            ],
+            'ordered_list' => [
+                'input' => 'Steps:' . PHP_EOL . PHP_EOL . '1. First' . PHP_EOL . '2. Second' . PHP_EOL . '3. Third',
+                'mustcontain' => ['<ol>', '<li>'],
+            ],
+            'headings' => [
+                'input' => '# Heading 1' . PHP_EOL . PHP_EOL . '## Heading 2' . PHP_EOL . PHP_EOL . '### Heading 3',
+                'mustcontain' => ['<h1>', '<h2>', '<h3>'],
+            ],
+            'link' => [
+                'input' => 'Visit [Moodle](https://moodle.org) for more info.',
+                'mustcontain' => ['href="https://moodle.org"', '>Moodle</a>'],
+            ],
+            'blockquote' => [
+                'input' => '> This is a quote.',
+                'mustcontain' => ['<blockquote>'],
+            ],
+            'code_block_structure' => [
+                'input' => $codeblock . 'php' . PHP_EOL . 'echo \'Hello\';' . PHP_EOL . $codeblock,
+                'mustcontain' => ['<pre>', '<code'],
+            ],
+        ];
     }
 
     /**
-     * Test that event handlers in code are escaped (onerror, onclick, etc.).
+     * Test that markdown formatting produces expected HTML.
      *
+     * @param string $input The markdown input
+     * @param array $mustcontain Strings that must be in the output
      * @covers \local_ai_manager\base_purpose::format_output
+     * @dataProvider format_output_markdown_formatting_provider
      */
-    public function test_format_output_event_handlers_in_code_are_escaped(): void {
-        $this->resetAfterTest();
+    public function test_format_output_markdown_formatting(string $input, array $mustcontain): void {
         $purpose = new base_purpose();
-
-        $input = 'Example:
-
-' . self::CODEBLOCK . 'html
-<img src="x" onerror="alert(\'xss\')">
-<button onclick="evil()">Click</button>
-' . self::CODEBLOCK;
         $output = $purpose->format_output($input);
 
-        // Event handlers should be visible as escaped text in code block, not as executable attributes.
-        $this->assertStringContainsString('onerror=', $output);
-        $this->assertStringContainsString('onclick=', $output);
-        // The key point: the img tag itself should be escaped, not rendered as HTML.
-        $this->assertStringContainsString('&lt;img', $output);
-        $this->assertStringContainsString('&lt;button', $output);
-    }
-
-    /**
-     * Test that raw script tags outside code blocks are sanitized.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_raw_script_outside_code_block_is_sanitized(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
-
-        $input = "Hello <script>alert('xss')</script> world";
-        $output = $purpose->format_output($input);
-
-        $this->assertStringNotContainsString('<script>', $output);
-        $this->assertStringNotContainsString('alert(', $output);
-        $this->assertStringContainsString('Hello', $output);
-        $this->assertStringContainsString('world', $output);
-    }
-
-    /**
-     * Test SVG with script payload is sanitized.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_svg_script_payload_is_sanitized(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
-
-        $input = "Image: <svg onload=\"alert('xss')\"><circle r=\"50\"/></svg>";
-        $output = $purpose->format_output($input);
-
-        $this->assertStringNotContainsString('onload=', $output);
-    }
-
-    /**
-     * Test that bold text formatting works.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_bold_text_formatting(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
-
-        $input = "This is **bold** text.";
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('<strong>bold</strong>', $output);
-    }
-
-    /**
-     * Test that italic text formatting works.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_italic_text_formatting(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
-
-        $input = "This is *italic* text.";
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('<em>italic</em>', $output);
-    }
-
-    /**
-     * Test that unordered lists work.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_unordered_list_formatting(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
-
-        $input = "List:\n\n- Item 1\n- Item 2\n- Item 3";
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('<ul>', $output);
-        $this->assertStringContainsString('<li>', $output);
-    }
-
-    /**
-     * Test that ordered lists work.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_ordered_list_formatting(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
-
-        $input = "Steps:\n\n1. First\n2. Second\n3. Third";
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('<ol>', $output);
-        $this->assertStringContainsString('<li>', $output);
-    }
-
-    /**
-     * Test that headings work.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_heading_formatting(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
-
-        $input = "# Heading 1\n\n## Heading 2\n\n### Heading 3";
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('<h1>', $output);
-        $this->assertStringContainsString('<h2>', $output);
-        $this->assertStringContainsString('<h3>', $output);
-    }
-
-    /**
-     * Test that links work (but are safe).
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_link_formatting(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
-
-        $input = "Visit [Moodle](https://moodle.org) for more info.";
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('href="https://moodle.org"', $output);
-        $this->assertStringContainsString('>Moodle</a>', $output);
-    }
-
-    /**
-     * Test that blockquotes work.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_blockquote_formatting(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
-
-        $input = "> This is a quote.";
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('<blockquote>', $output);
-    }
-
-    /**
-     * Test that code blocks are wrapped in pre and code tags.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_code_block_structure(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
-
-        $input = self::CODEBLOCK . 'php
-echo \'Hello\';
-' . self::CODEBLOCK;
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('<pre>', $output);
-        $this->assertStringContainsString('<code', $output);
+        foreach ($mustcontain as $expected) {
+            $this->assertStringContainsString($expected, $output);
+        }
     }
 
     /**
@@ -360,9 +280,7 @@ echo \'Hello\';
      * @covers \local_ai_manager\base_purpose::format_output
      */
     public function test_format_output_mathjax_inline_delimiters_escaped(): void {
-        $this->resetAfterTest();
         $purpose = new base_purpose();
-
         $input = 'The formula is \\(x^2 + y^2 = z^2\\)';
         $output = $purpose->format_output($input);
 
@@ -377,9 +295,7 @@ echo \'Hello\';
      * @covers \local_ai_manager\base_purpose::format_output
      */
     public function test_format_output_mathjax_display_delimiters_escaped(): void {
-        $this->resetAfterTest();
         $purpose = new base_purpose();
-
         $input = 'Display math: \\[E = mc^2\\]';
         $output = $purpose->format_output($input);
 
@@ -394,10 +310,9 @@ echo \'Hello\';
      * @covers \local_ai_manager\base_purpose::format_output
      */
     public function test_format_output_empty_input(): void {
-        $this->resetAfterTest();
         $purpose = new base_purpose();
-
         $output = $purpose->format_output('');
+
         $this->assertEmpty(trim($output));
     }
 
@@ -407,40 +322,11 @@ echo \'Hello\';
      * @covers \local_ai_manager\base_purpose::format_output
      */
     public function test_format_output_plain_text(): void {
-        $this->resetAfterTest();
         $purpose = new base_purpose();
-
         $input = 'Just plain text without any formatting.';
         $output = $purpose->format_output($input);
 
         $this->assertStringContainsString('Just plain text', $output);
-    }
-
-    /**
-     * Test multiple code blocks in one response.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_multiple_code_blocks(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
-
-        $input = 'HTML:
-
-' . self::CODEBLOCK . 'html
-<div>Test</div>
-' . self::CODEBLOCK . '
-
-JS:
-
-' . self::CODEBLOCK . 'javascript
-alert(\'hi\');
-' . self::CODEBLOCK;
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('&lt;div&gt;', $output);
-        $this->assertStringContainsString('alert(', $output);
-        $this->assertStringNotContainsString('<div>Test</div>', $output);
     }
 
     /**
@@ -449,21 +335,15 @@ alert(\'hi\');
      * @covers \local_ai_manager\base_purpose::format_output
      */
     public function test_format_output_mixed_content(): void {
-        $this->resetAfterTest();
         $purpose = new base_purpose();
-
-        $input = '# Tutorial
-
-Here\'s how:
-
-1. Write HTML
-2. Add CSS
-
-' . self::CODEBLOCK . 'html
-<p>Hello</p>
-' . self::CODEBLOCK . '
-
-That\'s **all**!';
+        $input = '# Tutorial' . PHP_EOL . PHP_EOL
+            . 'Here\'s how:' . PHP_EOL . PHP_EOL
+            . '1. Write HTML' . PHP_EOL
+            . '2. Add CSS' . PHP_EOL . PHP_EOL
+            . self::CODEBLOCK . 'html' . PHP_EOL
+            . '<p>Hello</p>' . PHP_EOL
+            . self::CODEBLOCK . PHP_EOL . PHP_EOL
+            . 'That\'s **all**!';
         $output = $purpose->format_output($input);
 
         $this->assertStringContainsString('<h1>', $output);
@@ -473,33 +353,12 @@ That\'s **all**!';
     }
 
     /**
-     * Test that special characters are handled correctly.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_special_characters_in_code(): void {
-        $this->resetAfterTest();
-        $purpose = new base_purpose();
-
-        $input = 'Example:
-
-' . self::CODEBLOCK . '
-<>&"\'
-' . self::CODEBLOCK;
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('&lt;&gt;&amp;', $output);
-    }
-
-    /**
      * Test Windows-style line endings in code blocks.
      *
      * @covers \local_ai_manager\base_purpose::format_output
      */
     public function test_format_output_windows_line_endings(): void {
-        $this->resetAfterTest();
         $purpose = new base_purpose();
-
         $input = "Code:\r\n\r\n" . self::CODEBLOCK . "html\r\n<div>Test</div>\r\n" . self::CODEBLOCK;
         $output = $purpose->format_output($input);
 
