@@ -28,12 +28,6 @@ use local_ai_manager\local\connector_factory;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class base_purpose_test extends \advanced_testcase {
-    /** @var string Triple backtick for markdown code blocks. */
-    private const CODEBLOCK = "\x60\x60\x60";
-
-    /** @var string Single backtick for inline code. */
-    private const BACKTICK = "\x60";
-
     /**
      * Test if all purpose plugins have a proper description.
      *
@@ -148,6 +142,23 @@ final class base_purpose_test extends \advanced_testcase {
                 'mustcontain' => ['&lt;&gt;&amp;'],
                 'mustnotcontain' => [],
             ],
+            'windows_line_endings' => [
+                'input' => "Code:\r\n\r\n" . $codeblock . "html\r\n<div>Test</div>\r\n" . $codeblock,
+                'mustcontain' => ['&lt;div&gt;'],
+                'mustnotcontain' => [],
+            ],
+            'mixed_content' => [
+                'input' => '# Tutorial' . PHP_EOL . PHP_EOL
+                    . 'Here\'s how:' . PHP_EOL . PHP_EOL
+                    . '1. Write HTML' . PHP_EOL
+                    . '2. Add CSS' . PHP_EOL . PHP_EOL
+                    . $codeblock . 'html' . PHP_EOL
+                    . '<p>Hello</p>' . PHP_EOL
+                    . $codeblock . PHP_EOL . PHP_EOL
+                    . 'That\'s **all**!',
+                'mustcontain' => ['<h1>', '<ol>', '&lt;p&gt;Hello&lt;/p&gt;', '<strong>all</strong>'],
+                'mustnotcontain' => [],
+            ],
         ];
     }
 
@@ -254,6 +265,22 @@ final class base_purpose_test extends \advanced_testcase {
                 'input' => $codeblock . 'php' . PHP_EOL . 'echo \'Hello\';' . PHP_EOL . $codeblock,
                 'mustcontain' => ['<pre>', '<code'],
             ],
+            'mathjax_inline_delimiters' => [
+                'input' => 'The formula is \\(x^2 + y^2 = z^2\\)',
+                'mustcontain' => ['\\(', '\\)'],
+            ],
+            'mathjax_display_delimiters' => [
+                'input' => 'Display math: \\[E = mc^2\\]',
+                'mustcontain' => ['\\[', '\\]'],
+            ],
+            'empty_input' => [
+                'input' => '',
+                'mustcontain' => [],
+            ],
+            'plain_text' => [
+                'input' => 'Just plain text without any formatting.',
+                'mustcontain' => ['Just plain text'],
+            ],
         ];
     }
 
@@ -272,96 +299,5 @@ final class base_purpose_test extends \advanced_testcase {
         foreach ($mustcontain as $expected) {
             $this->assertStringContainsString($expected, $output);
         }
-    }
-
-    /**
-     * Test that MathJax inline delimiters are properly escaped.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_mathjax_inline_delimiters_escaped(): void {
-        $purpose = new base_purpose();
-        $input = 'The formula is \\(x^2 + y^2 = z^2\\)';
-        $output = $purpose->format_output($input);
-
-        // MathJax delimiters should be present (escaped for frontend processing).
-        $this->assertStringContainsString('\\(', $output);
-        $this->assertStringContainsString('\\)', $output);
-    }
-
-    /**
-     * Test that MathJax display delimiters are properly escaped.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_mathjax_display_delimiters_escaped(): void {
-        $purpose = new base_purpose();
-        $input = 'Display math: \\[E = mc^2\\]';
-        $output = $purpose->format_output($input);
-
-        // MathJax delimiters should be present (escaped for frontend processing).
-        $this->assertStringContainsString('\\[', $output);
-        $this->assertStringContainsString('\\]', $output);
-    }
-
-    /**
-     * Test empty input.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_empty_input(): void {
-        $purpose = new base_purpose();
-        $output = $purpose->format_output('');
-
-        $this->assertEmpty(trim($output));
-    }
-
-    /**
-     * Test plain text without any markdown.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_plain_text(): void {
-        $purpose = new base_purpose();
-        $input = 'Just plain text without any formatting.';
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('Just plain text', $output);
-    }
-
-    /**
-     * Test mixed content: text, code, lists together.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_mixed_content(): void {
-        $purpose = new base_purpose();
-        $input = '# Tutorial' . PHP_EOL . PHP_EOL
-            . 'Here\'s how:' . PHP_EOL . PHP_EOL
-            . '1. Write HTML' . PHP_EOL
-            . '2. Add CSS' . PHP_EOL . PHP_EOL
-            . self::CODEBLOCK . 'html' . PHP_EOL
-            . '<p>Hello</p>' . PHP_EOL
-            . self::CODEBLOCK . PHP_EOL . PHP_EOL
-            . 'That\'s **all**!';
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('<h1>', $output);
-        $this->assertStringContainsString('<ol>', $output);
-        $this->assertStringContainsString('&lt;p&gt;Hello&lt;/p&gt;', $output);
-        $this->assertStringContainsString('<strong>all</strong>', $output);
-    }
-
-    /**
-     * Test Windows-style line endings in code blocks.
-     *
-     * @covers \local_ai_manager\base_purpose::format_output
-     */
-    public function test_format_output_windows_line_endings(): void {
-        $purpose = new base_purpose();
-        $input = "Code:\r\n\r\n" . self::CODEBLOCK . "html\r\n<div>Test</div>\r\n" . self::CODEBLOCK;
-        $output = $purpose->format_output($input);
-
-        $this->assertStringContainsString('&lt;div&gt;', $output);
     }
 }
