@@ -59,7 +59,6 @@ class instance extends base_instance {
             'endpointdescription'
         );
         $mform->hideIf('endpointdescription_azure', 'azure_enabled', 'neq', '1');
-
     }
 
     #[\Override]
