@@ -43,15 +43,6 @@ use stdClass;
  */
 final class purpose_test extends \advanced_testcase {
     /**
-     * Set up test fixtures.
-     */
-    #[\Override]
-    protected function setUp(): void {
-        parent::setUp();
-        $this->resetAfterTest();
-    }
-
-    /**
      * Tests the agent purpose perform request flow.
      *
      * @covers ::get_additional_request_options
@@ -60,6 +51,8 @@ final class purpose_test extends \advanced_testcase {
      */
     public function test_purpose_perform_request(): void {
         global $DB, $CFG;
+
+        $this->resetAfterTest();
 
         $correctaichatsystemblock = new stdClass();
         $correctaichatsystemblock->blockname = 'ai_chat';
@@ -76,8 +69,10 @@ final class purpose_test extends \advanced_testcase {
         $correctaichatsystemblockid = $DB->insert_record('block_instances', $correctaichatsystemblock);
         $correctaichatsystemblockcontext = \context_block::instance($correctaichatsystemblockid);
 
+        // Now also create user contexts.
         $user1 = $this->getDataGenerator()->create_user();
 
+        // Setup the AI Manager.
         $this->setup_ai_manager($user1);
         $this->setUser($user1);
         $manager = new manager('chat');
@@ -106,14 +101,14 @@ final class purpose_test extends \advanced_testcase {
      */
     public static function format_output_formelement_label_provider(): array {
         return [
-            'bold_markdown_in_label' => [
-                json_encode([
+            'html_tags_stripped_from_label' => [
+                'input' => json_encode([
                     'formelements' => [
                         [
                             'id' => 'id_test',
                             'name' => 'test',
                             'newValue' => 'Test value',
-                            'label' => '**Bold Label**',
+                            'label' => '<script>alert("xss")</script>Bold Label',
                             'explanation' => 'Simple explanation.',
                         ],
                     ],
@@ -122,16 +117,17 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                '<strong>Bold Label</strong>',
+                'expectedcontains' => 'Bold Label',
+                'mustnotcontain' => '<script>',
             ],
-            'italic_markdown_in_label' => [
-                json_encode([
+            'html_in_label_removed' => [
+                'input' => json_encode([
                     'formelements' => [
                         [
                             'id' => 'id_test',
                             'name' => 'test',
                             'newValue' => 'Value',
-                            'label' => '*Italic Label*',
+                            'label' => '<em>Italic Label</em>',
                             'explanation' => 'Explanation.',
                         ],
                     ],
@@ -140,10 +136,11 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                '<em>Italic Label</em>',
+                'expectedcontains' => 'Italic Label',
+                'mustnotcontain' => '<em>',
             ],
             'plain_text_label' => [
-                json_encode([
+                'input' => json_encode([
                     'formelements' => [
                         [
                             'id' => 'id_test',
@@ -158,21 +155,42 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                'Plain Label',
+                'expectedcontains' => 'Plain Label',
+                'mustnotcontain' => '',
+            ],
+            'markdown_in_label_not_formatted' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => '**Bold Label**',
+                            'explanation' => 'Explanation.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectedcontains' => '**Bold Label**',
+                'mustnotcontain' => '<strong>',
             ],
         ];
     }
 
     /**
-     * Test that formelement labels are formatted with Markdown.
+     * Test that formelement labels have HTML stripped (not formatted with Markdown).
      *
      * @param string $input The JSON input
      * @param string $expectedcontains String that must be in the formatted label
+     * @param string $mustnotcontain String that must not be in the formatted label
      *
      * @covers ::format_output
      * @dataProvider format_output_formelement_label_provider
      */
-    public function test_format_output_formelement_label(string $input, string $expectedcontains): void {
+    public function test_format_output_formelement_label(string $input, string $expectedcontains, string $mustnotcontain): void {
         $purpose = new purpose();
         $output = $purpose->format_output($input);
         $decoded = json_decode($output, true);
@@ -181,6 +199,9 @@ final class purpose_test extends \advanced_testcase {
         $this->assertArrayHasKey('formelements', $decoded);
         $this->assertNotEmpty($decoded['formelements']);
         $this->assertStringContainsString($expectedcontains, $decoded['formelements'][0]['label']);
+        if (!empty($mustnotcontain)) {
+            $this->assertStringNotContainsString($mustnotcontain, $decoded['formelements'][0]['label']);
+        }
     }
 
     /**
@@ -191,7 +212,7 @@ final class purpose_test extends \advanced_testcase {
     public static function format_output_formelement_explanation_provider(): array {
         return [
             'italic_in_explanation' => [
-                json_encode([
+                'input' => json_encode([
                     'formelements' => [
                         [
                             'id' => 'id_test',
@@ -206,10 +227,10 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                '<em>italic</em>',
+                'expectedcontains' => '<em>italic</em>',
             ],
             'bold_in_explanation' => [
-                json_encode([
+                'input' => json_encode([
                     'formelements' => [
                         [
                             'id' => 'id_test',
@@ -224,10 +245,10 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                '<strong>bold</strong>',
+                'expectedcontains' => '<strong>bold</strong>',
             ],
             'link_in_explanation' => [
-                json_encode([
+                'input' => json_encode([
                     'formelements' => [
                         [
                             'id' => 'id_test',
@@ -242,7 +263,7 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                'href="https://moodle.org"',
+                'expectedcontains' => 'href="https://moodle.org"',
             ],
         ];
     }
@@ -275,7 +296,7 @@ final class purpose_test extends \advanced_testcase {
     public static function format_output_newvalue_preserved_provider(): array {
         return [
             'html_tags_preserved' => [
-                json_encode([
+                'input' => json_encode([
                     'formelements' => [
                         [
                             'id' => 'id_test',
@@ -290,10 +311,10 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                '<p style="color: red;">HTML content</p>',
+                'expectednewvalue' => '<p style="color: red;">HTML content</p>',
             ],
             'python_code_preserved' => [
-                json_encode([
+                'input' => json_encode([
                     'formelements' => [
                         [
                             'id' => 'id_code',
@@ -308,10 +329,10 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                "def hello():\n    print('Hello')\n\n<html><body>Test</body></html>",
+                'expectednewvalue' => "def hello():\n    print('Hello')\n\n<html><body>Test</body></html>",
             ],
             'script_tags_preserved' => [
-                json_encode([
+                'input' => json_encode([
                     'formelements' => [
                         [
                             'id' => 'id_content',
@@ -326,10 +347,10 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                '<script>alert("test")</script><img onerror="evil()">',
+                'expectednewvalue' => '<script>alert("test")</script><img onerror="evil()">',
             ],
             'full_html_document_preserved' => [
-                json_encode([
+                'input' => json_encode([
                     'formelements' => [
                         [
                             'id' => 'id_summary',
@@ -345,11 +366,11 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"></head>'
-                . '<body><h1>Title</h1></body></html>',
+                'expectednewvalue' => '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"></head>'
+                    . '<body><h1>Title</h1></body></html>',
             ],
             'plain_text_preserved' => [
-                json_encode([
+                'input' => json_encode([
                     'formelements' => [
                         [
                             'id' => 'id_name',
@@ -364,10 +385,10 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                'Simple course name',
+                'expectednewvalue' => 'Simple course name',
             ],
             'multiline_text_preserved' => [
-                json_encode([
+                'input' => json_encode([
                     'formelements' => [
                         [
                             'id' => 'id_desc',
@@ -382,7 +403,7 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                "Line 1\nLine 2\n\nLine 4",
+                'expectednewvalue' => "Line 1\nLine 2\n\nLine 4",
             ],
         ];
     }
@@ -415,115 +436,89 @@ final class purpose_test extends \advanced_testcase {
     }
 
     /**
-     * Data provider for testing chatoutput intro formatting.
+     * Data provider for testing chatoutput intro and outro formatting.
      *
-     * @return array Test cases with input JSON and expected output checks
+     * @return array Test cases with text and expected output checks
      */
-    public static function format_output_chatoutput_intro_provider(): array {
+    public static function format_output_chatoutput_text_provider(): array {
         $codeblock = "\x60\x60\x60";
 
         return [
             'bold_and_italic' => [
-                json_encode([
-                    'formelements' => [],
-                    'chatoutput' => [
-                        ['type' => 'intro', 'text' => 'Here is **bold** and *italic* text.'],
-                        ['type' => 'outro', 'text' => 'Outro.'],
-                    ],
-                ]),
-                ['<strong>bold</strong>', '<em>italic</em>'],
-                [],
+                'text' => 'Here is **bold** and *italic* text.',
+                'mustcontain' => ['<strong>bold</strong>', '<em>italic</em>'],
+                'mustnotcontain' => [],
             ],
             'ordered_list' => [
-                json_encode([
-                    'formelements' => [],
-                    'chatoutput' => [
-                        [
-                            'type' => 'intro',
-                            'text' => 'Steps:' . PHP_EOL . PHP_EOL . '1. First' . PHP_EOL . '2. Second' . PHP_EOL . '3. Third',
-                        ],
-                        ['type' => 'outro', 'text' => ''],
-                    ],
-                ]),
-                ['<ol>', '<li>'],
-                [],
+                'text' => 'Steps:' . PHP_EOL . PHP_EOL . '1. First' . PHP_EOL . '2. Second' . PHP_EOL . '3. Third',
+                'mustcontain' => ['<ol>', '<li>'],
+                'mustnotcontain' => [],
             ],
             'unordered_list' => [
-                json_encode([
-                    'formelements' => [],
-                    'chatoutput' => [
-                        [
-                            'type' => 'intro',
-                            'text' => 'Items:' . PHP_EOL . PHP_EOL . '- Item A' . PHP_EOL . '- Item B' . PHP_EOL . '- Item C',
-                        ],
-                        ['type' => 'outro', 'text' => ''],
-                    ],
-                ]),
-                ['<ul>', '<li>'],
-                [],
+                'text' => 'Items:' . PHP_EOL . PHP_EOL . '- Item A' . PHP_EOL . '- Item B' . PHP_EOL . '- Item C',
+                'mustcontain' => ['<ul>', '<li>'],
+                'mustnotcontain' => [],
             ],
             'heading' => [
-                json_encode([
-                    'formelements' => [],
-                    'chatoutput' => [
-                        ['type' => 'intro', 'text' => '## Configuration Complete' . PHP_EOL . PHP_EOL . 'All done.'],
-                        ['type' => 'outro', 'text' => ''],
-                    ],
-                ]),
-                ['<h2>'],
-                [],
+                'text' => '## Configuration Complete' . PHP_EOL . PHP_EOL . 'All done.',
+                'mustcontain' => ['<h2>'],
+                'mustnotcontain' => [],
             ],
             'code_block_html_escaped' => [
-                json_encode([
-                    'formelements' => [],
-                    'chatoutput' => [
-                        [
-                            'type' => 'intro',
-                            'text' => 'Example:' . PHP_EOL . PHP_EOL
-                                . $codeblock . 'python' . PHP_EOL
-                                . 'print("<html>")' . PHP_EOL
-                                . $codeblock,
-                        ],
-                        ['type' => 'outro', 'text' => ''],
-                    ],
-                ]),
-                ['<pre>', '<code', '&lt;html&gt;'],
-                ['<html>'],
+                'text' => 'Example:' . PHP_EOL . PHP_EOL
+                    . $codeblock . 'python' . PHP_EOL
+                    . 'print("<html>")' . PHP_EOL
+                    . $codeblock,
+                'mustcontain' => ['<pre>', '<code', '&lt;html&gt;'],
+                'mustnotcontain' => ['<html>'],
             ],
             'script_tag_sanitized' => [
-                json_encode([
-                    'formelements' => [],
-                    'chatoutput' => [
-                        ['type' => 'intro', 'text' => 'Hello <script>alert("xss")</script> world'],
-                        ['type' => 'outro', 'text' => ''],
-                    ],
-                ]),
-                ['Hello', 'world'],
-                ['<script>', 'alert('],
+                'text' => 'Hello <script>alert("xss")</script> world',
+                'mustcontain' => ['Hello', 'world'],
+                'mustnotcontain' => ['<script>', 'alert('],
+            ],
+            'link_formatting' => [
+                'text' => 'Visit [Moodle](https://moodle.org) for more.',
+                'mustcontain' => ['href="https://moodle.org"', '>Moodle</a>'],
+                'mustnotcontain' => [],
+            ],
+            'bold_text' => [
+                'text' => 'This is **important**.',
+                'mustcontain' => ['<strong>important</strong>'],
+                'mustnotcontain' => [],
             ],
         ];
     }
 
     /**
-     * Test that chatoutput intro text is properly formatted with Markdown.
+     * Test that chatoutput intro and outro text is properly formatted with Markdown.
      *
-     * @param string $input The JSON input
-     * @param array $mustcontain Strings that must be in the formatted intro
-     * @param array $mustnotcontain Strings that must not be in the formatted intro
+     * Both intro and outro are handled identically in the code, so this tests both.
+     *
+     * @param string $text The text to test
+     * @param array $mustcontain Strings that must be in the formatted output
+     * @param array $mustnotcontain Strings that must not be in the formatted output
      *
      * @covers ::format_output
-     * @dataProvider format_output_chatoutput_intro_provider
+     * @dataProvider format_output_chatoutput_text_provider
      */
-    public function test_format_output_chatoutput_intro(string $input, array $mustcontain, array $mustnotcontain): void {
+    public function test_format_output_chatoutput_text(string $text, array $mustcontain, array $mustnotcontain): void {
         $purpose = new purpose();
-        $output = $purpose->format_output($input);
-        $decoded = json_decode($output, true);
 
-        $this->assertNotNull($decoded, 'Output must be valid JSON');
-        $this->assertArrayHasKey('chatoutput', $decoded);
+        // Test with intro.
+        $inputintro = json_encode([
+            'formelements' => [],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => $text],
+                ['type' => 'outro', 'text' => ''],
+            ],
+        ]);
+        $outputintro = $purpose->format_output($inputintro);
+        $decodedintro = json_decode($outputintro, true);
 
+        $this->assertNotNull($decodedintro, 'Output must be valid JSON');
         $intro = '';
-        foreach ($decoded['chatoutput'] as $item) {
+        foreach ($decodedintro['chatoutput'] as $item) {
             if ($item['type'] === 'intro') {
                 $intro = $item['text'];
                 break;
@@ -533,71 +528,24 @@ final class purpose_test extends \advanced_testcase {
         foreach ($mustcontain as $expected) {
             $this->assertStringContainsString($expected, $intro, "Intro must contain: $expected");
         }
-
         foreach ($mustnotcontain as $notexpected) {
             $this->assertStringNotContainsString($notexpected, $intro, "Intro must not contain: $notexpected");
         }
-    }
 
-    /**
-     * Data provider for testing chatoutput outro formatting.
-     *
-     * @return array Test cases with input JSON and expected output checks
-     */
-    public static function format_output_chatoutput_outro_provider(): array {
-        return [
-            'link_in_outro' => [
-                json_encode([
-                    'formelements' => [],
-                    'chatoutput' => [
-                        ['type' => 'intro', 'text' => 'Intro.'],
-                        ['type' => 'outro', 'text' => 'Visit [Moodle](https://moodle.org) for more.'],
-                    ],
-                ]),
-                ['href="https://moodle.org"', '>Moodle</a>'],
+        // Test with outro.
+        $inputoutro = json_encode([
+            'formelements' => [],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => ''],
+                ['type' => 'outro', 'text' => $text],
             ],
-            'bold_in_outro' => [
-                json_encode([
-                    'formelements' => [],
-                    'chatoutput' => [
-                        ['type' => 'intro', 'text' => 'Intro.'],
-                        ['type' => 'outro', 'text' => 'This is **important**.'],
-                    ],
-                ]),
-                ['<strong>important</strong>'],
-            ],
-            'empty_outro' => [
-                json_encode([
-                    'formelements' => [],
-                    'chatoutput' => [
-                        ['type' => 'intro', 'text' => 'Intro.'],
-                        ['type' => 'outro', 'text' => ''],
-                    ],
-                ]),
-                [],
-            ],
-        ];
-    }
+        ]);
+        $outputoutro = $purpose->format_output($inputoutro);
+        $decodedoutro = json_decode($outputoutro, true);
 
-    /**
-     * Test that chatoutput outro text is properly formatted with Markdown.
-     *
-     * @param string $input The JSON input
-     * @param array $mustcontain Strings that must be in the formatted outro
-     *
-     * @covers ::format_output
-     * @dataProvider format_output_chatoutput_outro_provider
-     */
-    public function test_format_output_chatoutput_outro(string $input, array $mustcontain): void {
-        $purpose = new purpose();
-        $output = $purpose->format_output($input);
-        $decoded = json_decode($output, true);
-
-        $this->assertNotNull($decoded, 'Output must be valid JSON');
-        $this->assertArrayHasKey('chatoutput', $decoded);
-
+        $this->assertNotNull($decodedoutro, 'Output must be valid JSON');
         $outro = '';
-        foreach ($decoded['chatoutput'] as $item) {
+        foreach ($decodedoutro['chatoutput'] as $item) {
             if ($item['type'] === 'outro') {
                 $outro = $item['text'];
                 break;
@@ -606,6 +554,9 @@ final class purpose_test extends \advanced_testcase {
 
         foreach ($mustcontain as $expected) {
             $this->assertStringContainsString($expected, $outro, "Outro must contain: $expected");
+        }
+        foreach ($mustnotcontain as $notexpected) {
+            $this->assertStringNotContainsString($notexpected, $outro, "Outro must not contain: $notexpected");
         }
     }
 
@@ -750,13 +701,14 @@ final class purpose_test extends \advanced_testcase {
         $this->assertNotNull($decoded);
         $this->assertCount(3, $decoded['formelements'], 'Should have 3 formelements');
 
-        // Verify first element.
-        $this->assertStringContainsString('<strong>First Field</strong>', $decoded['formelements'][0]['label']);
+        // Verify first element - label should have markdown stripped, not formatted.
+        $this->assertStringContainsString('**First Field**', $decoded['formelements'][0]['label']);
+        $this->assertStringNotContainsString('<strong>', $decoded['formelements'][0]['label']);
         $this->assertStringContainsString('<em>explanation</em>', $decoded['formelements'][0]['explanation']);
         $this->assertEquals('<div>First value</div>', $decoded['formelements'][0]['newValue']);
 
         // Verify second element.
-        $this->assertStringContainsString('<strong>Second Field</strong>', $decoded['formelements'][1]['label']);
+        $this->assertStringContainsString('__Second Field__', $decoded['formelements'][1]['label']);
         $this->assertStringContainsString('<strong>explanation</strong>', $decoded['formelements'][1]['explanation']);
         $this->assertEquals('<script>second</script>', $decoded['formelements'][1]['newValue']);
 
@@ -799,9 +751,6 @@ final class purpose_test extends \advanced_testcase {
         global $CFG;
 
         $fixturepath = $CFG->dirroot . '/local/ai_manager/purposes/agent/tests/fixtures/response.txt';
-        if (!file_exists($fixturepath)) {
-            $this->markTestSkipped('Fixture file response.txt not found');
-        }
 
         $input = file_get_contents($fixturepath);
         $purpose = new purpose();
@@ -910,15 +859,19 @@ final class purpose_test extends \advanced_testcase {
         $userusage->set_currentusage(0);
         $userusage->store();
 
+        // Setup the AI Manager.
         $chatgptinstance = new instance();
         $chatgptinstance->set_model('gpt-4o');
         $chatgptinstance->set_connector('chatgpt');
 
+        // Fake a stream object, because we will mock the method that accesses it anyway.
         $streamresponse = new Stream(fopen('php://temp', 'r+'));
         $requestresponse = request_response::create_from_result($streamresponse);
 
+        // Fake usage object.
         $usage = new usage(50.0, 30.0, 20.0);
 
+        // Fake prompt_response object.
         $responsetext = file_get_contents($CFG->dirroot . '/local/ai_manager/purposes/agent/tests/fixtures/response.txt');
 
         $promptresponse = prompt_response::create_from_result('gpt-4o', $usage, $responsetext);
@@ -937,8 +890,10 @@ final class purpose_test extends \advanced_testcase {
         \core\di::set(config_manager::class, $configmanager);
         \core\di::set(connector_factory::class, $connectorfactory);
 
+        // We enable the aitool plugin here.
         aitool::enable_plugin('agent', true);
 
+        // We disable the hook here, so no other plugin is interfering.
         $this->redirectHook(\local_ai_manager\hook\additional_user_restriction::class, fn() => null);
     }
 

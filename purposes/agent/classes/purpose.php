@@ -220,15 +220,19 @@ class purpose extends base_purpose {
             return $erroroutput;
         }
 
-        // Format formelements text fields to prevent HTML/Markdown from breaking the layout.
+        // Format formelements text fields.
         foreach ($outputrecord['formelements'] as $key => $formelement) {
+            // Sanitize label, name and id - these should not contain HTML, just strip tags as a safety measure.
             if (isset($formelement['label'])) {
-                $outputrecord['formelements'][$key]['label'] = format_text(
-                    $formelement['label'],
-                    FORMAT_MARKDOWN,
-                    ['filter' => false]
-                );
+                $outputrecord['formelements'][$key]['label'] = strip_tags($formelement['label']);
             }
+            if (isset($formelement['name'])) {
+                $outputrecord['formelements'][$key]['name'] = strip_tags($formelement['name']);
+            }
+            if (isset($formelement['id'])) {
+                $outputrecord['formelements'][$key]['id'] = strip_tags($formelement['id']);
+            }
+            // Format explanation with Markdown.
             if (isset($formelement['explanation'])) {
                 $outputrecord['formelements'][$key]['explanation'] = format_text(
                     $formelement['explanation'],
@@ -237,7 +241,14 @@ class purpose extends base_purpose {
                 );
             }
             // Note: newValue is intentionally NOT formatted as it needs to be injected into form fields as-is.
-            // The display value (suggestiondisplayvalue) is handled separately in the frontend template with proper escaping.
+            // Format suggestiondisplayvalue with Markdown for proper rendering of code blocks etc.
+            if (isset($formelement['suggestiondisplayvalue'])) {
+                $outputrecord['formelements'][$key]['suggestiondisplayvalue'] = format_text(
+                    $formelement['suggestiondisplayvalue'],
+                    FORMAT_MARKDOWN,
+                    ['filter' => false]
+                );
+            }
         }
 
         // Checking the correct structure of chat output.
