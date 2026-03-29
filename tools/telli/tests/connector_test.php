@@ -36,9 +36,6 @@ final class connector_test extends \advanced_testcase {
      * @covers \aitool_telli\connector::__construct
      */
     public function test_constructor(): void {
-        $this->resetAfterTest();
-        set_config('availablemodels', "gpt-4o\nimagen-4.0-generate-001#IMGGEN", 'aitool_telli');
-
         $connectorfactory = \core\di::get(connector_factory::class);
         $connector = $connectorfactory->get_connector_by_connectorname_and_model('telli', 'gpt-4o');
         // Assert that the connector is properly set up by acquiring some information that is being fetched from the
@@ -101,71 +98,55 @@ final class connector_test extends \advanced_testcase {
      */
     public static function error_message_provider(): array {
         return [
-            'telli imagen direct error string - german' => [
-                400,
-                '{"error":"Die Anfrage wurde wegen unangemessener Inhalte automatisch blockiert."}',
-                '',
-                'err_contentfilter',
+            // 400 errors - only "error" attribute (Imagen content filter).
+            'error_400_german_unangemessen' => [
+                'code' => 400,
+                'responsebody' => '{"error":"Die Anfrage wurde wegen unangemessener Inhalte automatisch blockiert."}',
+                'exceptionmessage' => '',
+                'expectedkey' => 'err_contentfilter',
             ],
-            'telli imagen direct error string - blocked' => [
-                400,
-                '{"error":"Request was blocked due to inappropriate content."}',
-                '',
-                'err_contentfilter',
+            'error_400_english_blocked' => [
+                'code' => 400,
+                'responsebody' => '{"error":"Request was blocked due to inappropriate content."}',
+                'exceptionmessage' => '',
+                'expectedkey' => 'err_contentfilter',
             ],
-            'safety in details' => [
-                400,
-                '{"error": {"code": "error"}, "details": "The request was blocked due to safety concerns."}',
-                '',
-                'err_contentfilter',
+            'error_400_safety' => [
+                'code' => 400,
+                'responsebody' => '{"error":"Blocked by safety filter."}',
+                'exceptionmessage' => '',
+                'expectedkey' => 'err_contentfilter',
             ],
-            'content policy in error message' => [
-                400,
-                '{"error": {"code": "error", "message": "Image generation blocked due to content policy violation."}}',
-                '',
-                'err_contentfilter',
+            'error_400_no_match' => [
+                'code' => 400,
+                'responsebody' => '{"error":"Some other error occurred."}',
+                'exceptionmessage' => '',
+                'expectedkey' => '',
             ],
-            'blocked in error message' => [
-                400,
-                '{"error": {"code": "error", "message": "Request was blocked for inappropriate content."}}',
-                '',
-                'err_contentfilter',
+            // 500 errors - both "error" and "details" attributes (Azure/OpenAI backends).
+            'error_500_details_safety' => [
+                'code' => 500,
+                'responsebody' => '{"error":"Internal error","details":"Request blocked due to safety concerns."}',
+                'exceptionmessage' => '',
+                'expectedkey' => 'err_contentfilter',
             ],
-            'inappropriate in error message' => [
-                400,
-                '{"error": {"code": "error", "message": "The prompt contains inappropriate material."}}',
-                '',
-                'err_contentfilter',
+            'error_500_error_content_policy' => [
+                'code' => 500,
+                'responsebody' => '{"error":"Content policy violation detected."}',
+                'exceptionmessage' => '',
+                'expectedkey' => 'err_contentfilter',
             ],
-            'violates in error message' => [
-                400,
-                '{"error": {"code": "error", "message": "This request violates our usage policies."}}',
-                '',
-                'err_contentfilter',
+            'error_500_no_image_data' => [
+                'code' => 500,
+                'responsebody' => '{}',
+                'exceptionmessage' => 'No image data received from API',
+                'expectedkey' => 'err_noimagedata',
             ],
-            'safety in error message' => [
-                400,
-                '{"error": {"code": "error", "message": "Blocked by safety filter."}}',
-                '',
-                'err_contentfilter',
-            ],
-            'no image data error 500' => [
-                500,
-                '{}',
-                'No image data received from API',
-                'err_noimagedata',
-            ],
-            'generic 400 error' => [
-                400,
-                '{"error": {"code": "error", "message": "Some other error occurred."}}',
-                '',
-                '',
-            ],
-            'generic 500 error' => [
-                500,
-                '{}',
-                'Internal server error',
-                '',
+            'error_500_no_match' => [
+                'code' => 500,
+                'responsebody' => '{"error":"Internal server error"}',
+                'exceptionmessage' => '',
+                'expectedkey' => '',
             ],
         ];
     }
