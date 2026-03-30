@@ -185,13 +185,16 @@ class purpose extends base_purpose {
         $outputrecord = $this->extract_single_json_object($output);
 
         // The AI is instructed to always return a JSON object, even if no suggestions are included.
+        // In case the AI answers with plain text, we return it as JSON and without any form elements or suggestions.
+        // Unfortunately, this means, we also return malformed and not parseable JSON as plain text, because we cannot
+        // distinguish a bad JSON from the LLM that sends plain text.
         if (empty($outputrecord)) {
             return json_encode([
                 'formelements' => [],
                 'chatoutput' => [
                     [
                         'type' => 'intro',
-                        'text' => $outputrecord,
+                        'text' => format_text($output, FORMAT_MARKDOWN, ['filter' => false]),
                     ],
                     [
                         'type' => 'outro',
@@ -220,7 +223,8 @@ class purpose extends base_purpose {
         // Checking the correct structure of chat output.
         $outputrecord['chatoutput'] = $this->validate_chatoutput($outputrecord['chatoutput']);
         foreach ($outputrecord['chatoutput'] as $key => $outputobject) {
-            $outputrecord['chatoutput'][$key]['text'] = format_text($outputobject['text'], FORMAT_MARKDOWN, ['filter' => false]);
+            $normalizedtext = $this->normalize_chatoutput_newlines($outputobject['text']);
+            $outputrecord['chatoutput'][$key]['text'] = format_text($normalizedtext, FORMAT_MARKDOWN, ['filter' => false]);
         }
 
         return json_encode($outputrecord);
@@ -260,5 +264,30 @@ class purpose extends base_purpose {
             }
         }
         return null;
+    }
+
+    /**
+     * Normalizes chat text for Markdown rendering by doubling isolated line breaks.
+     *
+     * Supports AI responses that contain either real newlines or literal "\\n" sequences.
+     * Existing consecutive line breaks are kept unchanged.
+     *
+     * @param string $text Raw chat text from AI response.
+     * @return string Normalized text for Markdown processing.
+     */
+    private function normalize_chatoutput_newlines(string $text): string {
+        // Some models return literal "\n" in JSON string values; normalize these first.
+        if (!str_contains($text, "\n") && str_contains($text, '\\n')) {
+            $text = str_replace('\\n', "\n", $text);
+        }
+
+        // Double only isolated single newlines so Markdown renders lists and paragraphs correctly.
+        // Using \n instead of \R avoids variable-length lookbehind issues in older PCRE versions.
+        $normalized = preg_replace('/(?<!\n)\n(?!\n)/', "\n\n", $text);
+        if ($normalized === null) {
+            return $text;
+        }
+
+        return $normalized;
     }
 }
