@@ -154,7 +154,8 @@ class connector extends base_connector {
                 break;
             case 500:
                 // The Telli API behaves in a non-ideal way if an image cannot be generated when using
-                // imagen-4.0-generate-001. It returns with error code 500 and a badly parseable error message.
+                // certain models (Google Imagen for example). It returns with error code 500 and a badly
+                // parseable error message.
                 // To not confront the users with a general 500 internal server error message, we have to check
                 // for parts of the exception message and re-wrap the error in a way the user can understand.
                 if (str_contains($exception->getMessage(), 'No image data received')) {
@@ -172,10 +173,8 @@ class connector extends base_connector {
                         $this->is_content_filter_error($responsebody->error)
                     ) {
                         $message = get_string('err_contentfilter', 'aitool_telli');
-                        break;
-                    }
-                    // Then check "details" attribute.
-                    if (
+                    } else if (
+                        // Then check "details" attribute.
                         property_exists($responsebody, 'details') &&
                         is_string($responsebody->details) &&
                         $this->is_content_filter_error($responsebody->details)
@@ -186,43 +185,6 @@ class connector extends base_connector {
                 break;
         }
         return $message;
-    }
-
-    /**
-     * The Telli API error response format is specified by the API documentation (/docs endpoint):
-     * - For HTTP 500 errors: Returns both "error" and "details" attributes as strings
-     * - For all other error types: Returns only "error" attribute as string
-     *
-     * This method extracts the error message from the response body accordingly.
-     *
-     * @param object|null $responsebody The decoded JSON response body.
-     * @param int $code The HTTP status code.
-     * @return string The extracted error message or empty string if not found.
-     */
-    private function extract_error_message(?object $responsebody, int $code): string {
-        if (empty($responsebody)) {
-            return '';
-        }
-
-        // For 500 errors: Check both "error" and "details" attributes.
-        // The content filter message might be in either attribute, so we concatenate both for checking.
-        if ($code === 500) {
-            $messages = [];
-            if (property_exists($responsebody, 'error') && is_string($responsebody->error)) {
-                $messages[] = $responsebody->error;
-            }
-            if (property_exists($responsebody, 'details') && is_string($responsebody->details)) {
-                $messages[] = $responsebody->details;
-            }
-            return implode(' ', $messages);
-        }
-
-        // For all other error types: Check only "error" attribute.
-        if (property_exists($responsebody, 'error') && is_string($responsebody->error)) {
-            return $responsebody->error;
-        }
-
-        return '';
     }
 
     /**
