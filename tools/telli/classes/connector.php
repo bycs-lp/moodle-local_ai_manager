@@ -132,8 +132,12 @@ class connector extends base_connector {
 
         // Get the response body once to avoid consuming the stream multiple times.
         $responsebody = null;
-        if (method_exists($exception, 'getResponse') && !empty($exception->getResponse())) {
-            $responsebody = json_decode($exception->getResponse()->getBody()->getContents());
+        if (
+            $exception !== null &&
+            method_exists($exception, 'getResponse') &&
+            ($response = $exception->getResponse()) !== null
+        ) {
+            $responsebody = json_decode($response->getBody()->getContents());
         }
 
         switch ($code) {
@@ -185,16 +189,11 @@ class connector extends base_connector {
     }
 
     /**
-     * Extracts an error message from the Telli API response body.
+     * The Telli API error response format is specified by the API documentation (/docs endpoint):
+     * - For HTTP 500 errors: Returns both "error" and "details" attributes as strings
+     * - For all other error types: Returns only "error" attribute as string
      *
-     * The Telli API is a wrapper for various backend models (Imagen, OpenAI via Azure, Llama, etc.)
-     * and returns errors in inconsistent formats depending on the backend and error type:
-     *
-     * - HTTP 400: Only "error" attribute as string (e.g., Imagen content filter)
-     * - HTTP 500: Both "error" and "details" attributes as strings (e.g., OpenAI via Azure content filter)
-     *
-     * This inconsistency exists because different backend models handle content filtering differently
-     * and the Telli API passes through their error responses without normalizing them.
+     * This method extracts the error message from the response body accordingly.
      *
      * @param object|null $responsebody The decoded JSON response body.
      * @param int $code The HTTP status code.
@@ -202,14 +201,6 @@ class connector extends base_connector {
      */
     private function extract_error_message(?object $responsebody, int $code): string {
         if (empty($responsebody)) {
-            return '';
-        }
-
-        // For 400 errors: Check only "error" attribute.
-        if ($code === 400) {
-            if (property_exists($responsebody, 'error') && is_string($responsebody->error)) {
-                return $responsebody->error;
-            }
             return '';
         }
 
@@ -224,6 +215,11 @@ class connector extends base_connector {
                 $messages[] = $responsebody->details;
             }
             return implode(' ', $messages);
+        }
+
+        // For all other error types: Check only "error" attribute.
+        if (property_exists($responsebody, 'error') && is_string($responsebody->error)) {
+            return $responsebody->error;
         }
 
         return '';
