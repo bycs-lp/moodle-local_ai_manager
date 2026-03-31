@@ -158,7 +158,7 @@ class connector extends base_connector {
                     break;
                 }
 
-                // For 500 errors: Check both "error" and "details" attributes (Azure/OpenAI backends).
+                // For 500 errors: Check both "error" and "details" attributes.
                 // The content filter message might be in either attribute.
                 if (!empty($responsebody)) {
                     // First check "error" attribute.
