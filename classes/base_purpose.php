@@ -175,7 +175,15 @@ class base_purpose {
         $output = str_replace('\\)', '\\\\)', $output);
         $output = str_replace('\\[', '\\\\[', $output);
         $output = str_replace('\\]', '\\\\]', $output);
-        return format_text($output, FORMAT_MARKDOWN, ['filter' => false]);
+
+        // Use Moodle's core markdown_to_html() function.
+        // It uses MarkdownExtra which already escapes HTML inside code blocks by default.
+        $html = markdown_to_html($output);
+
+        // Finally apply moodle output function for both sanitizing and other moodle specific formatting.
+        // Previously converted markdown-generated structure is being preserved.
+        // This prevents XSS from raw HTML that the LLM might return.
+        return format_text($html, FORMAT_MOODLE, ['filter' => false, 'newlines' => false]);
     }
 
     /**
