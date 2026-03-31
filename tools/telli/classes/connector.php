@@ -130,22 +130,57 @@ class connector extends base_connector {
     protected function get_custom_error_message(int $code, ?ClientExceptionInterface $exception = null): string {
         $message = '';
 
-        // Handle 500 errors where we only have the exception message (e.g., "No image data received").
-        if ($code === 500 && str_contains($exception->getMessage(), 'No image data received')) {
-            return get_string('err_noimagedata', 'aitool_telli');
+        // Get the response body once to avoid consuming the stream multiple times.
+        $responsebody = null;
+        if (method_exists($exception, 'getResponse') && !empty($exception->getResponse())) {
+            $responsebody = json_decode($exception->getResponse()->getBody()->getContents());
         }
 
-        if (!method_exists($exception, 'getResponse') || empty($exception->getResponse())) {
-            return $message;
+        switch ($code) {
+            case 400:
+                // For 400 errors: Check only "error" attribute (e.g., Imagen content filter).
+                if (
+                    !empty($responsebody) &&
+                    property_exists($responsebody, 'error') &&
+                    is_string($responsebody->error) &&
+                    $this->is_content_filter_error($responsebody->error)
+                ) {
+                    $message = get_string('err_contentfilter', 'aitool_telli');
+                }
+                break;
+            case 500:
+                // The Telli API behaves in a non-ideal way if an image cannot be generated when using
+                // imagen-4.0-generate-001. It returns with error code 500 and a badly parseable error message.
+                // To not confront the users with a general 500 internal server error message, we have to check
+                // for parts of the exception message and re-wrap the error in a way the user can understand.
+                if (str_contains($exception->getMessage(), 'No image data received')) {
+                    $message = get_string('err_noimagedata', 'aitool_telli');
+                    break;
+                }
+
+                // For 500 errors: Check both "error" and "details" attributes (Azure/OpenAI backends).
+                // The content filter message might be in either attribute.
+                if (!empty($responsebody)) {
+                    // First check "error" attribute.
+                    if (
+                        property_exists($responsebody, 'error') &&
+                        is_string($responsebody->error) &&
+                        $this->is_content_filter_error($responsebody->error)
+                    ) {
+                        $message = get_string('err_contentfilter', 'aitool_telli');
+                        break;
+                    }
+                    // Then check "details" attribute.
+                    if (
+                        property_exists($responsebody, 'details') &&
+                        is_string($responsebody->details) &&
+                        $this->is_content_filter_error($responsebody->details)
+                    ) {
+                        $message = get_string('err_contentfilter', 'aitool_telli');
+                    }
+                }
+                break;
         }
-
-        $responsebody = json_decode($exception->getResponse()->getBody()->getContents());
-        $errormessage = $this->extract_error_message($responsebody, $code);
-
-        if (!empty($errormessage) && $this->is_content_filter_error($errormessage)) {
-            $message = get_string('err_contentfilter', 'aitool_telli');
-        }
-
         return $message;
     }
 
