@@ -56,8 +56,8 @@ final class connector_test extends \advanced_testcase {
     /**
      * Test the get_custom_error_message method with various error responses.
      *
-     * @covers \aitool_telli\connector::get_custom_error_message
-     * @dataProvider error_message_provider
+     * @covers       \aitool_telli\connector::get_custom_error_message
+     * @dataProvider get_custom_error_message_provider
      * @param int $code The HTTP error code.
      * @param string $responsebody The response body JSON string.
      * @param string $exceptionmessage The exception message.
@@ -96,7 +96,7 @@ final class connector_test extends \advanced_testcase {
      *
      * @return array Test cases.
      */
-    public static function error_message_provider(): array {
+    public static function get_custom_error_message_provider(): array {
         return [
             // 400 errors - only "error" attribute (Imagen content filter).
             'error_400_german_unangemessen' => [
@@ -161,9 +161,10 @@ final class connector_test extends \advanced_testcase {
     private function create_mock_exception(string $responsebody, string $exceptionmessage): ClientExceptionInterface {
         $response = new Response(400, [], $responsebody);
 
-        $exception = new class ($exceptionmessage, $response) extends \Exception implements ClientExceptionInterface {
+        return new class ($exceptionmessage, $response) extends \Exception implements ClientExceptionInterface {
             /**
              * The response object.
+             *
              * @var Response
              */
             private Response $response;
@@ -189,7 +190,5 @@ final class connector_test extends \advanced_testcase {
                 return $this->response;
             }
         };
-
-        return $exception;
     }
 }
