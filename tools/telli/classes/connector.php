@@ -138,7 +138,7 @@ class connector extends base_connector {
 
         switch ($code) {
             case 400:
-                // For 400 errors: Check only "error" attribute (e.g., Imagen content filter).
+                // For 400 errors: Check only "error" attribute (e.g. Google Imagen content filter).
                 if (
                     !empty($responsebody) &&
                     property_exists($responsebody, 'error') &&
