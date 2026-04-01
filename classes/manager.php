@@ -274,6 +274,7 @@ class manager {
      * @param prompt_response $promptcompletion The prompt response object from which information will be extracted and stored
      *  in the log table
      * @param float $executiontime the duration that the request has taken
+     * @param request_options $requestoptions the request options object from which information will be extracted and stored
      * @return int the record id of the log record which has been stored to the database
      */
     public function log_request(

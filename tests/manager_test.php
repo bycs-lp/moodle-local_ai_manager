@@ -43,6 +43,9 @@ final class manager_test extends \advanced_testcase {
     /**
      * Tests the method perform_request.
      *
+     * @param array $configuration the configuration for this test case, see {@see self::perform_request_provider}
+     * @param int $expectedcode the expected http code result of the perform_request call
+     * @param string $message the expected message in the result of the perform_request call
      * @covers       \local_ai_manager\ai_manager::perform_request
      * @dataProvider perform_request_provider
      */

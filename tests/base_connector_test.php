@@ -31,6 +31,7 @@ final class base_connector_test extends \advanced_testcase {
     /**
      * Test if all connector plugins implement a model definition for each existing purpose.
      *
+     * @param string $purpose the purpose to check for
      * @covers \local_ai_manager\base_purpose::get_models_by_purpose
      * @dataProvider get_models_by_purpose_all_purposes_exist_provider
      */

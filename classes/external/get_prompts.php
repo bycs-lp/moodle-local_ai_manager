@@ -62,6 +62,7 @@ class get_prompts extends external_api {
      * @param int $contextid The context in which the prompts should be retrieved, should either be a course context or below or a
      *  tenant context
      * @param int $userid The id of the user to retrieve the prompts for
+     * @param int $time The unix time stamp since when prompts should be retrieved, if 0 all prompts will be retrieved
      *
      * @return array associative array containing the result of the request
      */

@@ -45,6 +45,7 @@ class purpose_usage {
     /**
      * Getter for the component/plugin display name.
      *
+     * @param string $component The component for which the display name should be retrieved
      * @return string The localized display name of the component
      */
     public function get_component_displayname(string $component): string {
