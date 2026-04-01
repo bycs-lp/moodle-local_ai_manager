@@ -49,4 +49,33 @@ class hook_callbacks {
         );
         $hook->get_primaryview()->add_node($node);
     }
+
+    /**
+     * Hook callback to add HTML to the footer before JS is finalized.
+     * This allows us to place some AI related information about the page for debugging.
+     * 
+     */
+    public static function before_footer_html_generation(\core\hook\output\before_footer_html_generation $hook): void {
+        $renderer = $hook->renderer;
+        // $output = $renderer->render_from_template('local_ai_manager/footer_info', []);
+        $output = '';// print_r($hook, true);
+        $msgs = [];
+        if (\aipurpose_rag\indexer_manager::is_rag_indexing_enabled()) {
+            $msgs[] = "RAG Indexing is enabled on this site.<br/>";
+
+            $cmid = $renderer->get_page()->activityrecord->id ?? null;
+            if ($cmid) {
+                $msgs[] = "This is a course module page with cmid {$cmid}.";
+                $cmconfig = \local_ai_manager\cmconfig::get_record(['cmid' => $cmid]);
+                $msgs[] = "RAG Indexing for this activity is " . 
+                    (($cmconfig && $cmconfig->get('intvalue') === 1) ? "ENABLED" : "DISABLED") . ".";
+            }
+            $collapsedata = [
+                "titlecontent" => "AI Manager Debug Info",
+                "sectioncontent" => \html_writer::alist($msgs)
+            ];
+            $hook->add_html($renderer->render_from_template('core/local/collapsable_section', $collapsedata));
+        }
+        
+    }
 }

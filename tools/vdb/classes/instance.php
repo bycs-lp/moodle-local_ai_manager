@@ -14,24 +14,27 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace aitool_vdb;
+
+use local_ai_manager\base_instance;
+
 /**
- * Hook listener callbacks.
+ * Instance class for vector database connector instances.
  *
- * @package    local_ai_manager
- * @copyright  2024 ISB Bayern
- * @author     Philipp Memmel
+ * This class provides VDB-specific configuration and form handling
+ * for vector database AI tool instances.
+ *
+ * @package    aitool_vdb
+ * @copyright  2025 University of Strathclyde
+ * @author     Michael Hughes
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+class instance extends base_instance {
 
-defined('MOODLE_INTERNAL') || die();
-
-$callbacks = [
-        [
-                'hook' => \core\hook\navigation\primary_extend::class,
-                'callback' => \local_ai_manager\local\hook_callbacks::class . '::extend_primary_navigation',
-        ],
-        [
-                'hook' => \core\hook\output\before_footer_html_generation::class,
-                'callback' => \local_ai_manager\local\hook_callbacks::class . '::before_footer_html_generation',
-        ]
-];
+    #[\Override]
+    protected function extend_form_definition(\MoodleQuickForm $mform): void {
+        // Add VDB-specific form fields if needed
+        // For now, we'll rely on the base instance configuration
+        // Subclasses can override this to add specific fields
+    }
+}
