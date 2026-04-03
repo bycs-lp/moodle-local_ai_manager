@@ -36,6 +36,9 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends \local_ai_manager\base_connector {
+    /** @var string Default OpenAI Chat Completions endpoint. */
+    public const DEFAULT_OPENAI_COMPLETIONS_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+
     #[\Override]
     public function get_models_by_purpose(): array {
         $chatgptmodels =
@@ -173,6 +176,11 @@ class connector extends \local_ai_manager\base_connector {
             $headers['api-key'] = $this->get_api_key();
         }
         return $headers;
+    }
+
+    #[\Override]
+    protected function get_endpoint_url(): string {
+        return $this->instance->get_endpoint() ?: self::DEFAULT_OPENAI_COMPLETIONS_ENDPOINT;
     }
 
     #[\Override]

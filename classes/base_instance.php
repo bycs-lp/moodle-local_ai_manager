@@ -533,6 +533,7 @@ class base_instance {
 
         $mform->addElement('text', 'endpoint', get_string('endpoint', 'local_ai_manager'), $textelementparams);
         $mform->setType('endpoint', PARAM_URL);
+        $mform->addElement('static', 'endpointdescription', '', '');
 
         if (get_config($connectorcomponentname, 'globalapikey')) {
             // Only show the "use global apikey" checkbox if there is a global apikey configured.
@@ -574,9 +575,7 @@ class base_instance {
      */
     final public function store_formdata(stdClass $data): void {
         $this->set_name(trim($data->name));
-        if (!empty($data->endpoint)) {
-            $this->set_endpoint(trim($data->endpoint));
-        }
+        $this->endpoint = !empty($data->endpoint) ? trim($data->endpoint) : null;
         $this->set_apikey(!empty($data->apikey) ? trim($data->apikey) : '');
         $this->set_useglobalapikey(!empty($data->useglobalapikey));
         $this->set_connector($data->connector);

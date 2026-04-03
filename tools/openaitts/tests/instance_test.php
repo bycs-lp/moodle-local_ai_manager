@@ -14,17 +14,29 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace aitool_openaitts;
+
 /**
- * Lang strings for aitool_openaitts - EN.
+ * Tests for the aitool_openaitts instance.
  *
  * @package    aitool_openaitts
- * @copyright  ISB Bayern, 2024
- * @author     Dr. Peter Mayer
+ * @copyright  2026 ISB Bayern
+ * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers     \aitool_openaitts\instance
  */
+final class instance_test extends \advanced_testcase {
+    public function test_extend_validation_requires_endpoint_for_azure(): void {
+        $instance = new instance();
+        $errors = (new \ReflectionMethod(instance::class, 'extend_validation'))->invoke(
+            $instance,
+            [
+                'azure_enabled' => 1,
+                'endpoint' => '',
+            ],
+            []
+        );
 
-$string['adddescription'] = 'TTS is a text-to-speech model developed by OpenAI';
-$string['endpointhint'] = 'Leave empty to use the default OpenAI endpoint. Fill in only to use a proxy or alternative API endpoint.';
-$string['endpointhint_azure'] = 'Enter the full endpoint URL from your Azure OpenAI resource, including deployment name and API version.';
-$string['pluginname'] = 'OpenAI TTS';
-$string['privacy:metadata'] = 'The local ai_manager tool subplugin "OpenAI TTS" does not store any personal data.';
+        $this->assertArrayHasKey('endpoint', $errors);
+    }
+}

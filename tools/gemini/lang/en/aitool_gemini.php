@@ -24,6 +24,8 @@
  */
 
 $string['adddescription'] = 'Gemini, Google DeepMind\'s AI model, combines advanced language models (LLMs) with tools and multimodal capabilities.';
+$string['endpointhint_googleai'] = 'Leave empty to use the auto-generated Google AI endpoint based on the model selected below. Fill in only to use a proxy or custom endpoint.';
+$string['endpointhint_vertexai'] = 'Leave empty to use the auto-generated Vertex AI endpoint based on the service account and model configured below. Fill in only to use a custom endpoint.';
 $string['googlebackend'] = 'Google Backend to use';
 $string['googlebackendgoogleai'] = 'Google AI';
 $string['googlebackendvertexai'] = 'Vertex AI';

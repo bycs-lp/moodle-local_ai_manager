@@ -47,9 +47,38 @@ class instance extends base_instance {
                 self::GOOGLE_BACKEND_VERTEXAI => get_string('googlebackendvertexai', 'aitool_gemini'),
             ]
         );
+        $backendelement = $mform->removeElement('googlebackend', false);
+        $mform->insertElementBefore($backendelement, 'endpoint');
         aitool_option_vertexai::extend_form_definition($mform);
         $mform->hideIf('serviceaccountjson', 'googlebackend', 'neq', 'vertexai');
+        $mform->hideIf('vertexcachestatus', 'googlebackend', 'neq', 'vertexai');
         $mform->hideIf('apikey', 'googlebackend', 'eq', 'vertexai');
+
+        $mform->getElement('endpointdescription')->setValue(
+            get_string('endpointhint_googleai', 'aitool_gemini')
+            . '<br>' . get_string(
+                'endpointexample',
+                'local_ai_manager',
+                'https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent'
+            )
+        );
+        $mform->hideIf('endpointdescription', 'googlebackend', 'neq', self::GOOGLE_BACKEND_GOOGLEAI);
+        $mform->insertElementBefore(
+            $mform->createElement(
+                'static',
+                'endpointdescription_vertexai',
+                '',
+                get_string('endpointhint_vertexai', 'aitool_gemini')
+                . '<br>' . get_string(
+                    'endpointexample',
+                    'local_ai_manager',
+                    'https://$REGION-aiplatform.googleapis.com/v1/projects/'
+                    . '$PROJECT_ID/locations/$REGION/publishers/google/models/$MODEL:generateContent'
+                )
+            ),
+            'endpointdescription'
+        );
+        $mform->hideIf('endpointdescription_vertexai', 'googlebackend', 'neq', self::GOOGLE_BACKEND_VERTEXAI);
 
         aitool_option_temperature::extend_form_definition($mform);
     }
@@ -78,12 +107,8 @@ class instance extends base_instance {
         $this->set_customfield1($temperature);
         $this->set_customfield2($data->googlebackend);
         if ($data->googlebackend === self::GOOGLE_BACKEND_VERTEXAI) {
-            [$serviceaccountjson, $baseendpoint] = aitool_option_vertexai::extract_vertexai_to_store($data);
+            [$serviceaccountjson] = aitool_option_vertexai::extract_vertexai_to_store($data);
             $this->set_customfield3($serviceaccountjson);
-            $this->set_endpoint($baseendpoint . ':generateContent');
-        } else {
-            $this->set_endpoint('https://generativelanguage.googleapis.com/v1beta/models/' . $this->get_model() .
-                ':generateContent');
         }
     }
 
@@ -94,6 +119,12 @@ class instance extends base_instance {
             $errors = array_merge($errors, aitool_option_vertexai::validate_vertexai($data));
         }
         $errors = array_merge($errors, aitool_option_temperature::validate_temperature($data));
+        // Google endpoint URLs encode the model name (e.g. ".../models/gemini-2.0-flash:generateContent").
+        // We require the selected model to appear in the custom URL to prevent mismatches, since the
+        // ai_manager architecture depends on knowing the active model at request time.
+        if (!empty($data['endpoint']) && !str_contains($data['endpoint'], $data['model'])) {
+            $errors['endpoint'] = get_string('formvalidation_editinstance_endpointmodelnotinurl', 'local_ai_manager');
+        }
         return $errors;
     }
 
