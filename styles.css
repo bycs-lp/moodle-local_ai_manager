@@ -212,12 +212,24 @@ body.limitcontentwidth #page-content {
     color: var(--bs-info-text-emphasis);
 }
 
+/* reduce Bootstrap's mb-3 gap between endpoint input and description (sibling in mebis, nested in boost) */
+#page-local-ai_manager-edit_instance #fitem_id_endpoint {
+    margin-bottom: 0.25rem !important;
+}
+
+/* both themes: tighten spacing around description rows */
+#page-local-ai_manager-edit_instance #fitem_id_endpointdescription,
+#page-local-ai_manager-edit_instance #fitem_id_endpointdescription_azure,
+#page-local-ai_manager-edit_instance #fitem_id_endpointdescription_vertexai {
+    margin-top: 0 !important;
+    margin-bottom: 0.75rem !important;
+}
+
 #page-local-ai_manager-edit_instance [data-name="endpointdescription"],
 #page-local-ai_manager-edit_instance [data-name="endpointdescription_azure"],
 #page-local-ai_manager-edit_instance [data-name="endpointdescription_vertexai"] {
-    color: var(--color-text-muted);
+    color: var(--bs-secondary-color);
     font-size: 14px;
-    margin-top: -1.5rem;
     word-break: break-word;
 }
 
@@ -225,4 +237,5 @@ body.limitcontentwidth #page-content {
 #page-local-ai_manager-edit_instance [data-name="endpointdescription_azure"] .col-md-9,
 #page-local-ai_manager-edit_instance [data-name="endpointdescription_vertexai"] .col-md-9 {
     padding-left: 0;
+    padding-top: 0;
 }

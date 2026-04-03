@@ -23,7 +23,7 @@ namespace aitool_openaitts;
  * @copyright  2026 ISB Bayern
  * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers \aitool_openaitts\instance
+ * @covers     \aitool_openaitts\instance
  */
 final class instance_test extends \advanced_testcase {
     public function test_extend_validation_requires_endpoint_for_azure(): void {

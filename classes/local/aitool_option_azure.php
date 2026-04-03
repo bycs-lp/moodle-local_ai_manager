@@ -36,6 +36,8 @@ class aitool_option_azure {
     public static function extend_form_definition(\MoodleQuickForm $mform, bool $showmodel = false): void {
         $mform->addElement('selectyesno', 'azure_enabled', get_string('use_openai_by_azure_heading', 'local_ai_manager'));
         $mform->setDefault('azure_enabled', false);
+        $azureelement = $mform->removeElement('azure_enabled', false);
+        $mform->insertElementBefore($azureelement, 'endpoint');
         if (!$showmodel) {
             $mform->hideIf('model', 'azure_enabled', 'eq', '1');
         }

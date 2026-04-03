@@ -23,7 +23,7 @@ namespace aitool_googlesynthesize;
  * @copyright  2026 ISB Bayern
  * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers \aitool_googlesynthesize\connector
+ * @covers     \aitool_googlesynthesize\connector
  */
 final class connector_test extends \advanced_testcase {
     /**
@@ -44,6 +44,9 @@ final class connector_test extends \advanced_testcase {
         return new connector($instance);
     }
 
+    /**
+     * Tests that get_endpoint_url returns the default endpoint when instance endpoint is empty.
+     */
     public function test_get_endpoint_url_returns_default_when_empty(): void {
         $this->assertEquals(
             connector::DEFAULT_GOOGLE_SYNTHESIZE_ENDPOINT,
@@ -51,6 +54,9 @@ final class connector_test extends \advanced_testcase {
         );
     }
 
+    /**
+     * Tests that get_endpoint_url returns the custom endpoint when instance endpoint is set.
+     */
     public function test_get_endpoint_url_returns_custom_when_set(): void {
         $customurl = 'https://my-proxy.example.com/v1/text:synthesize';
         $this->assertEquals(

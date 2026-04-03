@@ -23,7 +23,7 @@ namespace aitool_dalle;
  * @copyright  2026 ISB Bayern
  * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers \aitool_dalle\connector
+ * @covers     \aitool_dalle\connector
  */
 final class connector_test extends \advanced_testcase {
     /**
@@ -46,7 +46,7 @@ final class connector_test extends \advanced_testcase {
 
     public function test_get_endpoint_url_returns_default_when_empty(): void {
         $this->assertEquals(
-            connector::DEFAULT_DALLE_COMPLETIONS_ENDPOINT,
+            connector::DEFAULT_DALLE_GENERATIONS_ENDPOINT,
             $this->call_get_endpoint_url($this->make_connector(''))
         );
     }
