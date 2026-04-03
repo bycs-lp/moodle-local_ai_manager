@@ -32,29 +32,22 @@ class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
         aitool_option_azure::extend_form_definition($mform, true);
-        $azureelement = $mform->removeElement('azure_enabled', false);
-        $mform->insertElementBefore($azureelement, 'endpoint');
-        $mform->setDefault('azure_enabled', false);
-        $defaultendpoint = connector::DEFAULT_OPENAI_TTS_ENDPOINT;
-        $mform->getElement('endpointdescription')->setValue(
-            get_string('endpointhint', 'aitool_openaitts')
-            . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)
-        );
+        $endpointdescription = get_string('endpointhint', 'aitool_openaitts')
+            . '<br>' . get_string('endpointdefault', 'local_ai_manager', connector::DEFAULT_OPENAI_TTS_ENDPOINT);
+        $mform->getElement('endpointdescription')->setValue($endpointdescription);
         $mform->hideIf('endpointdescription', 'azure_enabled', 'eq', '1');
-        $mform->insertElementBefore(
-            $mform->createElement(
-                'static',
-                'endpointdescription_azure',
-                '',
-                get_string('endpointhint_azure', 'aitool_openaitts')
-                . '<br>' . get_string(
-                    'endpointexample',
-                    'local_ai_manager',
-                    'https://$RESOURCE.openai.azure.com/openai/deployments/$DEPLOYMENT_ID/audio/speech?api-version=$API_VERSION'
-                )
-            ),
-            'endpointdescription'
+        $endpointdescriptionazure = $mform->createElement(
+            'static',
+            'endpointdescription_azure',
+            '',
+            get_string('endpointhint_azure', 'aitool_openaitts')
+            . '<br>' . get_string(
+                'endpointexample',
+                'local_ai_manager',
+                'https://$RESOURCE.openai.azure.com/openai/deployments/$DEPLOYMENT_ID/audio/speech?api-version=$API_VERSION'
+            )
         );
+        $mform->insertElementBefore($endpointdescriptionazure, 'endpointdescription');
         $mform->hideIf('endpointdescription_azure', 'azure_enabled', 'neq', '1');
     }
 

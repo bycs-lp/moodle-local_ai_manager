@@ -33,6 +33,8 @@ class instance extends base_instance {
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
         aitool_option_vertexai::extend_form_definition($mform);
         // Condition is always true, but there does not seem to be an easy way to always hide an element.
+        // Imagen is only accessible via VertexAI using the service account JSON for authentication,
+        // so we do not need an API key element here.
         $mform->hideIf('apikey', 'connector', 'imagen');
         $mform->getElement('endpointdescription')->setValue(
             get_string('endpointhint_vertexai', 'aitool_imagen')

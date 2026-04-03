@@ -36,7 +36,7 @@ use Psr\Http\Message\StreamInterface;
  */
 class connector extends base_connector {
     /** @var string Default DALL-E image generations endpoint. */
-    public const DEFAULT_DALLE_COMPLETIONS_ENDPOINT = 'https://api.openai.com/v1/images/generations';
+    public const DEFAULT_DALLE_GENERATIONS_ENDPOINT = 'https://api.openai.com/v1/images/generations';
     #[\Override]
     public function get_models_by_purpose(): array {
         $modelsbypurpose = base_purpose::get_installed_purposes_array();
@@ -93,7 +93,7 @@ class connector extends base_connector {
 
     #[\Override]
     protected function get_endpoint_url(): string {
-        return $this->instance->get_endpoint() ?: self::DEFAULT_DALLE_COMPLETIONS_ENDPOINT;
+        return $this->instance->get_endpoint() ?: self::DEFAULT_DALLE_GENERATIONS_ENDPOINT;
     }
 
     #[\Override]

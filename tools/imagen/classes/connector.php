@@ -88,6 +88,9 @@ class connector extends base_connector {
         if ($this->instance->get_endpoint()) {
             return $this->instance->get_endpoint();
         }
+        // The service account JSON (customfield1) is required to compose the VertexAI endpoint URL.
+        // Returning an empty string here causes the request to fail with a proper error instead of
+        // sending to an incorrect endpoint.
         if (empty($this->instance->get_customfield1())) {
             return '';
         }

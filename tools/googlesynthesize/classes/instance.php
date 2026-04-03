@@ -31,10 +31,9 @@ use local_ai_manager\local\aitool_option_vertexai;
 class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
-        $defaultendpoint = connector::DEFAULT_GOOGLE_SYNTHESIZE_ENDPOINT;
         $mform->getElement('endpointdescription')->setValue(
             get_string('endpointhint', 'aitool_googlesynthesize')
-            . '<br>' . get_string('endpointdefault', 'local_ai_manager', $defaultendpoint)
+            . '<br>' . get_string('endpointdefault', 'local_ai_manager', connector::DEFAULT_GOOGLE_SYNTHESIZE_ENDPOINT)
         );
     }
 }
