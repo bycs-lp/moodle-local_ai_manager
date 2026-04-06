@@ -37,6 +37,7 @@ class tenant {
      * Tenant class constructor.
      *
      * @param string $identifier the tenant identifier; if left empty, the default tenant is being used
+     * @throws \invalid_parameter_exception If the provided identifier is invalid
      */
     public function __construct(string $identifier = '') {
         global $USER;
@@ -47,6 +48,16 @@ class tenant {
                 $identifier = self::DEFAULT_IDENTIFIER;
             }
         }
+
+        if ($identifier !== trim($identifier)) {
+            throw new \invalid_parameter_exception('Tenant identifier must not contain leading or trailing whitespaces.');
+        }
+        if (!preg_match('/^[A-Za-z0-9_\- ]+$/', $identifier)) {
+            throw new \invalid_parameter_exception(
+                'Tenant identifiers may only contain alphanumeric letters, hyphens, underscores or blank spaces.'
+            );
+        }
+
         $this->identifier = $identifier;
     }
 
