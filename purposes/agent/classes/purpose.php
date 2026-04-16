@@ -71,25 +71,30 @@ class purpose extends base_purpose {
         );
         $formattedprompt = str_replace('{{pageid}}', $this->storedoptions['agentoptions']['pageid'], $formattedprompt);
 
-        $currentconversationcontext = $options['conversationcontext'] ?? [];
-        $conversationcontext = $currentconversationcontext;
+        // Build the conversation context:
+        // 1. Agent prompt as system message (always first).
+        // 2. Additional context if available.
+        // 3. Conversation history from previous messages.
+        // The user's current prompt (prompttext) is appended by the connector automatically.
+        $conversationcontext = [];
 
+        // Append additional context to the system prompt if available.
         if (!empty($this->storedoptions['agentoptions']['additionalcontext'])) {
-            $additionalcontextstext = $this->storedoptions['agentoptions']['additionalcontext'];
-            $additionalcontextstext =
-                'Here is some additional context for the assignment the next prompt will give you:'
-                . PHP_EOL . PHP_EOL
-                . $additionalcontextstext;
-            $conversationcontext[] = [
-                'sender' => 'user',
-                'message' => $additionalcontextstext,
-            ];
+            $formattedprompt .= "\n\n\n# Additional context\n\n"
+                . 'Here is some additional context for the assignment the user prompt will give you:'
+                . "\n\n"
+                . $this->storedoptions['agentoptions']['additionalcontext'];
         }
 
+        // Agent prompt (including additional context) as system instruction.
         $conversationcontext[] = [
-            'sender' => 'user',
+            'sender' => 'system',
             'message' => $formattedprompt,
         ];
+
+        // Append the conversation history after the system prompt and additional context.
+        $currentconversationcontext = $options['conversationcontext'] ?? [];
+        $conversationcontext = array_merge($conversationcontext, $currentconversationcontext);
 
         return ['conversationcontext' => $conversationcontext];
     }
@@ -205,7 +210,7 @@ class purpose extends base_purpose {
         }
 
         // Checking the formelements in the response.
-        if (!empty($formelements)) {
+        if (!empty($outputrecord['formelements'])) {
             // We only do this if we have non-empty formelements. AI Instructions also allow to return empty formelements and
             // put a question/answer only in the chatoutput to ask for more/more detailed information by the user.
             // Therefore, we do not return an error if formelements are missing.
@@ -319,5 +324,74 @@ class purpose extends base_purpose {
         }
 
         return $normalized;
+    }
+
+    /**
+     * Returns the default value for the agentprompt setting.
+     *
+     * This is only being used on install to inject into the admin setting. After that the admin setting is being used.
+     *
+     * @return string The default agent prompt.
+     */
+    public static function get_default_agentprompt(): string {
+        return <<<EOF
+This system prompt has the following structure:
+
+* Model instructions
+* Form structure, current values & help strings
+optional: * Additional context
+
+# Model instructions
+
+I'll pass you Moodle help texts and form elements related to the page with id {{pageid}}. This prompt will be followed by a list
+ of prompt and prompt completion pairs as conversation context. Based on the user prompt which will be the last user message give
+ suggestions on how to populate the input fields. You can ask follow-up questions from the user if needed.
+ Answer always in the language of the user prompt (the last prompt). If the language cannot be determined, use {{currentlang}}.
+
+This is an example output JSON:
+
+{
+    "formelements": [
+        {
+            "id": "id_name",
+            "label": "the label that has been sent as context to you for this element",
+            "name": "name",
+            "newValue": "",
+            "explanation": ""
+        },
+    ],
+    "chatoutput": [
+        {
+            "type": "intro",
+            "text": "introtext"
+        },
+        {
+            "type": "outro",
+            "text": "outrotext"
+        }
+    ]
+}
+
+"newValue" is the new value that you suggest, and "explanation" is the reasoning shown to the user. All single objects in the
+ "formelements" array always must have the exact same structure which means they must have all of the 5 attributes.
+
+Do not suggest settings that depend on other course contexts that you are not aware of, unless the user provides this information
+ in the following message.
+Do not create an entry for values that are already set according to your suggestions, but include them later on in the intro or
+ outro attributes of the return JSON.
+
+In addition to formelements, the JSON has another key called "chatoutput". All your output to the user should be put there:
+"introtext" is what you are outputting before the formelements, describing briefly why you chose the settings like you did and
+ include some explanation of the settings that are already set according to your suggestion instead of including them in the
+ object of the formfields attribute in the JSON.
+"outrotext" is what you are outputting after the formelements, for example, for a helpful followup question.
+
+All of your output MUST ALWAYS be inside the JSON structure.
+DO ONLY RETURN A VALID JSON OBJECT.
+
+# Form structure, current values & help strings, encoded as JSON string
+
+{{formelementsjson}}
+EOF;
     }
 }

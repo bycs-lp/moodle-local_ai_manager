@@ -1311,4 +1311,206 @@ final class purpose_test extends \advanced_testcase {
             $this->assertArrayNotHasKey('suggestiondisplayvalue', $outputelement);
         }
     }
+
+    /**
+     * Test that get_additional_request_options returns the correct message order:
+     * 1. System message (agent prompt + additional context)
+     * 2. Conversation history
+     * The user's prompttext is appended by the connector, not by the purpose.
+     *
+     * @covers ::get_additional_request_options
+     */
+    public function test_get_additional_request_options_message_order_without_history(): void {
+        $this->resetAfterTest();
+
+        set_config('agentprompt', 'You are a helpful agent for {{pageid}}. Language: {{currentlang}}. '
+            . 'Elements: {{formelementsjson}}', 'aipurpose_agent');
+
+        $purpose = new purpose();
+        $options = [
+            'agentoptions' => [
+                'formelements' => [
+                    ['id' => 'id_name', 'name' => 'name', 'label' => 'Name'],
+                ],
+                'pageid' => 'page-mod-assign-mod',
+            ],
+        ];
+
+        $result = $purpose->get_additional_request_options($options);
+
+        $this->assertArrayHasKey('conversationcontext', $result);
+        $context = $result['conversationcontext'];
+
+        // Should have exactly 1 message: system prompt.
+        $this->assertCount(1, $context);
+
+        // First message must be system.
+        $this->assertEquals('system', $context[0]['sender']);
+        $this->assertStringContainsString('page-mod-assign-mod', $context[0]['message']);
+        $this->assertStringContainsString('id_name', $context[0]['message']);
+        // Without additional context, the additional context section must not be present.
+        $this->assertStringNotContainsString('# Additional context', $context[0]['message']);
+    }
+
+    /**
+     * Test that get_additional_request_options returns the correct message order with conversation history:
+     * 1. System message (agent prompt)
+     * 2. Conversation history (user/ai pairs)
+     *
+     * @covers ::get_additional_request_options
+     */
+    public function test_get_additional_request_options_message_order_with_history(): void {
+        $this->resetAfterTest();
+
+        set_config('agentprompt', 'System prompt. Elements: {{formelementsjson}} Page: {{pageid}} '
+            . 'Lang: {{currentlang}}', 'aipurpose_agent');
+
+        $purpose = new purpose();
+        $conversationhistory = [
+            ['sender' => 'user', 'message' => 'Please fill in the form.'],
+            ['sender' => 'ai', 'message' => '{"formelements":[],"chatoutput":[{"type":"intro","text":"Done."}]}'],
+            ['sender' => 'user', 'message' => 'Now change the name.'],
+            ['sender' => 'ai', 'message' => '{"formelements":[],"chatoutput":[{"type":"intro","text":"OK."}]}'],
+        ];
+
+        $options = [
+            'agentoptions' => [
+                'formelements' => [
+                    ['id' => 'id_name', 'name' => 'name', 'label' => 'Name'],
+                ],
+                'pageid' => 'page-mod-assign-mod',
+            ],
+            'conversationcontext' => $conversationhistory,
+        ];
+
+        $result = $purpose->get_additional_request_options($options);
+        $context = $result['conversationcontext'];
+
+        // Should have 5 messages: 1 system + 4 history.
+        $this->assertCount(5, $context);
+
+        // First message must be system (agent prompt).
+        $this->assertEquals('system', $context[0]['sender']);
+        $this->assertStringContainsString('System prompt', $context[0]['message']);
+
+        // Messages 2-5 must be the conversation history in original order.
+        $this->assertEquals('user', $context[1]['sender']);
+        $this->assertEquals('Please fill in the form.', $context[1]['message']);
+        $this->assertEquals('ai', $context[2]['sender']);
+        $this->assertEquals('user', $context[3]['sender']);
+        $this->assertEquals('Now change the name.', $context[3]['message']);
+        $this->assertEquals('ai', $context[4]['sender']);
+    }
+
+    /**
+     * Test that additional context is included in the system prompt message, not as a separate user message.
+     *
+     * @covers ::get_additional_request_options
+     */
+    public function test_get_additional_request_options_additional_context_in_system_prompt(): void {
+        $this->resetAfterTest();
+
+        set_config('agentprompt', 'Agent instructions. Elements: {{formelementsjson}} Page: {{pageid}} '
+            . 'Lang: {{currentlang}}', 'aipurpose_agent');
+
+        $purpose = new purpose();
+        $conversationhistory = [
+            ['sender' => 'user', 'message' => 'First user message.'],
+            ['sender' => 'ai', 'message' => 'First AI response.'],
+        ];
+
+        $options = [
+            'agentoptions' => [
+                'formelements' => [
+                    ['id' => 'id_name', 'name' => 'name', 'label' => 'Name'],
+                ],
+                'pageid' => 'page-mod-assign-mod',
+                'additionalcontext' => 'This course is about mathematics and has 30 students.',
+            ],
+            'conversationcontext' => $conversationhistory,
+        ];
+
+        $result = $purpose->get_additional_request_options($options);
+        $context = $result['conversationcontext'];
+
+        // Should have 3 messages: 1 system (with additional context) + 2 history.
+        $this->assertCount(3, $context);
+
+        // First message must be system and must contain both agent prompt and additional context.
+        $this->assertEquals('system', $context[0]['sender']);
+        $this->assertStringContainsString('Agent instructions', $context[0]['message']);
+        // The additional context section must have the correct header.
+        $this->assertStringContainsString('# Additional context', $context[0]['message']);
+        $this->assertStringContainsString(
+            'Here is some additional context for the assignment the user prompt will give you:',
+            $context[0]['message']
+        );
+        // The actual additional context text must be present.
+        $this->assertStringContainsString('This course is about mathematics and has 30 students.', $context[0]['message']);
+
+        // No consecutive user messages — history starts after system.
+        $this->assertEquals('user', $context[1]['sender']);
+        $this->assertEquals('First user message.', $context[1]['message']);
+        $this->assertEquals('ai', $context[2]['sender']);
+    }
+
+    /**
+     * Test that no consecutive user messages exist in the conversation context.
+     * This is important because some LLMs (e.g. Gemini) do not support consecutive messages with the same role.
+     *
+     * @covers ::get_additional_request_options
+     */
+    public function test_get_additional_request_options_no_consecutive_user_messages(): void {
+        $this->resetAfterTest();
+
+        set_config('agentprompt', 'Prompt. {{formelementsjson}} {{pageid}} {{currentlang}}', 'aipurpose_agent');
+
+        $purpose = new purpose();
+        $options = [
+            'agentoptions' => [
+                'formelements' => [
+                    ['id' => 'id_test', 'name' => 'test', 'label' => 'Test'],
+                ],
+                'pageid' => 'page-test',
+                'additionalcontext' => 'Some extra context.',
+            ],
+            'conversationcontext' => [
+                ['sender' => 'user', 'message' => 'Hello.'],
+                ['sender' => 'ai', 'message' => 'Hi.'],
+            ],
+        ];
+
+        $result = $purpose->get_additional_request_options($options);
+        $context = $result['conversationcontext'];
+
+        // Verify no two consecutive messages have the same non-system sender.
+        $previoussender = null;
+        foreach ($context as $index => $message) {
+            if ($message['sender'] !== 'system' && $previoussender !== null && $previoussender !== 'system') {
+                $this->assertNotEquals(
+                    $previoussender,
+                    $message['sender'],
+                    "Consecutive messages with same sender '{$message['sender']}' at index {$index}"
+                );
+            }
+            $previoussender = $message['sender'];
+        }
+    }
+
+    /**
+     * Test that missing formelements returns empty array.
+     *
+     * @covers ::get_additional_request_options
+     */
+    public function test_get_additional_request_options_missing_formelements_returns_empty(): void {
+        $purpose = new purpose();
+        $options = [
+            'agentoptions' => [
+                'pageid' => 'page-test',
+            ],
+        ];
+
+        $result = $purpose->get_additional_request_options($options);
+        $this->assertEmpty($result);
+    }
 }
