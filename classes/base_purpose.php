@@ -175,14 +175,49 @@ class base_purpose {
         $output = str_replace('\\)', '\\\\)', $output);
         $output = str_replace('\\[', '\\\\[', $output);
         $output = str_replace('\\]', '\\\\]', $output);
-        return format_text($output, FORMAT_MARKDOWN, ['filter' => false]);
+
+        return $this->format_ai_markdown_output($output, ['filter' => false, 'newlines' => false]);
+    }
+
+    /**
+     * Converts markdown text to sanitized HTML.
+     *
+     * First converts markdown to HTML using Moodle's core markdown_to_html() function,
+     * then sanitizes the result with format_text() to prevent XSS from raw HTML
+     * that the LLM might return.
+     *
+     * @param string $markdown The markdown text to convert.
+     * @param array $options Additional options to pass to format_text().
+     * @return string The sanitized HTML output.
+     */
+    public function format_ai_markdown_output(string $markdown, array $options = []): string {
+        // Ensure blank lines around fenced code blocks inside list items.
+        // PHP Markdown Extra only correctly parses fenced code blocks (including language identifiers)
+        // inside "loose" list items (separated by blank lines). Without blank lines,
+        // fenced code blocks are either rendered without <pre> or completely broken.
+        // We normalize by:
+        // 1. Adding a blank line before every list item marker (* or -) to make all list items "loose".
+        $markdown = preg_replace('/(?<!\n)\n(\s*[\*\-]\s)/', "\n\n$1", $markdown);
+        // 2. Adding a blank line before fenced code block openings with language identifiers
+        // (e.g. html) that directly follow a non-empty line. Code blocks without language
+        // identifiers work correctly without this fix.
+        $markdown = preg_replace('/(?<!\n)\n(\s*\x60{3}\w)/', "\n\n$1", $markdown);
+
+        // Use Moodle's core markdown_to_html() function.
+        // It uses MarkdownExtra which already escapes HTML inside code blocks by default.
+        $html = markdown_to_html($markdown);
+
+        // Apply Moodle output function for both sanitizing and other Moodle specific formatting.
+        // Previously converted markdown-generated structure is being preserved.
+        // This prevents XSS from raw HTML that the LLM might return.
+        return format_text($html, FORMAT_HTML, $options);
     }
 
     /**
      * Formats the given prompt text based on the provided sanitized options.
      *
      * @param string $prompttext The prompt text to be formatted.
-     * @param array $sanitizedoptions An array of sanitized options for formatting.
+     * @param request_options $requestoptions The request options objects.
      *
      * @return string The formatted prompt text as string.
      */
