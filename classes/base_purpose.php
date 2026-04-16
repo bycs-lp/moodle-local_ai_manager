@@ -217,7 +217,7 @@ class base_purpose {
      * Formats the given prompt text based on the provided sanitized options.
      *
      * @param string $prompttext The prompt text to be formatted.
-     * @param array $sanitizedoptions An array of sanitized options for formatting.
+     * @param request_options $requestoptions The request options objects.
      *
      * @return string The formatted prompt text as string.
      */
