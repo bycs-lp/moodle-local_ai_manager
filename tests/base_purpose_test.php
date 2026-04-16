@@ -312,6 +312,7 @@ final class base_purpose_test extends \advanced_testcase {
      */
     public static function format_ai_markdown_output_provider(): array {
         $codeblock = "\x60\x60\x60";
+        $backtick = "\x60";
 
         return [
             'html_with_js_in_code_block' => [
@@ -477,6 +478,109 @@ final class base_purpose_test extends \advanced_testcase {
                 'mustnotcontain' => [
                     '<div class=',
                     '<button onclick=',
+                ],
+            ],
+            'fenced_code_block_with_lang_in_list_loose' => [
+                'input' => '*   **HTML:**' . "\n"
+                    . '    ' . $codeblock . 'html' . "\n"
+                    . '    <div>hello</div>' . "\n"
+                    . '    ' . $codeblock . "\n"
+                    . "\n"
+                    . '*   **Python:**' . "\n"
+                    . '    ' . $codeblock . 'python' . "\n"
+                    . '    print("hi")' . "\n"
+                    . '    ' . $codeblock,
+                'mustcontain' => [
+                    '<pre>',
+                    '<code class="html"',
+                    '&lt;div&gt;hello&lt;/div&gt;',
+                    '<code class="python"',
+                    'print("hi")',
+                ],
+                'mustnotcontain' => [
+                    '<div>hello</div>',
+                    $codeblock . 'html',
+                    $codeblock . 'python',
+                ],
+            ],
+            'fenced_code_block_with_lang_in_list_tight' => [
+                'input' => '*   **HTML:**' . "\n"
+                    . '    ' . $codeblock . 'html' . "\n"
+                    . '    <div>hello</div>' . "\n"
+                    . '    ' . $codeblock . "\n"
+                    . '*   **Python:**' . "\n"
+                    . '    ' . $codeblock . 'python' . "\n"
+                    . '    print("hi")' . "\n"
+                    . '    ' . $codeblock,
+                'mustcontain' => [
+                    '<pre>',
+                    '<code class="html"',
+                    '&lt;div&gt;hello&lt;/div&gt;',
+                    '<code class="python"',
+                    'print("hi")',
+                ],
+                'mustnotcontain' => [
+                    '<div>hello</div>',
+                    $codeblock . 'html',
+                    $codeblock . 'python',
+                ],
+            ],
+            'fenced_code_block_without_lang_in_list_tight' => [
+                'input' => '* Item 1:' . "\n"
+                    . '    ' . $codeblock . "\n"
+                    . '    echo "hello";' . "\n"
+                    . '    ' . $codeblock . "\n"
+                    . '* Item 2:' . "\n"
+                    . '    ' . $codeblock . "\n"
+                    . '    print("world")' . "\n"
+                    . '    ' . $codeblock,
+                'mustcontain' => [
+                    '<pre>',
+                    '<code>',
+                    'echo "hello";',
+                    'print("world")',
+                ],
+                'mustnotcontain' => [
+                    $codeblock,
+                ],
+            ],
+            'inline_code_not_wrapped_in_pre' => [
+                'input' => 'Use ' . $backtick . 'echo "hello"' . $backtick
+                    . ' to print and ' . $backtick . 'print("world")' . $backtick . ' in Python.',
+                'mustcontain' => [
+                    '<code>echo "hello"</code>',
+                    '<code>print("world")</code>',
+                ],
+                'mustnotcontain' => [
+                    '<pre><code>echo',
+                    '<pre><code>print',
+                ],
+            ],
+            'mixed_list_code_blocks_and_inline_code' => [
+                'input' => 'Run ' . $backtick . 'npm install' . $backtick . ' first, then:' . "\n\n"
+                    . '*   **JavaScript:**' . "\n"
+                    . '    ' . $codeblock . 'javascript' . "\n"
+                    . '    console.log("Hello");' . "\n"
+                    . '    ' . $codeblock . "\n"
+                    . '*   **Python:**' . "\n"
+                    . '    ' . $codeblock . 'python' . "\n"
+                    . '    print("Hello")' . "\n"
+                    . '    ' . $codeblock . "\n\n"
+                    . 'Use ' . $backtick . 'node app.js' . $backtick . ' to start.',
+                'mustcontain' => [
+                    '<code>npm install</code>',
+                    '<code>node app.js</code>',
+                    '<code class="javascript"',
+                    'console.log("Hello")',
+                    '<code class="python"',
+                    'print("Hello")',
+                    '<pre>',
+                ],
+                'mustnotcontain' => [
+                    '<pre><code>npm install',
+                    '<pre><code>node app.js',
+                    $codeblock . 'javascript',
+                    $codeblock . 'python',
                 ],
             ],
         ];
