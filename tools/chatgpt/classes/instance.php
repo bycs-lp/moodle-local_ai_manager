@@ -32,8 +32,8 @@ use stdClass;
 class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
-        aitool_option_temperature::extend_form_definition($mform, ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini']);
-        aitool_option_azure::extend_form_definition($mform);
+        aitool_option_temperature::extend_form_definition($mform, ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'], 'chatgpt');
+        aitool_option_azure::extend_form_definition($mform, false, 'chatgpt');
     }
 
     #[\Override]

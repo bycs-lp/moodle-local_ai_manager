@@ -489,6 +489,34 @@ class base_instance {
     }
 
     /**
+     * Adds a help button to a form element with subplugin override fallback.
+     *
+     * Checks if the subplugin (aitool_<connector>) defines a lang string '<identifier>_help'.
+     * If it does, the subplugin's string is used. Otherwise, the default from local_ai_manager is used.
+     * If neither component defines the help string, no help button is added.
+     *
+     * @param \MoodleQuickForm $mform The form object.
+     * @param string $elementname The name of the form element to attach the help button to.
+     * @param string $identifier The identifier for the help string (Moodle appends '_help' automatically).
+     * @param string $connector The connector name (e.g. 'chatgpt', 'dalle').
+     */
+    public static function add_help_button_with_fallback(
+        \MoodleQuickForm $mform,
+        string $elementname,
+        string $identifier,
+        string $connector
+    ): void {
+        $stringmanager = get_string_manager();
+        $subplugincomponent = 'aitool_' . $connector;
+
+        if ($stringmanager->string_exists($identifier . '_help', $subplugincomponent)) {
+            $mform->addHelpButton($elementname, $identifier, $subplugincomponent);
+        } else if ($stringmanager->string_exists($identifier . '_help', 'local_ai_manager')) {
+            $mform->addHelpButton($elementname, $identifier, 'local_ai_manager');
+        }
+    }
+
+    /**
      * Function to extend the form data stdClass.
      *
      * Should be overwritten by subclasses to pass additional data to the configuration form when the form is loaded.
@@ -507,8 +535,12 @@ class base_instance {
      */
     final public function edit_form_definition(\MoodleQuickForm $mform, array $customdata): void {
         $textelementparams = ['style' => 'width: 100%'];
+        $connector = $customdata['connector'];
+
         $mform->addElement('text', 'name', get_string('instancename', 'local_ai_manager'), $textelementparams);
         $mform->setType('name', PARAM_TEXT);
+        self::add_help_button_with_fallback($mform, 'name', 'instancename', $connector);
+
         $mform->addElement('text', 'tenant', get_string('tenant', 'local_ai_manager'), $textelementparams);
         $mform->setType('tenant', PARAM_ALPHANUM);
         if (empty($this->_customdata['id'])) {
@@ -518,7 +550,6 @@ class base_instance {
             $mform->freeze('tenant');
         }
 
-        $connector = $customdata['connector'];
         $mform->addElement('hidden', 'connector', $connector);
         $connectorfactory = \core\di::get(connector_factory::class);
         $connectorcomponentname =
@@ -533,10 +564,9 @@ class base_instance {
 
         $mform->addElement('text', 'endpoint', get_string('endpoint', 'local_ai_manager'), $textelementparams);
         $mform->setType('endpoint', PARAM_URL);
+        self::add_help_button_with_fallback($mform, 'endpoint', 'endpoint', $connector);
 
         if (get_config($connectorcomponentname, 'globalapikey')) {
-            // Only show the "use global apikey" checkbox if there is a global apikey configured.
-            // Otherwise, it would not make sense to show that option.
             $mform->addElement(
                 'advcheckbox',
                 'useglobalapikey',
@@ -549,6 +579,7 @@ class base_instance {
 
         $mform->addElement('passwordunmask', 'apikey', get_string('apikey', 'local_ai_manager'), $textelementparams);
         $mform->setType('apikey', PARAM_TEXT);
+        self::add_help_button_with_fallback($mform, 'apikey', 'apikey', $connector);
 
         $classname = '\\aitool_' . $connector . '\\connector';
         $connectorobject = \core\di::get($classname);
@@ -560,9 +591,11 @@ class base_instance {
             $availablemodels[$modelname] = $modelname;
         }
         $mform->addElement('select', 'model', get_string('model', 'local_ai_manager'), $availablemodels, $textelementparams);
+        self::add_help_button_with_fallback($mform, 'model', 'model', $connector);
 
         $mform->addElement('text', 'infolink', get_string('infolink', 'local_ai_manager'), $textelementparams);
         $mform->setType('infolink', PARAM_URL);
+        self::add_help_button_with_fallback($mform, 'infolink', 'infolink', $connector);
 
         $this->extend_form_definition($mform);
     }

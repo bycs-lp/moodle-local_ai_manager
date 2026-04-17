@@ -32,7 +32,7 @@ use stdClass;
 class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
-        aitool_option_azure::extend_form_definition($mform, true);
+        aitool_option_azure::extend_form_definition($mform, true, 'openaitts');
     }
 
     #[\Override]
