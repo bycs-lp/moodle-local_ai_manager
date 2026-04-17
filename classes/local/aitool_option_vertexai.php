@@ -32,8 +32,9 @@ class aitool_option_vertexai {
      * Extends the form definition of the edit instance form by adding the Vertex AI options.
      *
      * @param \MoodleQuickForm $mform the mform object
+     * @param string $connector the connector name for help button fallback resolution
      */
-    public static function extend_form_definition(\MoodleQuickForm $mform): void {
+    public static function extend_form_definition(\MoodleQuickForm $mform, string $connector = ''): void {
         global $OUTPUT;
         $mform->freeze('endpoint');
         $mform->addElement(
@@ -42,6 +43,17 @@ class aitool_option_vertexai {
             get_string('serviceaccountjson', 'local_ai_manager'),
             ['rows' => '20']
         );
+        if (!empty($connector)) {
+            \local_ai_manager\base_instance::add_help_button_with_fallback(
+                $mform,
+                'serviceaccountjson',
+                'serviceaccountjson',
+                $connector
+            );
+        } else {
+            $mform->addHelpButton('serviceaccountjson', 'serviceaccountjson', 'local_ai_manager');
+        }
+
         $vertexcachestatushtml = $OUTPUT->render_from_template('local_ai_manager/vertexcachestatus', ['noStatus' => true]);
         $mform->addElement(
             'static',

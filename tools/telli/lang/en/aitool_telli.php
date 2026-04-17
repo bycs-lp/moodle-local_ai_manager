@@ -24,12 +24,14 @@
  */
 $string['adddescription'] = 'The Telli API provides different AI models for German schools.';
 $string['apikey'] = 'API key';
+$string['apikey_help'] = 'The API key for the Telli service. If a global API key has been configured in the plugin settings, it will be used automatically and this field will not be shown.';
 $string['availablemodels'] = 'Available models';
 $string['availablemodelssetting'] = 'Available models';
 $string['availablemodelssettingdesc'] = 'Enter the names of the models that should be available for selection by the tenant manager. One model per line. Names must be identical to returned "name" attribute of the model description returned by the /v1/models endpoint. Add a "#VISION" at the end of the name to declare it as vision model. Add a "#IMGGEN" at the end of the name to declare it as image generation model. Please note that changing this setting will only affect the select field in the instance edit form, it will not affect already configured AI tools.';
 $string['baseurl'] = 'Base URL';
 $string['baseurlsetting'] = 'Base URL for the API';
 $string['baseurlsettingdesc'] = 'Insert the base URL of the Telli API here, stopping before "/v1..."';
+$string['endpoint_help'] = 'The base URL for the Telli API. If a global base URL has been configured in the plugin settings, it will be used automatically and this field will not be shown.';
 $string['err_apiresult'] = 'An error occurred while trying to connect to the API.';
 $string['err_contentfilter'] = 'Your request was rejected as a result of the content filter of the external tool. Your prompt probably requests something that is not allowed.';
 $string['err_noimagedata'] = 'The external AI system could not generate an image. Your prompt probably requests something that is not allowed.';
@@ -41,6 +43,7 @@ $string['globalapikeysettingdesc'] = 'If this setting is set, this API key will 
 $string['managementpage'] = 'Management page';
 $string['managementpagelink'] = 'Open management page';
 $string['managementpagelinkdesc'] = 'On the management page you will have access to the current usage as well as the list of available models.';
+$string['model_help'] = 'Select one of the models available through the Telli API. The available models are configured by the site administrator. Note that image generation models do not support the temperature setting.';
 $string['pluginname'] = 'Telli';
 $string['privacy:metadata'] = 'The local ai_manager tool subplugin "Telli API" does not store any personal data.';
 $string['retentionperiodsetting'] = 'Consumption data retention period';

@@ -24,5 +24,7 @@
  */
 
 $string['adddescription'] = 'TTS is a text-to-speech model developed by OpenAI';
+$string['endpoint_help'] = 'The API endpoint is configured automatically based on the Azure settings. For direct OpenAI usage it defaults to https://api.openai.com/v1/audio/speech.';
+$string['model_help'] = 'Select the TTS model to use. The standard "tts" model is optimized for speed, while "gpt-4o-mini-tts" offers additional capabilities and customization options.';
 $string['pluginname'] = 'OpenAI TTS';
 $string['privacy:metadata'] = 'The local ai_manager tool subplugin "OpenAI TTS" does not store any personal data.';

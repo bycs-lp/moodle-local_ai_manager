@@ -24,6 +24,8 @@
  */
 
 $string['adddescription'] = 'Ollama is a platform or service that focuses on the use of language AI and generative AI.';
+$string['endpoint_help'] = 'The URL of your Ollama instance API endpoint, for example https://your-server.example.com/api/chat. This is required and must point to a running Ollama installation.';
 $string['formvalidation_noendpoint'] = 'You must specify a valid endpoint to your ollama instance';
+$string['model_help'] = 'Enter the name of the model available on your Ollama instance. Models must have been pulled on the Ollama server before they can be used here.';
 $string['pluginname'] = 'Ollama';
 $string['privacy:metadata'] = 'The local ai_manager tool subplugin "Ollama" does not store any personal data.';

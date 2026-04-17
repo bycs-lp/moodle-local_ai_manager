@@ -47,11 +47,13 @@ class instance extends base_instance {
                 self::GOOGLE_BACKEND_VERTEXAI => get_string('googlebackendvertexai', 'aitool_gemini'),
             ]
         );
-        aitool_option_vertexai::extend_form_definition($mform);
+        self::add_help_button_with_fallback($mform, 'googlebackend', 'googlebackend', 'gemini');
+
+        aitool_option_vertexai::extend_form_definition($mform, 'gemini');
         $mform->hideIf('serviceaccountjson', 'googlebackend', 'neq', 'vertexai');
         $mform->hideIf('apikey', 'googlebackend', 'eq', 'vertexai');
 
-        aitool_option_temperature::extend_form_definition($mform);
+        aitool_option_temperature::extend_form_definition($mform, [], 'gemini');
     }
 
     #[\Override]

@@ -24,6 +24,8 @@
  */
 
 $string['adddescription'] = 'GPT is a versatile AI model used for natural language interactions such as customer support, virtual assistants, content creation and more.';
+$string['endpoint_help'] = 'The API endpoint is configured automatically based on the Azure settings. For direct OpenAI usage it defaults to https://api.openai.com/v1/chat/completions.';
 $string['err_contentfilter'] = 'Your request was rejected as a result of the content filter of the external tool. Your prompt probably requests something that is not allowed.';
+$string['model_help'] = 'Select the GPT model to use. Newer models like gpt-4o offer better capabilities but may cost more. Models prefixed with "o" (e.g. o3, o4-mini) are reasoning models that do not support the temperature setting.';
 $string['pluginname'] = 'GPT';
 $string['privacy:metadata'] = 'The local ai_manager tool subplugin "GPT" does not store any personal data.';

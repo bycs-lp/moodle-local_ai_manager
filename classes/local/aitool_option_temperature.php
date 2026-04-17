@@ -31,8 +31,14 @@ class aitool_option_temperature {
      * Extends the form definition of the edit instance form by adding the temperature option.
      *
      * @param \MoodleQuickForm $mform the mform object
+     * @param array $modelswithouttemperature models that do not support temperature
+     * @param string $connector the connector name for help button fallback resolution
      */
-    public static function extend_form_definition(\MoodleQuickForm $mform, array $modelswithouttemperature = []): void {
+    public static function extend_form_definition(
+        \MoodleQuickForm $mform,
+        array $modelswithouttemperature = [],
+        string $connector = ''
+    ): void {
         $radioarray = [];
         $radioarray[] = $mform->createElement(
             'radio',
@@ -63,6 +69,17 @@ class aitool_option_temperature {
             false
         );
         $mform->setDefault('temperatureprechoice', 'selection_balanced');
+
+        if (!empty($connector)) {
+            \local_ai_manager\base_instance::add_help_button_with_fallback(
+                $mform,
+                'temperatureprechoicearray',
+                'temperature_defaultsetting',
+                $connector
+            );
+        } else {
+            $mform->addHelpButton('temperatureprechoicearray', 'temperature_defaultsetting', 'local_ai_manager');
+        }
 
         $mform->addElement('checkbox', 'temperatureusecustom', get_string('temperature_use_custom_value', 'local_ai_manager'));
         $mform->setDefault('temperatureusecustom', 0);

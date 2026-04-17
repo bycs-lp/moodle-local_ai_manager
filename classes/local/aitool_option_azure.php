@@ -32,22 +32,67 @@ class aitool_option_azure {
      *
      * @param \MoodleQuickForm $mform the mform object
      * @param bool $showmodel if the model should be shown in the form, defaults to false
+     * @param string $connector the connector name for help button fallback resolution
      */
-    public static function extend_form_definition(\MoodleQuickForm $mform, bool $showmodel = false): void {
+    public static function extend_form_definition(
+        \MoodleQuickForm $mform,
+        bool $showmodel = false,
+        string $connector = ''
+    ): void {
         $mform->addElement('selectyesno', 'azure_enabled', get_string('use_openai_by_azure_heading', 'local_ai_manager'));
         $mform->setDefault('azure_enabled', false);
+        if (!empty($connector)) {
+            \local_ai_manager\base_instance::add_help_button_with_fallback(
+                $mform,
+                'azure_enabled',
+                'use_openai_by_azure_heading',
+                $connector
+            );
+        } else {
+            $mform->addHelpButton('azure_enabled', 'use_openai_by_azure_heading', 'local_ai_manager');
+        }
 
         $mform->addElement('text', 'azure_resourcename', get_string('use_openai_by_azure_name', 'local_ai_manager'));
         $mform->setType('azure_resourcename', PARAM_TEXT);
         $mform->hideIf('azure_resourcename', 'azure_enabled', 'eq', '0');
+        if (!empty($connector)) {
+            \local_ai_manager\base_instance::add_help_button_with_fallback(
+                $mform,
+                'azure_resourcename',
+                'use_openai_by_azure_name',
+                $connector
+            );
+        } else {
+            $mform->addHelpButton('azure_resourcename', 'use_openai_by_azure_name', 'local_ai_manager');
+        }
 
         $mform->addElement('text', 'azure_deploymentid', get_string('use_openai_by_azure_deploymentid', 'local_ai_manager'));
         $mform->setType('azure_deploymentid', PARAM_TEXT);
         $mform->hideIf('azure_deploymentid', 'azure_enabled', 'eq', '0');
+        if (!empty($connector)) {
+            \local_ai_manager\base_instance::add_help_button_with_fallback(
+                $mform,
+                'azure_deploymentid',
+                'use_openai_by_azure_deploymentid',
+                $connector
+            );
+        } else {
+            $mform->addHelpButton('azure_deploymentid', 'use_openai_by_azure_deploymentid', 'local_ai_manager');
+        }
 
         $mform->addElement('text', 'azure_apiversion', get_string('use_openai_by_azure_apiversion', 'local_ai_manager'));
         $mform->setType('azure_apiversion', PARAM_TEXT);
         $mform->hideIf('azure_apiversion', 'azure_enabled', 'eq', '0');
+        if (!empty($connector)) {
+            \local_ai_manager\base_instance::add_help_button_with_fallback(
+                $mform,
+                'azure_apiversion',
+                'use_openai_by_azure_apiversion',
+                $connector
+            );
+        } else {
+            $mform->addHelpButton('azure_apiversion', 'use_openai_by_azure_apiversion', 'local_ai_manager');
+        }
 
         // We leave the endpoint empty on creation, because it depends if azure is being used or not.
         $mform->setDefault('endpoint', '');

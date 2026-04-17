@@ -24,6 +24,8 @@
  */
 
 $string['adddescription'] = 'Dall-E is an AI model from OpenAI that specializes in generating images from text descriptions.';
+$string['endpoint_help'] = 'The API endpoint is configured automatically based on the Azure settings. For direct OpenAI usage it defaults to https://api.openai.com/v1/images/generations.';
 $string['err_contentpolicyviolation'] = 'Your request was rejected as a result of our safety system. Your prompt probably requests something that is not allowed.';
+$string['model_help'] = 'Select the Dall-E model to use for image generation. Dall-E 3 produces higher quality images than Dall-E 2 but may cost more per generation.';
 $string['pluginname'] = 'Dall-E';
 $string['privacy:metadata'] = 'The local ai_manager tool subplugin "Dall-E" does not store any personal data.';
