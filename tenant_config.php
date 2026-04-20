@@ -39,17 +39,27 @@ $PAGE->add_body_class('limitcontentwidth');
 $enabletenant = optional_param('enabletenant', 'not_set', PARAM_ALPHANUM);
 
 $url = new moodle_url('/local/ai_manager/tenant_config.php');
-tenant_config_output_utils::setup_tenant_config_page($url);
 
-/** @var \local_ai_manager\local\config_manager $configmanager */
-$configmanager = \core\di::get(\local_ai_manager\local\config_manager::class);
-$istenantenabled = $configmanager->is_tenant_enabled();
-if ($enabletenant !== 'not_set') {
-    $configmanager->set_config('tenantenabled', !empty($enabletenant) ? 1 : 0);
-    redirect($PAGE->url);
+try {
+    tenant_config_output_utils::setup_tenant_config_page($url);
+    /** @var \local_ai_manager\local\config_manager $configmanager */
+    $configmanager = \core\di::get(\local_ai_manager\local\config_manager::class);
+    $istenantenabled = $configmanager->is_tenant_enabled();
+    if ($enabletenant !== 'not_set') {
+        $configmanager->set_config('tenantenabled', !empty($enabletenant) ? 1 : 0);
+        redirect($PAGE->url);
+    }
+
+    $tenant = \core\di::get(tenant::class);
+} catch (\core\exception\invalid_parameter_exception) {
+    $defaulttenanturl = new moodle_url('/local/ai_manager/tenant_config.php', ['tenant' => tenant::DEFAULT_IDENTIFIER]);
+    redirect(
+        $defaulttenanturl,
+        get_string('error_invalid_tenants_redirect', 'local_ai_manager'),
+        null,
+        \core\output\notification::NOTIFY_ERROR
+    );
 }
-
-$tenant = \core\di::get(tenant::class);
 
 $renderer = $PAGE->get_renderer('core');
 echo $OUTPUT->header();

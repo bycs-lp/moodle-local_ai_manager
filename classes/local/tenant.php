@@ -49,16 +49,28 @@ class tenant {
             }
         }
 
-        if ($identifier !== trim($identifier)) {
-            throw new \invalid_parameter_exception('Tenant identifier must not contain leading or trailing whitespaces.');
-        }
-        if (!preg_match('/^[A-Za-z0-9_\- ]+$/', $identifier)) {
+        if (!self::is_valid_identifier($identifier)) {
             throw new \invalid_parameter_exception(
-                'Tenant identifiers may only contain alphanumeric letters, hyphens, underscores or blank spaces.'
+                'Tenant identifiers may not have leading or trailing whitespace and can only contain alphanumeric letters, ' .
+                'hyphens, underscores or blank spaces.'
             );
         }
 
         $this->identifier = $identifier;
+    }
+
+    /**
+     * Check whether the given identifier is valid.
+     *
+     * @param string $identifier tenant identifier
+     * @return bool true if valid, false otherwise
+     */
+    public static function is_valid_identifier(string $identifier): bool {
+        if ($identifier !== trim($identifier)) {
+            return false;
+        }
+
+        return preg_match('/^[A-Za-z0-9_\- ]+$/', $identifier) != false;
     }
 
     /**
