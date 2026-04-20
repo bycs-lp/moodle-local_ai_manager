@@ -31,6 +31,12 @@
  */
 function local_ai_manager_check_valid_tenants(environment_results $result): environment_results {
     global $DB;
+
+    if (!$DB->get_manager()->table_exists('local_ai_manager_config')) {
+        $result->setStatus(true);
+        return $result;
+    }
+
     $identifiers = $DB->get_fieldset_sql(
         "SELECT DISTINCT tenant
            FROM {local_ai_manager_config}
