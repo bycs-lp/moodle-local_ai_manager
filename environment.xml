@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<COMPATIBILITY_MATRIX>
+    <PLUGIN name="local_ai_manager">
+        <CUSTOM_CHECKS>
+            <CUSTOM_CHECK file="local/ai_manager/environmentchecks.php" function="local_ai_manager_check_valid_tenants" level="required">
+                <FEEDBACK>
+                    <ON_ERROR message="environmentcheck_tenants_invalid" plugin="local_ai_manager"/>
+                </FEEDBACK>
+            </CUSTOM_CHECK>
+        </CUSTOM_CHECKS>
+    </PLUGIN>
+</COMPATIBILITY_MATRIX>
