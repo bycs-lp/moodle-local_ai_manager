@@ -15,23 +15,33 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Hook listener callbacks.
+ * aipurpose_rag privacy provider class.
  *
- * @package    local_ai_manager
- * @copyright  2024 ISB Bayern
- * @author     Philipp Memmel
+ * @package    aipurpose_rag
+ * @copyright  ISB Bayern, 2024
+ * @author     Dr. Peter Mayer
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+namespace aipurpose_rag\privacy;
 
-$callbacks = [
-        [
-                'hook' => \core\hook\navigation\primary_extend::class,
-                'callback' => \local_ai_manager\local\hook_callbacks::class . '::extend_primary_navigation',
-        ],
-        [
-                'hook' => \core\hook\output\before_footer_html_generation::class,
-                'callback' => \local_ai_manager\local\hook_callbacks::class . '::before_footer_html_generation',
-        ]
-];
+/**
+ * aipurpose_rag privacy provider class.
+ *
+ * @package    aipurpose_rag
+ * @copyright  ISB Bayern, 2024
+ * @author     Dr. Peter Mayer
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class provider implements \core_privacy\local\metadata\null_provider {
+
+    /**
+     * Get the language string identifier with the component's language
+     * file to explain why this plugin stores no data.
+     *
+     * @return  string
+     */
+    public static function get_reason(): string {
+        return 'privacy:metadata';
+    }
+}

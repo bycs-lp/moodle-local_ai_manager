@@ -14,28 +14,27 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace aitool_vdb\privacy;
+
+use core_privacy\local\metadata\null_provider;
+
 /**
- * Cache definitions.
+ * Privacy provider for aitool_vdb.
  *
- * @package   local_ai_manager
- * @copyright 2024 ISB Bayern
- * @author    Philipp Memmel
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    aitool_vdb
+ * @copyright  2025 University of Strathclyde
+ * @author     Michael Hughes
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+class provider implements null_provider {
 
-defined('MOODLE_INTERNAL') || die();
-
-$definitions = [
-        'googleauth' => [
-                'mode' => cache_store::MODE_APPLICATION,
-                'simplekeys' => true,
-                'simpledata' => true,
-                'canuselocalstore' => false,
-        ],
-        'textembeddingmodels' => [
-                'mode' => cache_store::MODE_APPLICATION,
-                'simplekeys' => true,
-                'simpledata' => true,
-                'canuselocalstore' => false,
-        ],
-];
+    /**
+     * Get the language string identifier with the component's language
+     * file to explain why this plugin stores no data.
+     *
+     * @return string
+     */
+    public static function get_reason(): string {
+        return 'privacy:metadata';
+    }
+}
