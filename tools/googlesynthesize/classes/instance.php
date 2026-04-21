@@ -35,5 +35,8 @@ class instance extends base_instance {
             get_string('endpointhint', 'aitool_googlesynthesize')
             . '<br>' . get_string('endpointdefault', 'local_ai_manager', connector::DEFAULT_GOOGLE_SYNTHESIZE_ENDPOINT)
         );
+        $mform->getElement('endpointdescription')->updateAttributes(
+            ['class' => 'text-body-secondary small text-break']
+        );
     }
 }

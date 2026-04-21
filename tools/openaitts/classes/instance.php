@@ -35,6 +35,9 @@ class instance extends base_instance {
         $endpointdescription = get_string('endpointhint', 'aitool_openaitts')
             . '<br>' . get_string('endpointdefault', 'local_ai_manager', connector::DEFAULT_OPENAI_TTS_ENDPOINT);
         $mform->getElement('endpointdescription')->setValue($endpointdescription);
+        $mform->getElement('endpointdescription')->updateAttributes(
+            ['class' => 'text-body-secondary small text-break']
+        );
         $mform->hideIf('endpointdescription', 'azure_enabled', 'eq', '1');
         $endpointdescriptionazure = $mform->createElement(
             'static',
@@ -47,6 +50,7 @@ class instance extends base_instance {
                 'https://$RESOURCE.openai.azure.com/openai/deployments/$DEPLOYMENT_ID/audio/speech?api-version=$API_VERSION'
             )
         );
+        $endpointdescriptionazure->updateAttributes(['class' => 'text-body-secondary small text-break']);
         $mform->insertElementBefore($endpointdescriptionazure, 'endpointdescription');
         $mform->hideIf('endpointdescription_azure', 'azure_enabled', 'neq', '1');
     }
@@ -64,7 +68,7 @@ class instance extends base_instance {
 
     #[\Override]
     protected function extend_store_formdata(stdClass $data): void {
-        $enabled = aitool_option_azure::extract_azure_data_to_store($data);
+        [$enabled] = aitool_option_azure::extract_azure_data_to_store($data);
         if ($enabled) {
             $this->set_model(self::get_model_specific_azure_model_name($data->model));
         }

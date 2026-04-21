@@ -62,22 +62,24 @@ class instance extends base_instance {
                 'https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent'
             )
         );
-        $mform->hideIf('endpointdescription', 'googlebackend', 'neq', self::GOOGLE_BACKEND_GOOGLEAI);
-        $mform->insertElementBefore(
-            $mform->createElement(
-                'static',
-                'endpointdescription_vertexai',
-                '',
-                get_string('endpointhint_vertexai', 'aitool_gemini')
-                . '<br>' . get_string(
-                    'endpointexample',
-                    'local_ai_manager',
-                    'https://$REGION-aiplatform.googleapis.com/v1/projects/'
-                    . '$PROJECT_ID/locations/$REGION/publishers/google/models/$MODEL:generateContent'
-                )
-            ),
-            'endpointdescription'
+        $mform->getElement('endpointdescription')->updateAttributes(
+            ['class' => 'text-body-secondary small text-break']
         );
+        $mform->hideIf('endpointdescription', 'googlebackend', 'neq', self::GOOGLE_BACKEND_GOOGLEAI);
+        $endpointdescriptionvertexai = $mform->createElement(
+            'static',
+            'endpointdescription_vertexai',
+            '',
+            get_string('endpointhint_vertexai', 'aitool_gemini')
+            . '<br>' . get_string(
+                'endpointexample',
+                'local_ai_manager',
+                'https://$REGION-aiplatform.googleapis.com/v1/projects/'
+                . '$PROJECT_ID/locations/$REGION/publishers/google/models/$MODEL:generateContent'
+            )
+        );
+        $endpointdescriptionvertexai->updateAttributes(['class' => 'text-body-secondary small text-break']);
+        $mform->insertElementBefore($endpointdescriptionvertexai, 'endpointdescription');
         $mform->hideIf('endpointdescription_vertexai', 'googlebackend', 'neq', self::GOOGLE_BACKEND_VERTEXAI);
 
         aitool_option_temperature::extend_form_definition($mform);

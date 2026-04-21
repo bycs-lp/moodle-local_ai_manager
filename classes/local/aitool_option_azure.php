@@ -59,10 +59,10 @@ class aitool_option_azure {
      * Helper function to extract the azure data from the data being submitted by the form.
      *
      * @param stdClass $data the data being submitted by the form
-     * @return bool if azure is enabled
+     * @return array array with a single bool element: whether azure is enabled
      */
-    public static function extract_azure_data_to_store(stdClass $data): bool {
-        return !empty($data->azure_enabled);
+    public static function extract_azure_data_to_store(stdClass $data): array {
+        return [!empty($data->azure_enabled)];
     }
 
     /**

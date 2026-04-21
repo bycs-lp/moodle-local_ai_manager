@@ -45,6 +45,9 @@ class instance extends base_instance {
                 . '$PROJECT_ID/locations/$REGION/publishers/google/models/$MODEL:predict'
             )
         );
+        $mform->getElement('endpointdescription')->updateAttributes(
+            ['class' => 'text-body-secondary small text-break']
+        );
     }
 
     #[\Override]
