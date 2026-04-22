@@ -31,7 +31,12 @@ use local_ai_manager\local\aitool_option_vertexai;
 class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
-        $mform->setDefault('endpoint', 'https://texttospeech.googleapis.com/v1/text:synthesize');
-        $mform->freeze('endpoint');
+        $mform->getElement('endpointdescription')->setValue(
+            get_string('endpointhint', 'aitool_googlesynthesize')
+            . '<br>' . get_string('endpointdefault', 'local_ai_manager', connector::DEFAULT_GOOGLE_SYNTHESIZE_ENDPOINT)
+        );
+        $mform->getElement('endpointdescription')->updateAttributes(
+            ['class' => 'text-body-secondary small text-break']
+        );
     }
 }

@@ -32,19 +32,34 @@ class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
         aitool_option_azure::extend_form_definition($mform);
+        $endpointdescription = get_string('endpointhint', 'aitool_dalle')
+            . '<br>' . get_string('endpointdefault', 'local_ai_manager', connector::DEFAULT_DALLE_GENERATIONS_ENDPOINT);
+        $mform->getElement('endpointdescription')->setValue($endpointdescription);
+        $mform->getElement('endpointdescription')->updateAttributes(
+            ['class' => 'text-body-secondary small text-break']
+        );
+        $mform->hideIf('endpointdescription', 'azure_enabled', 'eq', '1');
+        $endpointdescriptionazure = $mform->createElement(
+            'static',
+            'endpointdescription_azure',
+            '',
+            get_string('endpointhint_azure', 'aitool_dalle')
+            . '<br>' . get_string(
+                'endpointexample',
+                'local_ai_manager',
+                'https://$RESOURCE.openai.azure.com/openai/deployments/'
+                . '$DEPLOYMENT_ID/images/generations?api-version=$API_VERSION'
+            )
+        );
+        $endpointdescriptionazure->updateAttributes(['class' => 'text-body-secondary small text-break']);
+        $mform->insertElementBefore($endpointdescriptionazure, 'endpointdescription');
+        $mform->hideIf('endpointdescription_azure', 'azure_enabled', 'neq', '1');
     }
 
     #[\Override]
     protected function get_extended_formdata(): stdClass {
         $data = new stdClass();
-        foreach (
-            aitool_option_azure::add_azure_options_to_form_data(
-                $this->get_customfield2(),
-                $this->get_customfield3(),
-                $this->get_customfield4(),
-                $this->get_customfield5()
-            ) as $key => $value
-        ) {
+        foreach (aitool_option_azure::add_azure_options_to_form_data($this->get_customfield2()) as $key => $value) {
             $data->{$key} = $value;
         }
         return $data;
@@ -52,24 +67,11 @@ class instance extends base_instance {
 
     #[\Override]
     protected function extend_store_formdata(stdClass $data): void {
-        [$enabled, $resourcename, $deploymentid, $apiversion] = aitool_option_azure::extract_azure_data_to_store($data);
-
-        if (!empty($enabled)) {
-            $endpoint = 'https://' . $resourcename .
-                '.openai.azure.com/openai/deployments/'
-                . $deploymentid . '/images/generations?api-version=' . $apiversion;
-            // We have an empty model because the model is preconfigured if we're using azure.
-            // So we overwrite the default "preconfigured" value by a better model name.
+        [$enabled] = aitool_option_azure::extract_azure_data_to_store($data);
+        if ($enabled) {
             $this->set_model(aitool_option_azure::get_azure_model_name($this->get_connector()));
-        } else {
-            $endpoint = 'https://api.openai.com/v1/images/generations';
         }
-        $this->set_endpoint($endpoint);
-
         $this->set_customfield2($enabled);
-        $this->set_customfield3($resourcename);
-        $this->set_customfield4($deploymentid);
-        $this->set_customfield5($apiversion);
     }
 
     #[\Override]
