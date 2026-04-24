@@ -329,6 +329,7 @@ $string['agent_undo_window_expired'] = 'The time window for undoing this action 
 $string['agent_undo_payload_invalid'] = 'The undo payload for this tool call is invalid or missing.';
 $string['agent_run_aborted_by_user'] = 'Run aborted by the user.';
 $string['error_toolparse'] = 'Could not parse the model response into a tool call: {$a}';
+$string['error_ratelimitexceeded'] = 'Rate limit reached for tool "{$a->tool}" ({$a->limit}/hour). Please wait before retrying.';
 $string['error_invalidtoken_malformed'] = 'The approval token is malformed.';
 $string['error_invalidtoken_expired'] = 'The approval token has expired.';
 $string['error_invalidtoken_invalid'] = 'The approval token is invalid.';

@@ -70,6 +70,9 @@ class orchestrator {
     /** @var injection_guard */
     private injection_guard $injectionguard;
 
+    /** @var tool_rate_limiter */
+    private tool_rate_limiter $ratelimiter;
+
     /**
      * Constructor.
      *
@@ -79,6 +82,7 @@ class orchestrator {
      * @param \core\clock $clock injected clock for deterministic tests
      * @param trust_resolver|null $trustresolver
      * @param injection_guard|null $injectionguard
+     * @param tool_rate_limiter|null $ratelimiter
      */
     public function __construct(
         private readonly llm_client $client,
@@ -87,6 +91,7 @@ class orchestrator {
         private readonly \core\clock $clock,
         ?trust_resolver $trustresolver = null,
         ?injection_guard $injectionguard = null,
+        ?tool_rate_limiter $ratelimiter = null,
     ) {
         $this->toolmap = [];
         foreach ($availabletools as $tool) {
@@ -94,6 +99,7 @@ class orchestrator {
         }
         $this->trustresolver = $trustresolver ?? new trust_resolver();
         $this->injectionguard = $injectionguard ?? new injection_guard();
+        $this->ratelimiter = $ratelimiter ?? new tool_rate_limiter($this->clock);
     }
 
     /**
@@ -605,6 +611,18 @@ class orchestrator {
             entity_context: [],
             clock: $this->clock,
         );
+
+        // Paket 3 / §10.5: enforce per-user hourly rate limit before execution.
+        try {
+            $this->ratelimiter->check_and_increment((int) $user->id, $tool);
+        } catch (exception\rate_limit_exceeded_exception $e) {
+            $result = tool_result::failure('rate_limit_exceeded', $e->getMessage());
+            $this->save_result($callrow, $result, 0);
+            return $result;
+        }
+
+        // Paket 3 / §9.6: give the tool enough wall-clock time + 5s head-room.
+        \core_php_time_limit::raise($tool->get_timeout_seconds() + 5);
 
         $start = microtime(true);
         try {
