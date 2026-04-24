@@ -45,7 +45,10 @@ class hook_callbacks {
         }
         $node = navigation_node::create(
             get_string('aiadministrationlink', 'local_ai_manager'),
-            new moodle_url('/local/ai_manager/tenant_config.php')
+            new moodle_url('/local/ai_manager/tenant_config.php'),
+            navigation_node::TYPE_CUSTOM,
+            null,
+            'local_ai_manager'
         );
         $hook->get_primaryview()->add_node($node);
     }
