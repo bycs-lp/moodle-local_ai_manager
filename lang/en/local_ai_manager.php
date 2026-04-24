@@ -466,3 +466,19 @@ $string['tool_question_create_unsupported_qtype'] = 'Qtype "{$a}" is not support
 $string['tool_quiz_add_question_summary'] = 'Add an existing question to a quiz.';
 $string['tool_quiz_add_question_describe'] = 'Add question {$a->questionid} to quiz cmid {$a->quiz_cmid}.';
 $string['tool_quiz_add_question_random_not_supported'] = 'Random questions cannot be added through this tool.';
+
+// Tool: course_find_by_name.
+$string['tool_course_find_by_name_summary'] = 'Find visible courses whose full- or shortname matches a fragment.';
+$string['tool_course_find_by_name_empty'] = 'A non-empty search name is required.';
+
+// Tool: forum_create_discussion.
+$string['tool_forum_create_discussion_summary'] = 'Start a new discussion (topic) in a forum activity.';
+$string['tool_forum_create_discussion_describe'] = 'Post a new discussion "{$a->subject}" in forum {$a->forumid}.';
+$string['tool_forum_create_discussion_type_not_allowed'] = 'This forum type does not allow new discussions (single-topic forum).';
+$string['tool_forum_not_found'] = 'Forum not found.';
+
+// Tool: question_create_multichoice_batch.
+$string['tool_question_create_multichoice_batch_summary'] = 'Create several multichoice questions in one call.';
+$string['tool_question_create_multichoice_batch_describe'] = 'Create {$a->count} multichoice questions (batch).';
+$string['tool_question_create_multichoice_batch_empty'] = 'The items array must contain at least one entry.';
+$string['tool_question_create_multichoice_batch_too_many'] = 'Too many items in batch (maximum is {$a}).';
