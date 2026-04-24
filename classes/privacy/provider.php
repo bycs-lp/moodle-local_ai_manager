@@ -84,6 +84,45 @@ class provider implements
             'privacy:metadata:local_ai_manager_userusage'
         );
 
+        $collection->add_database_table(
+            'local_ai_manager_agent_runs',
+            [
+                'userid' => 'privacy:metadata:local_ai_manager_agent_runs:userid',
+                'contextid' => 'privacy:metadata:local_ai_manager_agent_runs:contextid',
+                'component' => 'privacy:metadata:local_ai_manager_agent_runs:component',
+                'user_prompt' => 'privacy:metadata:local_ai_manager_agent_runs:user_prompt',
+                'entity_context' => 'privacy:metadata:local_ai_manager_agent_runs:entity_context',
+                'status' => 'privacy:metadata:local_ai_manager_agent_runs:status',
+                'timecreated' => 'privacy:metadata:local_ai_manager_agent_runs:timecreated',
+            ],
+            'privacy:metadata:local_ai_manager_agent_runs'
+        );
+
+        $collection->add_database_table(
+            'local_ai_manager_tool_calls',
+            [
+                'toolname' => 'privacy:metadata:local_ai_manager_tool_calls:toolname',
+                'args_json' => 'privacy:metadata:local_ai_manager_tool_calls:args_json',
+                'result_json' => 'privacy:metadata:local_ai_manager_tool_calls:result_json',
+                'approval_state' => 'privacy:metadata:local_ai_manager_tool_calls:approval_state',
+                'approved_by' => 'privacy:metadata:local_ai_manager_tool_calls:approved_by',
+                'timecreated' => 'privacy:metadata:local_ai_manager_tool_calls:timecreated',
+            ],
+            'privacy:metadata:local_ai_manager_tool_calls'
+        );
+
+        $collection->add_database_table(
+            'local_ai_manager_trust_prefs',
+            [
+                'userid' => 'privacy:metadata:local_ai_manager_trust_prefs:userid',
+                'toolname' => 'privacy:metadata:local_ai_manager_trust_prefs:toolname',
+                'scope' => 'privacy:metadata:local_ai_manager_trust_prefs:scope',
+                'expires' => 'privacy:metadata:local_ai_manager_trust_prefs:expires',
+                'timecreated' => 'privacy:metadata:local_ai_manager_trust_prefs:timecreated',
+            ],
+            'privacy:metadata:local_ai_manager_trust_prefs'
+        );
+
         return $collection;
     }
 
@@ -95,8 +134,13 @@ class provider implements
         $sql = "SELECT DISTINCT contextid FROM {local_ai_manager_request_log} WHERE userid = :userid";
         $contextlist->add_from_sql($sql, ['userid' => $userid]);
 
+        // Agent runs also live inside concrete contexts.
+        $agentsql = "SELECT DISTINCT contextid FROM {local_ai_manager_agent_runs} WHERE userid = :userid";
+        $contextlist->add_from_sql($agentsql, ['userid' => $userid]);
+
         if (!in_array(SYSCONTEXTID, $contextlist->get_contextids())) {
-            // Records in local_ai_manager_userinfo and local_ai_manager_userusage are considered to live in the system context.
+            // Records in local_ai_manager_userinfo, local_ai_manager_userusage and local_ai_manager_trust_prefs are considered
+            // to live in the system context.
             $contextlist->add_system_context();
         }
 
@@ -136,6 +180,16 @@ class provider implements
                     ],
                     (object) ['userusage' => $userusageobjects]
                 );
+                $trustrecords = $DB->get_records('local_ai_manager_trust_prefs', ['userid' => $userid]);
+                if (!empty($trustrecords)) {
+                    writer::with_context($context)->export_data(
+                        [
+                            get_string('pluginname', 'local_ai_manager'),
+                            get_string('privacy:metadata:local_ai_manager_trust_prefs', 'local_ai_manager'),
+                        ],
+                        (object) ['trustprefs' => array_values($trustrecords)]
+                    );
+                }
             }
             $entries = $DB->get_records('local_ai_manager_request_log', ['userid' => $userid, 'contextid' => $context->id]);
             if (!empty($entries)) {
@@ -150,6 +204,25 @@ class provider implements
                     (object) ['requests' => $entries]
                 );
             }
+            // Agent runs + associated tool-call trace for this context.
+            $runs = $DB->get_records('local_ai_manager_agent_runs', ['userid' => $userid, 'contextid' => $context->id]);
+            if (!empty($runs)) {
+                [$insql, $inparams] = $DB->get_in_or_equal(array_keys($runs), SQL_PARAMS_NAMED, 'rid');
+                $toolcalls = $DB->get_records_select('local_ai_manager_tool_calls', "runid $insql", $inparams);
+                foreach ($runs as $run) {
+                    $run->toolcalls = array_values(array_filter(
+                        $toolcalls,
+                        static fn($tc) => (int) $tc->runid === (int) $run->id,
+                    ));
+                }
+                writer::with_context($context)->export_data(
+                    [
+                        get_string('pluginname', 'local_ai_manager'),
+                        get_string('privacy:metadata:local_ai_manager_agent_runs', 'local_ai_manager'),
+                    ],
+                    (object) ['agentruns' => array_values($runs)]
+                );
+            }
         }
     }
 
@@ -160,15 +233,16 @@ class provider implements
             return;
         }
         $datawiper = new data_wiper();
+        $userid = $contextlist->get_user()->id;
 
         foreach ($contextlist->get_contexts() as $context) {
             if ($context->contextlevel !== CONTEXT_SYSTEM) {
-                $datawiper->delete_userinfo($contextlist->get_user()->id);
-                $datawiper->delete_userusage($contextlist->get_user()->id);
+                $datawiper->delete_userinfo($userid);
+                $datawiper->delete_userusage($userid);
             }
             $recordsincontext = $DB->get_records(
                 'local_ai_manager_request_log',
-                ['userid' => $contextlist->get_user()->id, 'contextid' => $context->id]
+                ['userid' => $userid, 'contextid' => $context->id]
             );
             foreach ($recordsincontext as $record) {
                 $anonymizecontext = false;
@@ -183,6 +257,10 @@ class provider implements
                 $datawiper->anonymize_request_log_record($record, $anonymizecontext);
             }
         }
+        // Trust preferences are user-chosen settings without aggregate value — delete outright.
+        $datawiper->delete_trust_prefs_for_user($userid);
+        // Anonymize agent runs + tool-call traces (keep rows for aggregate statistics).
+        $datawiper->anonymize_agent_data_for_user($userid);
     }
 
     #[\Override]
@@ -190,14 +268,17 @@ class provider implements
         $context = $userlist->get_context();
 
         // We are putting everything into a single SQL with union to avoid having duplicate user ids in the $userlist.
-        $sql = "SELECT DISTINCT userid FROM {local_ai_manager_request_log} WHERE contextid = :contextid";
+        $sql = "SELECT DISTINCT userid FROM {local_ai_manager_request_log} WHERE contextid = :contextid"
+            . " UNION SELECT DISTINCT userid FROM {local_ai_manager_agent_runs} WHERE contextid = :contextid2";
+        $params = ['contextid' => $context->id, 'contextid2' => $context->id];
 
         if ($context->id === SYSCONTEXTID) {
             $sql .= " UNION SELECT DISTINCT userid FROM {local_ai_manager_userinfo}"
-                . " UNION SELECT DISTINCT userid FROM {local_ai_manager_userusage}";
+                . " UNION SELECT DISTINCT userid FROM {local_ai_manager_userusage}"
+                . " UNION SELECT DISTINCT userid FROM {local_ai_manager_trust_prefs}";
         }
 
-        $userlist->add_from_sql('userid', $sql, ['contextid' => $context->id]);
+        $userlist->add_from_sql('userid', $sql, $params);
     }
 
     #[\Override]
@@ -215,6 +296,7 @@ class provider implements
             foreach ($userlist->get_userids() as $userid) {
                 $datawiper->delete_userinfo($userid);
                 $datawiper->delete_userusage($userid);
+                $datawiper->delete_trust_prefs_for_user($userid);
             }
         }
         [$insql, $inparams] = $DB->get_in_or_equal($userlist->get_userids(), SQL_PARAMS_NAMED);
@@ -225,6 +307,9 @@ class provider implements
         foreach ($requestlogsrecords as $record) {
             $datawiper->anonymize_request_log_record($record, $anonymizecontext);
         }
+        foreach ($userlist->get_userids() as $userid) {
+            $datawiper->anonymize_agent_data_for_user($userid);
+        }
     }
 
     #[\Override]
@@ -234,6 +319,7 @@ class provider implements
         if ($context instanceof \context_system) {
             $DB->delete_records('local_ai_manager_userinfo');
             $DB->delete_records('local_ai_manager_userusage');
+            $DB->delete_records('local_ai_manager_trust_prefs');
         }
 
         $datawiper = new data_wiper();
@@ -241,6 +327,23 @@ class provider implements
 
         foreach ($requestlogrecords as $record) {
             $datawiper->anonymize_request_log_record($record, $context->contextlevel === CONTEXT_USER);
+        }
+
+        // Anonymize agent runs inside this context (keep rows for aggregate statistics).
+        $runs = $DB->get_records('local_ai_manager_agent_runs', ['contextid' => $context->id]);
+        foreach ($runs as $run) {
+            $run->userid = 0;
+            $run->user_prompt = data_wiper::ANONYMIZE_STRING;
+            $run->entity_context = null;
+            $run->error_message = null;
+            $DB->update_record('local_ai_manager_agent_runs', $run);
+            $DB->execute(
+                'UPDATE {local_ai_manager_tool_calls}
+                    SET args_json = :args, result_json = NULL, approved_by = NULL,
+                        error_message = NULL, undo_payload = NULL
+                  WHERE runid = :runid',
+                ['args' => data_wiper::ANONYMIZE_STRING, 'runid' => $run->id],
+            );
         }
     }
 }

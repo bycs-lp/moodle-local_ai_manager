@@ -50,6 +50,7 @@ class connector extends \local_ai_manager\base_connector {
                 'itt' => ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o3', 'o4-mini'],
                 'questiongeneration' => $chatgptmodels,
                 'agent' => $chatgptmodels,
+                'toolagent' => $chatgptmodels,
         ];
         foreach ($modelsbypurpose as $purpose => $models) {
             // We assume that the azure models support all the purposes. This is kind of a blind guess, because in case

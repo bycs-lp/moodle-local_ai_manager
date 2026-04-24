@@ -29,7 +29,9 @@ $string['addnavigationentrydesc'] = 'Enable if the AI manager configuration shou
 $string['ai_info_table_row_highlighted'] = 'The highlighted AI tools are the ones which are being used by the plugin you were using when clicking the link to this page.';
 $string['ai_manager:manage'] = 'Configure AI manager settings for a tenant';
 $string['ai_manager:managetenants'] = 'Configure AI manager settings for all tenants';
+$string['ai_manager:managetools'] = 'Manage the tool catalog, tool descriptions and tool availability for the AI tool-agent';
 $string['ai_manager:managevertexcache'] = 'Get and change the configuration of the Google Vertex AI caching status';
+$string['ai_manager:configuretrust'] = 'Configure tenant-wide trust for AI tool-agent tools (RISK_CONFIG, RISK_DATALOSS)';
 $string['ai_manager:use'] = 'Use the AI manager. Required if a user wants to use the AI manager and any services provided by it.';
 $string['ai_manager:viewprompts'] = 'View prompts of users';
 $string['ai_manager:viewpromptsdates'] = 'View timestamps of the prompts of users';
@@ -320,3 +322,145 @@ $string['vertex_nocachestatus'] = 'Click the refresh button to query the current
 $string['vertexcachestatus'] = 'Query and change Vertex AI cache status';
 $string['viewprompts'] = 'View prompts';
 $string['within'] = 'in';
+
+// MBS-10761: Tool-agent strings.
+$string['agent_call_not_awaiting'] = 'This tool call is not awaiting approval.';
+$string['agent_undo_window_expired'] = 'The time window for undoing this action has expired.';
+$string['agent_undo_payload_invalid'] = 'The undo payload for this tool call is invalid or missing.';
+$string['error_toolparse'] = 'Could not parse the model response into a tool call: {$a}';
+$string['error_invalidtoken_malformed'] = 'The approval token is malformed.';
+$string['error_invalidtoken_expired'] = 'The approval token has expired.';
+$string['error_invalidtoken_invalid'] = 'The approval token is invalid.';
+$string['error_invalidtoken_reused'] = 'The approval token has already been used.';
+
+// MBS-10761 / Baustein 6: core tool summaries and messages.
+$string['tool_course_list_summary'] = 'List courses the user is enrolled in.';
+$string['tool_course_get_info_summary'] = 'Fetch metadata of a single course.';
+$string['tool_course_get_info_missing_argument'] = 'Provide either courseid or shortname.';
+$string['tool_course_not_found'] = 'The requested course was not found.';
+$string['tool_course_access_denied'] = 'You are not allowed to access this course.';
+$string['tool_course_section_update_summary_summary'] = 'Replace the summary of a course section.';
+$string['tool_course_section_update_summary_describe'] = 'Rewrite the summary of section {$a->section} in course {$a->courseid}.';
+$string['tool_course_section_not_found'] = 'The requested course section was not found.';
+
+// MBS-10761 / Baustein 7: agent run external function.
+$string['agent_runner_disabled'] = 'The tool agent is disabled for your tenant.';
+$string['agent_invalid_context'] = 'Invalid context for the agent run.';
+
+// MBS-10761 / Baustein 8: admin override UI.
+$string['agent_tools_manage'] = 'Manage agent tools';
+$string['agent_tools_manage_desc'] = 'Review and override tool descriptions used by the AI agent.';
+$string['agent_tool_name'] = 'Tool name';
+$string['agent_tool_category'] = 'Category';
+$string['agent_tool_requires_approval'] = 'Approval';
+$string['agent_tool_reversible'] = 'Reversible';
+$string['agent_tool_enabled'] = 'Enabled';
+$string['agent_tool_edit'] = 'Edit';
+$string['agent_tool_edit_title'] = 'Edit agent tool: {$a}';
+$string['agent_tool_llm_description_override'] = 'LLM description override';
+$string['agent_tool_llm_description_override_help'] = 'If set, replaces the hardcoded LLM description for this tool.';
+$string['agent_tool_example_appendix'] = 'Example appendix';
+$string['agent_tool_example_appendix_help'] = 'Additional examples appended to the LLM description.';
+$string['agent_tool_glossary_json'] = 'Glossary (JSON)';
+$string['agent_tool_glossary_json_help'] = 'Key/value glossary merged into the LLM prompt. Must be valid JSON.';
+$string['agent_tool_override_saved'] = 'Tool override saved.';
+$string['agent_tool_override_invalid_glossary'] = 'Glossary must be a valid JSON object.';
+
+// MBS-10761 / Baustein 9: privacy, retention and events.
+$string['agent_run_retention_days'] = 'Agent run retention (days)';
+$string['agent_run_retention_days_desc'] = 'Number of days agent runs and their tool-call traces are retained. Older rows are deleted by the scheduled task. Use 0 to disable automatic deletion.';
+$string['task_agent_run_cleanup'] = 'Clean up expired agent runs, tool-call traces, trust preferences and file-extraction cache';
+$string['event_agent_run_started'] = 'Agent run started';
+$string['event_agent_run_started_desc'] = 'An agent run (id {$a->runid}) was started by user {$a->userid} via component {$a->component}.';
+$string['event_agent_run_finished'] = 'Agent run finished';
+$string['event_agent_run_finished_desc'] = 'Agent run {$a->runid} for user {$a->userid} finished with status "{$a->status}" after {$a->iterations} iterations.';
+$string['privacy:metadata:local_ai_manager_agent_runs'] = 'Tool-agent runs: one row per chat turn that triggered the AI tool agent.';
+$string['privacy:metadata:local_ai_manager_agent_runs:userid'] = 'The ID of the user who initiated the agent run.';
+$string['privacy:metadata:local_ai_manager_agent_runs:contextid'] = 'The Moodle context the agent run happened in.';
+$string['privacy:metadata:local_ai_manager_agent_runs:component'] = 'The component that triggered the agent run (e.g. block_ai_chat).';
+$string['privacy:metadata:local_ai_manager_agent_runs:user_prompt'] = 'The user prompt that initiated the run.';
+$string['privacy:metadata:local_ai_manager_agent_runs:entity_context'] = 'Snapshot of the referenced Moodle entities at the time of the run.';
+$string['privacy:metadata:local_ai_manager_agent_runs:status'] = 'Run status (running, completed, failed, …).';
+$string['privacy:metadata:local_ai_manager_agent_runs:timecreated'] = 'When the run was created.';
+$string['privacy:metadata:local_ai_manager_tool_calls'] = 'Trace of individual tool calls performed inside an agent run.';
+$string['privacy:metadata:local_ai_manager_tool_calls:toolname'] = 'The name of the tool that was executed.';
+$string['privacy:metadata:local_ai_manager_tool_calls:args_json'] = 'The JSON-encoded arguments supplied to the tool.';
+$string['privacy:metadata:local_ai_manager_tool_calls:result_json'] = 'The JSON-encoded result returned by the tool.';
+$string['privacy:metadata:local_ai_manager_tool_calls:approval_state'] = 'Approval state of the tool call.';
+$string['privacy:metadata:local_ai_manager_tool_calls:approved_by'] = 'ID of the user who approved the tool call, if any.';
+$string['privacy:metadata:local_ai_manager_tool_calls:timecreated'] = 'When the tool call was recorded.';
+$string['privacy:metadata:local_ai_manager_trust_prefs'] = 'Per-user tool trust preferences chosen in the chat UI.';
+$string['privacy:metadata:local_ai_manager_trust_prefs:userid'] = 'The ID of the user the trust preference belongs to.';
+$string['privacy:metadata:local_ai_manager_trust_prefs:toolname'] = 'The tool the trust preference applies to.';
+$string['privacy:metadata:local_ai_manager_trust_prefs:scope'] = 'Trust scope (session, user or global).';
+$string['privacy:metadata:local_ai_manager_trust_prefs:expires'] = 'Timestamp at which the trust expires (0 = never).';
+$string['privacy:metadata:local_ai_manager_trust_prefs:timecreated'] = 'When the trust preference was stored.';
+
+// Agent tool edit page.
+$string['agent_tool_example_appendix_placeholder'] = '(No default example appendix — leave empty to keep the built-in behavior, or add usage hints here.)';
+$string['agent_tool_glossary_json_placeholder'] = '(No default glossary — leave empty, or provide a JSON object like {"key":"meaning"}.)';
+$string['agent_tool_defaults_heading'] = 'Built-in defaults';
+$string['agent_tool_defaults_intro'] = 'The following values are the hardcoded defaults provided by the tool class. Any override you enter below will replace or extend these defaults.';
+$string['agent_tool_default_metadata'] = 'Metadata';
+$string['agent_tool_default_category'] = 'Category';
+$string['agent_tool_default_requires_approval'] = 'Requires approval';
+$string['agent_tool_default_keywords'] = 'Keywords';
+$string['agent_tool_default_capabilities'] = 'Capabilities';
+$string['agent_tool_default_description'] = 'Built-in description';
+$string['agent_tool_default_parameters_schema'] = 'Parameter schema';
+$string['agent_tool_override_heading'] = 'Override settings';
+
+// Shared tool error strings.
+$string['tool_course_not_found'] = 'Course not found.';
+$string['tool_module_not_found'] = 'Activity (course module) not found.';
+$string['tool_question_not_found'] = 'Question not found.';
+$string['tool_question_qbank_not_found'] = 'Question bank module not found.';
+$string['tool_question_category_not_found'] = 'Question category not found.';
+$string['tool_quiz_not_found'] = 'Quiz not found.';
+
+// Tool: course_list_categories.
+$string['tool_course_list_categories_summary'] = 'List course categories visible to the user.';
+
+// Tool: course_create.
+$string['tool_course_create_summary'] = 'Create a new course in a given category.';
+$string['tool_course_create_describe'] = 'Create course "{$a->fullname}" (shortname "{$a->shortname}") in category {$a->categoryid}.';
+$string['tool_course_create_shortname_taken'] = 'A course with this shortname already exists.';
+$string['tool_course_create_category_not_found'] = 'Course category not found.';
+
+// Tool: module_list.
+$string['tool_module_list_summary'] = 'List activities of a course.';
+
+// Tool: module_create.
+$string['tool_module_create_summary'] = 'Create a new activity in a course section.';
+$string['tool_module_create_describe'] = 'Create {$a->modname} activity "{$a->name}" in course {$a->courseid} section {$a->section}.';
+$string['tool_module_create_unsupported_modname'] = 'The module type "{$a}" is not supported by this tool.';
+$string['tool_module_create_section_not_found'] = 'Course section not found.';
+$string['tool_module_create_url_required'] = 'The URL activity requires a non-empty url argument.';
+
+// Tool: module_update.
+$string['tool_module_update_summary'] = 'Update name, intro or visibility of an activity.';
+$string['tool_module_update_describe'] = 'Update activity (cmid {$a->cmid}).';
+$string['tool_module_update_no_fields'] = 'At least one of name, intro or visible must be provided.';
+
+// Tool: module_delete.
+$string['tool_module_delete_summary'] = 'Delete an activity. Irreversible.';
+$string['tool_module_delete_describe'] = 'Delete activity (cmid {$a->cmid}). This cannot be undone.';
+$string['tool_module_delete_confirm_required'] = 'The confirm flag must be set to true to delete an activity.';
+
+// Tool: question_category_list.
+$string['tool_question_category_list_summary'] = 'List question categories of all qbanks of a course.';
+
+// Tool: question_category_create.
+$string['tool_question_category_create_summary'] = 'Create a new question category in a qbank module.';
+$string['tool_question_category_create_describe'] = 'Create question category "{$a->name}" in qbank cmid {$a->qbank_cmid}.';
+$string['tool_question_category_create_invalid_parent'] = 'Parent category does not belong to the selected qbank.';
+
+// Tool: question_create.
+$string['tool_question_create_summary'] = 'Create a question (multichoice, truefalse, shortanswer, essay, numerical, match).';
+$string['tool_question_create_describe'] = 'Create {$a->qtype} question "{$a->name}" in category {$a->categoryid}.';
+$string['tool_question_create_unsupported_qtype'] = 'Qtype "{$a}" is not supported by this tool.';
+
+// Tool: quiz_add_question.
+$string['tool_quiz_add_question_summary'] = 'Add an existing question to a quiz.';
+$string['tool_quiz_add_question_describe'] = 'Add question {$a->questionid} to quiz cmid {$a->quiz_cmid}.';
+$string['tool_quiz_add_question_random_not_supported'] = 'Random questions cannot be added through this tool.';

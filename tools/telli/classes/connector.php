@@ -80,6 +80,7 @@ class connector extends base_connector {
             'imggen' => $imggenmodels,
             'questiongeneration' => $models,
             'agent' => $models,
+            'toolagent' => $models,
         ];
     }
 

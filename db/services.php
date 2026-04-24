@@ -82,4 +82,33 @@ $functions = [
                 'ajax' => true,
                 'capabilities' => 'local_ai_manager:use',
         ],
+        // MBS-10761: Tool-agent approval workflow.
+        'local_ai_manager_agent_approve_tool_call' => [
+                'classname' => 'local_ai_manager\external\agent_approve_tool_call',
+                'description' => 'Approve a pending tool call of an agent run.',
+                'type' => 'write',
+                'ajax' => true,
+                'capabilities' => 'local/ai_manager:use',
+        ],
+        'local_ai_manager_agent_reject_tool_call' => [
+                'classname' => 'local_ai_manager\external\agent_reject_tool_call',
+                'description' => 'Reject a pending tool call of an agent run.',
+                'type' => 'write',
+                'ajax' => true,
+                'capabilities' => 'local/ai_manager:use',
+        ],
+        'local_ai_manager_agent_trust_tool' => [
+                'classname' => 'local_ai_manager\external\agent_trust_tool',
+                'description' => 'Mark a tool as trusted for the current session, user or tenant.',
+                'type' => 'write',
+                'ajax' => true,
+                'capabilities' => 'local/ai_manager:use',
+        ],
+        'local_ai_manager_agent_run_start' => [
+                'classname' => 'local_ai_manager\external\agent_run_start',
+                'description' => 'Start or resume an agent run.',
+                'type' => 'write',
+                'ajax' => true,
+                'capabilities' => 'local/ai_manager:use',
+        ],
 ];

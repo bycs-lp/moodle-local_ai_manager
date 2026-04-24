@@ -157,4 +157,48 @@ class data_wiper {
         // over the purposes, because we want to get rid of all userusage entries for this user.
         $DB->delete_records('local_ai_manager_userusage', ['userid' => $userid]);
     }
+
+    /**
+     * Anonymize agent_runs rows for a user while keeping aggregate statistics
+     * (iteration counts, token counts, connector) intact.
+     *
+     * We wipe user_prompt, entity_context, error_message and contextid so no
+     * personal data or potentially re-identifying payload remains. Associated
+     * tool_calls rows are anonymised in their user-bearing columns as well.
+     *
+     * @param int $userid
+     */
+    public function anonymize_agent_data_for_user(int $userid): void {
+        global $DB;
+        $runs = $DB->get_recordset('local_ai_manager_agent_runs', ['userid' => $userid]);
+        foreach ($runs as $run) {
+            $run->userid = 0;
+            $run->user_prompt = self::ANONYMIZE_STRING;
+            $run->entity_context = null;
+            $run->error_message = null;
+            $DB->update_record('local_ai_manager_agent_runs', $run);
+            $DB->execute(
+                'UPDATE {local_ai_manager_tool_calls}
+                    SET args_json = :args, result_json = NULL, approved_by = NULL,
+                        error_message = NULL, undo_payload = NULL
+                  WHERE runid = :runid',
+                ['args' => self::ANONYMIZE_STRING, 'runid' => $run->id],
+            );
+        }
+        $runs->close();
+    }
+
+    /**
+     * Delete the user's trust preferences.
+     *
+     * Trust preferences are settings the user has expressed (session / account /
+     * global). On privacy request we delete them outright — they have no
+     * aggregate value.
+     *
+     * @param int $userid
+     */
+    public function delete_trust_prefs_for_user(int $userid): void {
+        global $DB;
+        $DB->delete_records('local_ai_manager_trust_prefs', ['userid' => $userid]);
+    }
 }

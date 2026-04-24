@@ -32,4 +32,19 @@ $definitions = [
                 'simpledata' => true,
                 'canuselocalstore' => false,
         ],
+        // MBS-10761: Tool-agent catalog (class-name list of discovered tools).
+        'agent_tools' => [
+                'mode' => cache_store::MODE_APPLICATION,
+                'simplekeys' => true,
+                'simpledata' => false,
+                'staticacceleration' => true,
+                'staticaccelerationsize' => 1,
+        ],
+        // MBS-10761: Rate-limiting counters per (userid, toolname, hourbucket).
+        'agent_ratelimits' => [
+                'mode' => cache_store::MODE_APPLICATION,
+                'simplekeys' => true,
+                'simpledata' => true,
+                'ttl' => 3600,
+        ],
 ];

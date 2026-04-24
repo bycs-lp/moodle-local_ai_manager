@@ -68,4 +68,90 @@ class local_ai_manager_generator extends component_generator_base {
 
         return $data;
     }
+
+    /**
+     * Create an agent run entry (MBS-10761).
+     *
+     * @param array $record Overrides for the default record.
+     * @return stdClass Inserted record including id.
+     */
+    public function create_agent_run(array $record = []): stdClass {
+        global $DB, $USER;
+        $now = time();
+        $default = [
+            'conversationid' => 0,
+            'userid' => $USER->id,
+            'contextid' => SYSCONTEXTID,
+            'component' => 'block_ai_chat',
+            'mode' => 'native',
+            'connector' => 'chatgpt',
+            'status' => 'completed',
+            'user_prompt' => 'List my courses',
+            'entity_context' => null,
+            'iterations' => 1,
+            'rejections' => 0,
+            'error_message' => null,
+            'started' => $now,
+            'finished' => $now,
+            'timecreated' => $now,
+            'timemodified' => $now,
+            'usermodified' => $USER->id,
+        ];
+        $data = (object) array_merge($default, $record);
+        $data->id = $DB->insert_record('local_ai_manager_agent_runs', $data);
+        return $data;
+    }
+
+    /**
+     * Create a tool call entry (MBS-10761).
+     *
+     * @param int $runid Parent agent run id.
+     * @param array $record Overrides for the default record.
+     * @return stdClass Inserted record including id.
+     */
+    public function create_tool_call(int $runid, array $record = []): stdClass {
+        global $DB, $USER;
+        $now = time();
+        $default = [
+            'runid' => $runid,
+            'callindex' => 0,
+            'toolname' => 'course_list',
+            'args_json' => '{}',
+            'args_hash' => str_repeat('a', 64),
+            'approval_state' => 'auto',
+            'approved_by' => null,
+            'result_json' => null,
+            'error_message' => null,
+            'undo_payload' => null,
+            'timecreated' => $now,
+            'timemodified' => $now,
+            'usermodified' => $USER->id,
+        ];
+        $data = (object) array_merge($default, $record);
+        $data->id = $DB->insert_record('local_ai_manager_tool_calls', $data);
+        return $data;
+    }
+
+    /**
+     * Create a trust preference row (MBS-10761).
+     *
+     * @param array $record Overrides for the default record.
+     * @return stdClass Inserted record including id.
+     */
+    public function create_trust_pref(array $record = []): stdClass {
+        global $DB, $USER;
+        $now = time();
+        $default = [
+            'userid' => $USER->id,
+            'toolname' => 'course_list',
+            'scope' => 'user',
+            'expires' => 0,
+            'timecreated' => $now,
+            'timemodified' => $now,
+            'usermodified' => $USER->id,
+        ];
+        $data = (object) array_merge($default, $record);
+        $data->id = $DB->insert_record('local_ai_manager_trust_prefs', $data);
+        return $data;
+    }
 }

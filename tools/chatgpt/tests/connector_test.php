@@ -40,7 +40,7 @@ final class connector_test extends \advanced_testcase {
         $modelname = aitool_option_azure::get_azure_model_name('chatgpt');
         $modelsbypurpose = $connector->get_models_by_purpose();
 
-        foreach (['chat', 'feedback', 'singleprompt', 'translate', 'itt', 'questiongeneration', 'agent'] as $purpose) {
+        foreach (['chat', 'feedback', 'singleprompt', 'translate', 'itt', 'questiongeneration', 'agent', 'toolagent'] as $purpose) {
             $this->assertContains($modelname, $modelsbypurpose[$purpose]);
         }
 

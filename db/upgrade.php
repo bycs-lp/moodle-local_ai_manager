@@ -347,5 +347,167 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026020600, 'local', 'ai_manager');
     }
 
+    if ($oldversion < 2026051600) {
+        // MBS-10761: Tool-agent schema — four new tables.
+        // Create local_ai_manager_agent_runs.
+        $table = new xmldb_table('local_ai_manager_agent_runs');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('conversationid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('contextid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('tenantid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('component', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, 'block_ai_chat');
+        $table->add_field('mode', XMLDB_TYPE_CHAR, '16', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('connector', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('model', XMLDB_TYPE_CHAR, '100', null, null, null, null);
+        $table->add_field('status', XMLDB_TYPE_CHAR, '24', null, XMLDB_NOTNULL, null, 'running');
+        $table->add_field('iterations', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('prompt_tokens', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('completion_tokens', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('overhead_tokens', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('entity_context', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('user_prompt', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('error_code', XMLDB_TYPE_CHAR, '64', null, null, null, null);
+        $table->add_field('error_message', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('started', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('finished', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+        $table->add_key('contextid', XMLDB_KEY_FOREIGN, ['contextid'], 'context', ['id']);
+        $table->add_index('userid-started', XMLDB_INDEX_NOTUNIQUE, ['userid', 'started']);
+        $table->add_index('status', XMLDB_INDEX_NOTUNIQUE, ['status']);
+        $table->add_index('conversationid', XMLDB_INDEX_NOTUNIQUE, ['conversationid']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Create local_ai_manager_tool_calls.
+        $table = new xmldb_table('local_ai_manager_tool_calls');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('runid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('callindex', XMLDB_TYPE_INTEGER, '4', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('llm_call_id', XMLDB_TYPE_CHAR, '64', null, null, null, null);
+        $table->add_field('toolname', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('args_json', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('args_hash', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('result_json', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('approval_state', XMLDB_TYPE_CHAR, '24', null, XMLDB_NOTNULL, null, 'auto');
+        $table->add_field('approved_by', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('approved_at', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('duration_ms', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('error_code', XMLDB_TYPE_CHAR, '64', null, null, null, null);
+        $table->add_field('error_message', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('retry_count', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('undo_payload', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('undone_at', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('affected_objects', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('runid', XMLDB_KEY_FOREIGN, ['runid'], 'local_ai_manager_agent_runs', ['id']);
+        $table->add_index('runid-callindex', XMLDB_INDEX_UNIQUE, ['runid', 'callindex']);
+        $table->add_index('toolname', XMLDB_INDEX_NOTUNIQUE, ['toolname']);
+        $table->add_index('approval_state', XMLDB_INDEX_NOTUNIQUE, ['approval_state']);
+        $table->add_index('args_hash', XMLDB_INDEX_NOTUNIQUE, ['args_hash']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Create local_ai_manager_trust_prefs.
+        $table = new xmldb_table('local_ai_manager_trust_prefs');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('tenantid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('toolname', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('scope', XMLDB_TYPE_CHAR, '16', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('session_id', XMLDB_TYPE_CHAR, '128', null, null, null, null);
+        $table->add_field('expires', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+        $table->add_index('userid-toolname-scope-session', XMLDB_INDEX_UNIQUE,
+            ['userid', 'toolname', 'scope', 'session_id']);
+        $table->add_index('tenantid-scope', XMLDB_INDEX_NOTUNIQUE, ['tenantid', 'scope']);
+        $table->add_index('expires', XMLDB_INDEX_NOTUNIQUE, ['expires']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Create local_ai_manager_file_extract_cache.
+        $table = new xmldb_table('local_ai_manager_file_extract_cache');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('contenthash', XMLDB_TYPE_CHAR, '64', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('mechanism', XMLDB_TYPE_CHAR, '16', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('extracted_text', XMLDB_TYPE_TEXT, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('pages', XMLDB_TYPE_INTEGER, '6', null, null, null, null);
+        $table->add_field('truncated', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('expires', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('contenthash-mechanism', XMLDB_INDEX_UNIQUE, ['contenthash', 'mechanism']);
+        $table->add_index('expires', XMLDB_INDEX_NOTUNIQUE, ['expires']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Create local_ai_manager_tool_overrides (SPEZ §19).
+        $table = new xmldb_table('local_ai_manager_tool_overrides');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('toolname', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('tenantid', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('llm_description_override', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('describe_for_user_template', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('example_appendix', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('glossary_json', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('enabled', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1');
+        $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('toolname-tenantid', XMLDB_INDEX_UNIQUE, ['toolname', 'tenantid']);
+        $table->add_index('enabled', XMLDB_INDEX_NOTUNIQUE, ['enabled']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Bootstrap HMAC secret for approval tokens (SPEZ §9.2).
+        if (!get_config('local_ai_manager', 'agent_hmac_secret')) {
+            set_config('agent_hmac_secret', random_string(64), 'local_ai_manager');
+        }
+        // Default runtime knobs (SPEZ §17).
+        if (get_config('local_ai_manager', 'agent_approval_ttl') === false) {
+            set_config('agent_approval_ttl', 900, 'local_ai_manager');
+        }
+        if (get_config('local_ai_manager', 'agent_max_iterations') === false) {
+            set_config('agent_max_iterations', 10, 'local_ai_manager');
+        }
+        if (get_config('local_ai_manager', 'agent_undo_window_seconds') === false) {
+            set_config('agent_undo_window_seconds', 900, 'local_ai_manager');
+        }
+        if (get_config('local_ai_manager', 'agent_rejection_retry_limit') === false) {
+            set_config('agent_rejection_retry_limit', 3, 'local_ai_manager');
+        }
+
+        upgrade_plugin_savepoint(true, 2026051600, 'local', 'ai_manager');
+    }
+
+    if ($oldversion < 2026051801) {
+        // Add final_text column to agent_runs so multi-turn conversations can replay prior assistant messages.
+        $table = new xmldb_table('local_ai_manager_agent_runs');
+        $field = new xmldb_field('final_text', XMLDB_TYPE_TEXT, null, null, null, null, null, 'user_prompt');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026051801, 'local', 'ai_manager');
+    }
+
     return true;
 }

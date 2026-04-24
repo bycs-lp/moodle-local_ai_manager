@@ -1,0 +1,203 @@
+diff --git a/mutations.js b/mutations.js
+--- a/amd/src/mutations.js
++++ b/amd/src/mutations.js
+@@ -1,3 +1,4 @@
+ import {callExternalFunctionReactiveUpdate} from 'block_ai_chat/utils';
++import Ajax from 'core/ajax';
+ 
+ /**
+  * Reactive mutation handlers for block_ai_chat.
+@@ -45,6 +46,80 @@ class Mutations {
+         stateManager.processUpdates(ajaxresult);
+     }
+ 
++    // MBS-10761: Tool-agent mutations -----------------------------------------
++
++    /**
++     * Toggle between "chat" and "agent" mode.
++     *
++     * @param {object} stateManager
++     * @param {string} mode 'chat' or 'agent'
++     */
++    async setMode(stateManager, mode) {
++        stateManager.setReadOnly(false);
++        stateManager.state.config.mode = mode;
++        stateManager.setReadOnly(true);
++    }
++
++    /**
++     * Approve a pending tool call identified by its HMAC token.
++     *
++     * @param {object} stateManager
++     * @param {number} runid
++     * @param {number} callindex
++     * @param {string} token HMAC approval token
++     */
++    async approveToolCall(stateManager, runid, callindex, token) {
++        this.setLoadingState(stateManager, true);
++        const result = await callExternalFunctionReactiveUpdate(
++            'local_ai_manager_agent_approve_tool_call',
++            {runid, callindex, token}
++        );
++        stateManager.processUpdates(result);
++        this.setLoadingState(stateManager, false);
++    }
++
++    /**
++     * Reject a pending tool call.
++     *
++     * @param {object} stateManager
++     * @param {number} runid
++     * @param {number} callindex
++     * @param {string} reason optional free-text reason
++     */
++    async rejectToolCall(stateManager, runid, callindex, reason) {
++        const result = await callExternalFunctionReactiveUpdate(
++            'local_ai_manager_agent_reject_tool_call',
++            {runid, callindex, reason: reason || ''}
++        );
++        stateManager.processUpdates(result);
++    }
++
++    /**
++     * Grant trust for a tool in a given scope.
++     *
++     * @param {object} stateManager
++     * @param {string} toolname
++     * @param {string} scope 'session' | 'user' | 'global'
++     */
++    async trustTool(stateManager, toolname, scope) {
++        const result = await Ajax.call([{
++            methodname: 'local_ai_manager_agent_trust_tool',
++            args: {toolname, scope}
++        }])[0];
++        stateManager.setReadOnly(false);
++        stateManager.state.agent.trusted[toolname] = result;
++        stateManager.setReadOnly(true);
++    }
++
++    /**
++     * Undo a previously-executed reversible tool call.
++     *
++     * @param {object} stateManager
++     * @param {number} runid
++     * @param {number} callindex
++     */
++    async undoToolCall(stateManager, runid, callindex) {
++        const result = await callExternalFunctionReactiveUpdate(
++            'local_ai_manager_agent_undo_tool_call',
++            {runid, callindex}
++        );
++        stateManager.processUpdates(result);
++    }
++
+     async selectCurrentPersonaAndLoadChat(stateManager, personaid) {
+         await this.selectCurrentPersona(stateManager, personaid);
+         await this.setView(stateManager, 'chat');
+
+diff --git a/state.js b/state.js
+--- a/amd/src/state.js
++++ b/amd/src/state.js
+@@ -22,6 +22,14 @@ const initialState = {
+         currentPersonaId: 0,
+         currentConversationId: 0,
+         loading: false,
++        // MBS-10761: Agent mode toggle (default 'chat'; 'agent' enables tool-agent).
++        mode: 'chat',
++    },
++    // MBS-10761: Tool-agent run state.
++    agent: {
++        activeRun: null,           // {runid, status, pendingToolCall?}
++        toolCalls: [],             // [{callindex, toolname, args, result?, approvalState}]
++        trusted: {},               // toolname → {scope, expires}
+     },
+     personas: [],
+     conversations: [],
+
+diff --git a/classes/local/manager.php b/classes/local/manager.php
+--- a/classes/local/manager.php
++++ b/classes/local/manager.php
+@@ -60,6 +60,24 @@ class manager {
+      */
+     public function request_ai(string $prompt, array $options, int $conversationid, bool $isnew): array {
++        // MBS-10761: Dispatch to toolagent purpose when agent mode is enabled.
++        if (!empty($options['mode']) && $options['mode'] === 'agent') {
++            if (!has_capability('block/ai_chat:useagentmode', $this->context)) {
++                throw new \required_capability_exception(
++                    $this->context,
++                    'block/ai_chat:useagentmode',
++                    'nopermissions',
++                    ''
++                );
++            }
++            $orchestrator = \core\di::get(\local_ai_manager\agent\orchestrator::class);
++            return $orchestrator->run(
++                prompt: $prompt,
++                conversationid: $conversationid,
++                context: $this->context,
++                component: 'block_ai_chat',
++                options: $options,
++            );
++        }
+         // ... existing chat-purpose flow ...
+     }
+ }
+
+diff --git a/templates/agent_approval_card.mustache b/templates/agent_approval_card.mustache
+new file mode 100644
+--- /dev/null
++++ b/templates/agent_approval_card.mustache
+@@ -0,0 +1,40 @@
++{{!
++    @template block_ai_chat/agent_approval_card
++
++    Approval card rendered for a pending tool call. The server supplies:
++      - toolname
++      - describeForUser (localised, untrusted -> escaped upstream)
++      - affectedObjects  [{type, label}, ...]
++      - approvalToken    (HMAC, opaque)
++      - runid, callindex
++
++    @package    block_ai_chat
++    @copyright  2026 ISB Bayern
++    @author     Dr. Peter Mayer
++    @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
++}}
++<div class="agent-approval-card card mb-2"
++     data-action="agent-approval"
++     data-runid="{{runid}}"
++     data-callindex="{{callindex}}"
++     data-token="{{approvalToken}}">
++    <div class="card-body">
++        <h5 class="card-title">{{#str}} agentwillperform, block_ai_chat {{/str}}</h5>
++        <p>{{describeForUser}}</p>
++        {{#affectedObjects.length}}
++            <ul class="list-unstyled small">
++                {{#affectedObjects}}
++                    <li><strong>{{type}}:</strong> {{label}}</li>
++                {{/affectedObjects}}
++            </ul>
++        {{/affectedObjects.length}}
++        <div class="btn-group">
++            <button class="btn btn-primary" data-action="agent-approve">{{#str}} approve, block_ai_chat {{/str}}</button>
++            <button class="btn btn-secondary" data-action="agent-reject">{{#str}} reject, block_ai_chat {{/str}}</button>
++            {{#trustable}}
++                <button class="btn btn-link" data-action="agent-trust-session">{{#str}} alwaystrustsession, block_ai_chat {{/str}}</button>
++            {{/trustable}}
++        </div>
++    </div>
++</div>
+
+diff --git a/lang/en/block_ai_chat.php b/lang/en/block_ai_chat.php
+--- a/lang/en/block_ai_chat.php
++++ b/lang/en/block_ai_chat.php
+@@ -100,3 +100,10 @@ $string['useagentmode'] = 'Use agent mode';
++// MBS-10761: Tool-agent UI strings.
++$string['agentmode'] = 'Agent mode';
++$string['chatmode'] = 'Chat mode';
++$string['agentwillperform'] = 'The assistant wants to perform the following action:';
++$string['approve'] = 'Approve';
++$string['reject'] = 'Reject';
++$string['alwaystrustsession'] = 'Always trust this for the current session';
++$string['agenttoolsucceeded'] = 'Completed: {$a}';
++$string['agenttoolfailed'] = 'Could not complete: {$a}';

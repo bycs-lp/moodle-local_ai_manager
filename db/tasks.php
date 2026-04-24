@@ -42,4 +42,12 @@ $tasks = [
                 'dayofweek' => '*',
                 'month' => '*',
         ],
+        [
+                'classname' => 'local_ai_manager\task\agent_run_cleanup',
+                'minute' => '17',
+                'hour' => '3',
+                'day' => '*',
+                'dayofweek' => '*',
+                'month' => '*',
+        ],
 ];

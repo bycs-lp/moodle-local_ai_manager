@@ -49,4 +49,25 @@ class hook_callbacks {
         );
         $hook->get_primaryview()->add_node($node);
     }
+
+    /**
+     * DI container wiring for local_ai_manager (MBS-10761).
+     *
+     * Binds the tool-agent default implementations so that
+     * {@see \local_ai_manager\external\agent_runner_factory} and the orchestrator
+     * can resolve them via {@see \core\di::get()}. Tests override these bindings
+     * with {@see \core\di::set()} before invoking the external function.
+     *
+     * @param \core\hook\di_configuration $hook The DI configuration hook.
+     */
+    public static function configure_di(\core\hook\di_configuration $hook): void {
+        $hook->add_definition(
+            \local_ai_manager\agent\tool_protocol::class,
+            \DI\autowire(\local_ai_manager\agent\tool_protocol_native::class),
+        );
+        $hook->add_definition(
+            \local_ai_manager\agent\tool_registry::class,
+            \DI\autowire(\local_ai_manager\agent\tool_registry::class),
+        );
+    }
 }

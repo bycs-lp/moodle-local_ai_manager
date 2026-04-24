@@ -151,4 +151,22 @@ $capabilities = [
                         'manager' => CAP_ALLOW,
                 ],
         ],
+        // MBS-10761: Manage tool-agent tool overrides (Baustein 8 Admin-UI).
+        'local/ai_manager:managetools' => [
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_SYSTEM,
+                'archetypes' => [
+                        'manager' => CAP_ALLOW,
+                ],
+                'riskbitmask' => RISK_CONFIG,
+        ],
+        // MBS-10761: Configure tenant-wide "trusted" state for write-tools.
+        'local/ai_manager:configuretrust' => [
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_SYSTEM,
+                'archetypes' => [
+                        'manager' => CAP_ALLOW,
+                ],
+                'riskbitmask' => RISK_CONFIG | RISK_DATALOSS,
+        ],
 ];

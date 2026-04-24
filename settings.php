@@ -182,6 +182,15 @@ if ($hassiteconfig) {
                 ['year' => 2025, 'mon' => 10, 'mday' => 1, 'hours' => 0, 'minutes' => 0]
             )
         );
+        $settings->add(
+            new admin_setting_configtext(
+                'local_ai_manager/agent_run_retention_days',
+                get_string('agent_run_retention_days', 'local_ai_manager'),
+                get_string('agent_run_retention_days_desc', 'local_ai_manager'),
+                '90',
+                PARAM_INT
+            )
+        );
     }
 
     $aitoolssettingpage = new admin_settingpage(
@@ -212,6 +221,17 @@ if ($hassiteconfig) {
 
     $ADMIN->add('local_ai_manager_settings', $aitoolssettingpage);
     $ADMIN->add('local_ai_manager_settings', $aipurposessettingpage);
+
+    // MBS-10761 Baustein 8: agent tool override UI.
+    $ADMIN->add(
+        'local_ai_manager_settings',
+        new admin_externalpage(
+            'local_ai_manager_agent_tools',
+            new lang_string('agent_tools_manage', 'local_ai_manager'),
+            new moodle_url('/local/ai_manager/agent_tools.php'),
+            'local/ai_manager:managetools'
+        )
+    );
 
     $ADMIN->add(
         'local_ai_manager_settings',
