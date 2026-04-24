@@ -107,4 +107,9 @@ class purpose_llm_client implements llm_client {
         $model = $this->connector->get_instance()->get_model();
         return $model !== '' ? $model : null;
     }
+
+    #[\Override]
+    public function supports_native_tool_calling(): bool {
+        return $this->connector->supports_native_tool_calling();
+    }
 }

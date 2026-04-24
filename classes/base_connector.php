@@ -167,6 +167,50 @@ abstract class base_connector {
     }
 
     /**
+     * Declare whether this connector speaks the provider-native tool-calling
+     * protocol (OpenAI/Gemini/Ollama-style `tools` array + `tool_calls`
+     * response) vs. the emulated JSON-block fallback (SPEZ §11.1).
+     *
+     * Default: false. Connectors that support native tool calling MUST override.
+     *
+     * @return bool true if native tool calling is supported
+     */
+    public function supports_native_tool_calling(): bool {
+        return false;
+    }
+
+    /**
+     * Build a provider-specific request payload for a tool-agent turn.
+     *
+     * Only called when {@see supports_native_tool_calling()} returns true AND
+     * the request_options carry an `agent_tools` entry. The returned array is
+     * forwarded to {@see make_request()} (and ultimately to the HTTP layer)
+     * as-is.
+     *
+     * @param string $prompttext the current user turn text
+     * @param request_options $requestoptions carries `agent_tools` and message history
+     * @return array provider-ready payload
+     * @throws \coding_exception by default — override in connectors that implement native tool calling
+     */
+    public function build_tool_calling_payload(string $prompttext, request_options $requestoptions): array {
+        throw new \coding_exception('Connector ' . static::class . ' has no native tool-calling support');
+    }
+
+    /**
+     * Parse a provider-native tool-calling response into the unified
+     * {@see \local_ai_manager\agent\tool_response} representation.
+     *
+     * Only called when {@see supports_native_tool_calling()} returns true.
+     *
+     * @param array $rawresponse decoded provider response body
+     * @return \local_ai_manager\agent\tool_response
+     * @throws \coding_exception by default — override in connectors that implement native tool calling
+     */
+    public function parse_tool_calling_response(array $rawresponse): \local_ai_manager\agent\tool_response {
+        throw new \coding_exception('Connector ' . static::class . ' has no native tool-calling support');
+    }
+
+    /**
      * Makes a request to the specified URL with the given data and API key.
      *
      * Can be used for most tools without any changes. In case changes are needed, it's possible to overwrite, but please only do

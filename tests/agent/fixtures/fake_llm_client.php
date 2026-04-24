@@ -55,6 +55,7 @@ final class fake_llm_client implements llm_client {
         private array $script,
         private readonly string $connectorname = 'fake',
         private readonly ?string $model = 'fake-model',
+        private readonly bool $nativetoolcalling = true,
     ) {
     }
 
@@ -118,5 +119,10 @@ final class fake_llm_client implements llm_client {
     #[\Override]
     public function get_model(): ?string {
         return $this->model;
+    }
+
+    #[\Override]
+    public function supports_native_tool_calling(): bool {
+        return $this->nativetoolcalling;
     }
 }

@@ -61,10 +61,11 @@ class hook_callbacks {
      * @param \core\hook\di_configuration $hook The DI configuration hook.
      */
     public static function configure_di(\core\hook\di_configuration $hook): void {
-        $hook->add_definition(
-            \local_ai_manager\agent\tool_protocol::class,
-            \DI\autowire(\local_ai_manager\agent\tool_protocol_native::class),
-        );
+        // Note: `tool_protocol` is intentionally NOT bound here — since SPEZ §11
+        // the choice of native vs. emulated protocol is driven by the
+        // {@see llm_client::supports_native_tool_calling()} capability of the
+        // connector the factory picks. Tests MAY still inject an override via
+        // {@see \core\di::set()} to force a specific protocol.
         $hook->add_definition(
             \local_ai_manager\agent\tool_registry::class,
             \DI\autowire(\local_ai_manager\agent\tool_registry::class),

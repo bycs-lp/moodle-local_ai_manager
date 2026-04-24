@@ -182,6 +182,31 @@ class connector extends \local_ai_manager\base_connector {
     }
 
     #[\Override]
+    public function supports_native_tool_calling(): bool {
+        // OpenAI (and Azure-OpenAI) support the `tools` / `tool_calls` API on
+        // every model currently listed in {@see get_models_by_purpose()} except
+        // the `o1-mini` reasoning preview. See SPEZ §11.2.
+        return $this->get_instance()->get_model() !== 'o1-mini';
+    }
+
+    #[\Override]
+    public function build_tool_calling_payload(string $prompttext, request_options $requestoptions): array {
+        $payload = $this->get_prompt_data($prompttext, $requestoptions);
+        $tools = $requestoptions->get_option('agent_tools');
+        if (is_array($tools) && !empty($tools)) {
+            $payload['tools'] = $tools;
+            $payload['tool_choice'] = $requestoptions->get_option('agent_tool_choice') ?? 'auto';
+            $payload['parallel_tool_calls'] = (bool) ($requestoptions->get_option('agent_parallel_tool_calls') ?? true);
+        }
+        return $payload;
+    }
+
+    #[\Override]
+    public function parse_tool_calling_response(array $rawresponse): \local_ai_manager\agent\tool_response {
+        return (new \local_ai_manager\agent\tool_protocol_native())->parse_response($rawresponse);
+    }
+
+    #[\Override]
     protected function get_custom_error_message(int $code, ?ClientExceptionInterface $exception = null): string {
         $message = '';
         switch ($code) {

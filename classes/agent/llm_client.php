@@ -68,4 +68,15 @@ interface llm_client {
      * @return string|null
      */
     public function get_model(): ?string;
+
+    /**
+     * Whether the underlying connector speaks the provider-native tool-calling
+     * protocol (OpenAI/Gemini/Ollama-style) as declared in SPEZ §11.1.
+     *
+     * The {@see \local_ai_manager\external\agent_runner_factory} uses this to
+     * select between {@see tool_protocol_native} and {@see tool_protocol_emulated}.
+     *
+     * @return bool
+     */
+    public function supports_native_tool_calling(): bool;
 }

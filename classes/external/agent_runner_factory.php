@@ -30,6 +30,7 @@ use local_ai_manager\agent\llm_client;
 use local_ai_manager\agent\orchestrator;
 use local_ai_manager\agent\purpose_llm_client;
 use local_ai_manager\agent\tool_protocol;
+use local_ai_manager\agent\tool_protocol_emulated;
 use local_ai_manager\agent\tool_protocol_native;
 use local_ai_manager\agent\tool_registry;
 use local_ai_manager\agent\trust_resolver;
@@ -65,7 +66,7 @@ class agent_runner_factory {
         if ($client === null) {
             throw new \moodle_exception('agent_runner_disabled', 'local_ai_manager');
         }
-        $protocol = \core\di::get(tool_protocol::class);
+        $protocol = $this->resolve_protocol($client);
         $registry = \core\di::get(tool_registry::class);
         $tools = $registry->get_tools_for($USER, $context);
         return new orchestrator(
@@ -76,6 +77,33 @@ class agent_runner_factory {
             trustresolver: new trust_resolver(),
             injectionguard: new injection_guard(),
         );
+    }
+
+    /**
+     * Resolve the tool protocol (native vs. emulated) for the given client.
+     *
+     * Per SPEZ §11 the decision is driven by the connector's declared
+     * capability: a connector that reports {@see llm_client::supports_native_tool_calling()}
+     * drives the native OpenAI/Gemini/Ollama shape; everything else falls
+     * back to the emulated JSON-block protocol. Tests may pre-register a
+     * specific {@see tool_protocol} via {@see \core\di::set()} to force either
+     * shape — that override is honoured unconditionally.
+     *
+     * @param llm_client $client
+     * @return tool_protocol
+     */
+    protected function resolve_protocol(llm_client $client): tool_protocol {
+        try {
+            $forced = \core\di::get(tool_protocol::class);
+            if ($forced instanceof tool_protocol) {
+                return $forced;
+            }
+        } catch (\Throwable) {
+            // Fall through to connector-driven selection.
+        }
+        return $client->supports_native_tool_calling()
+            ? new tool_protocol_native()
+            : new tool_protocol_emulated();
     }
 
     /**
