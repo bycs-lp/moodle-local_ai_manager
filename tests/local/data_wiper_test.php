@@ -416,4 +416,70 @@ final class data_wiper_test extends \advanced_testcase {
         $this->assertNotEquals(data_wiper::ANONYMIZE_STRING, $record->prompttext);
         $this->assertNotEquals(data_wiper::ANONYMIZE_STRING, $record->promptcompletion);
     }
+
+    /**
+     * The extended cleanup also deletes old agent_runs (tool_calls via FK) and
+     * anonymises still-existing runs older than the anonymise cutoff
+     * (MBS-10761 Paket 4 / SPEZ §13.2).
+     *
+     * @covers \local_ai_manager\local\data_wiper::cleanup_agent_data
+     */
+    public function test_cleanup_agent_data(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        $now = time();
+        set_config('datawiperanonymizedate', $now - 10 * DAYSECS, 'local_ai_manager');
+        set_config('datawiperdeletedate', $now - 30 * DAYSECS, 'local_ai_manager');
+
+        $oldrunid = $DB->insert_record('local_ai_manager_agent_runs', (object) [
+            'conversationid' => 0, 'userid' => 7, 'contextid' => SYSCONTEXTID,
+            'component' => 'block_ai_chat', 'mode' => 'native', 'connector' => 'chatgpt',
+            'status' => 'completed', 'user_prompt' => 'old prompt',
+            'started' => $now - 40 * DAYSECS, 'finished' => $now - 40 * DAYSECS,
+            'timecreated' => $now - 40 * DAYSECS, 'timemodified' => $now - 40 * DAYSECS,
+        ]);
+        $DB->insert_record('local_ai_manager_tool_calls', (object) [
+            'runid' => $oldrunid, 'callindex' => 0, 'toolname' => 'course_list',
+            'args_json' => '{}', 'args_hash' => str_repeat('a', 64), 'approval_state' => 'auto',
+            'timecreated' => $now - 40 * DAYSECS, 'timemodified' => $now - 40 * DAYSECS,
+        ]);
+
+        $midrunid = $DB->insert_record('local_ai_manager_agent_runs', (object) [
+            'conversationid' => 0, 'userid' => 7, 'contextid' => SYSCONTEXTID,
+            'component' => 'block_ai_chat', 'mode' => 'native', 'connector' => 'chatgpt',
+            'status' => 'completed', 'user_prompt' => 'mid prompt',
+            'started' => $now - 20 * DAYSECS, 'finished' => $now - 20 * DAYSECS,
+            'timecreated' => $now - 20 * DAYSECS, 'timemodified' => $now - 20 * DAYSECS,
+        ]);
+        $midcallid = $DB->insert_record('local_ai_manager_tool_calls', (object) [
+            'runid' => $midrunid, 'callindex' => 0, 'toolname' => 'course_list',
+            'args_json' => '{"courseid":5}', 'args_hash' => str_repeat('b', 64), 'approval_state' => 'auto',
+            'timecreated' => $now - 20 * DAYSECS, 'timemodified' => $now - 20 * DAYSECS,
+        ]);
+
+        $freshrunid = $DB->insert_record('local_ai_manager_agent_runs', (object) [
+            'conversationid' => 0, 'userid' => 7, 'contextid' => SYSCONTEXTID,
+            'component' => 'block_ai_chat', 'mode' => 'native', 'connector' => 'chatgpt',
+            'status' => 'completed', 'user_prompt' => 'fresh prompt',
+            'started' => $now - DAYSECS, 'finished' => $now - DAYSECS,
+            'timecreated' => $now - DAYSECS, 'timemodified' => $now - DAYSECS,
+        ]);
+
+        (new data_wiper())->cleanup_agent_data();
+
+        // Old run + tool_call gone.
+        $this->assertFalse($DB->record_exists('local_ai_manager_agent_runs', ['id' => $oldrunid]));
+        $this->assertFalse($DB->record_exists('local_ai_manager_tool_calls', ['runid' => $oldrunid]));
+
+        // Middle run anonymised.
+        $mid = $DB->get_record('local_ai_manager_agent_runs', ['id' => $midrunid], '*', MUST_EXIST);
+        $this->assertSame(data_wiper::ANONYMIZE_STRING, $mid->user_prompt);
+        $midcall = $DB->get_record('local_ai_manager_tool_calls', ['id' => $midcallid], '*', MUST_EXIST);
+        $this->assertSame(data_wiper::ANONYMIZE_STRING, $midcall->args_json);
+
+        // Fresh run untouched.
+        $fresh = $DB->get_record('local_ai_manager_agent_runs', ['id' => $freshrunid], '*', MUST_EXIST);
+        $this->assertSame('fresh prompt', $fresh->user_prompt);
+    }
 }

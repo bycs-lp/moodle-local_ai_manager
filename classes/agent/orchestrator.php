@@ -240,6 +240,7 @@ class orchestrator {
                 $run->set('status', agent_run::STATUS_ABORTED_MAXITER);
                 $run->set('finished', $this->clock->now()->getTimestamp());
                 $run->save();
+                self::dispatch_run_finished($run);
                 return new run_result(
                     runid: $run->get('id'),
                     status: agent_run::STATUS_ABORTED_MAXITER,
@@ -292,6 +293,7 @@ class orchestrator {
                 $run->set('final_text', $response->final_text);
                 $run->set('finished', $this->clock->now()->getTimestamp());
                 $run->save();
+                self::dispatch_run_finished($run);
                 return new run_result(
                     runid: $run->get('id'),
                     status: agent_run::STATUS_COMPLETED,
@@ -923,6 +925,7 @@ class orchestrator {
         $run->set('error_message', $message);
         $run->set('finished', $this->clock->now()->getTimestamp());
         $run->save();
+        self::dispatch_run_finished($run);
         return new run_result(
             runid: (int) $run->get('id'),
             status: agent_run::STATUS_FAILED,
@@ -931,6 +934,39 @@ class orchestrator {
             error_code: $code,
             error_message: $message,
         );
+    }
+
+    /**
+     * Fire {@see \local_ai_manager\event\agent_run_finished} for a terminal run.
+     *
+     * Safe to call more than once — the event is created fresh from the persistent
+     * state. Context defaults to system if the stored contextid is stale.
+     *
+     * @param agent_run $run
+     */
+    public static function dispatch_run_finished(agent_run $run): void {
+        global $DB;
+        $contextid = (int) $run->get('contextid');
+        $context = $contextid ? \context::instance_by_id($contextid, IGNORE_MISSING) : null;
+        if (!$context) {
+            $context = \core\context\system::instance();
+        }
+        $toolcount = (int) $DB->count_records('local_ai_manager_tool_calls', ['runid' => $run->get('id')]);
+        $started = (int) $run->get('timecreated');
+        $finished = (int) ($run->get('finished') ?: $started);
+        $event = \local_ai_manager\event\agent_run_finished::create([
+            'context' => $context,
+            'userid' => (int) $run->get('userid'),
+            'objectid' => (int) $run->get('id'),
+            'other' => [
+                'status' => (string) $run->get('status'),
+                'iterations' => (int) $run->get('iterations'),
+                'tool_count' => $toolcount,
+                'duration_ms' => max(0, ($finished - $started) * 1000),
+                'error_code' => (string) ($run->get('error_code') ?? ''),
+            ],
+        ]);
+        $event->trigger();
     }
 
     /**

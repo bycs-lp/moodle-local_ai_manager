@@ -54,6 +54,67 @@ class data_wiper {
         // We delete first, because we do not need to anonymize things we will delete anyway.
         $this->delete_request_log_data();
         $this->anonymize_request_log_data();
+        // MBS-10761 Paket 4 / SPEZ §13.2: retention for agent runs + tool calls + trust prefs.
+        $this->cleanup_agent_data();
+    }
+
+    /**
+     * Apply the same anonymize/delete retention policy to agent_runs, tool_calls and trust_prefs.
+     *
+     * Deletes rows older than datawiperdeletedate; anonymises rows older than
+     * datawiperanonymizedate. Tool-calls are removed via FK cascade on delete
+     * and anonymised column-by-column on anonymise.
+     */
+    public function cleanup_agent_data(): void {
+        global $DB;
+        // Delete oldest runs + their tool_calls (Moodle XMLDB has no ON DELETE CASCADE).
+        $oldrunids = $DB->get_fieldset_select(
+            'local_ai_manager_agent_runs',
+            'id',
+            'timecreated < :cutoff',
+            ['cutoff' => $this->deletedate],
+        );
+        if (!empty($oldrunids)) {
+            [$insql, $inparams] = $DB->get_in_or_equal($oldrunids, SQL_PARAMS_NAMED, 'rid');
+            $DB->delete_records_select('local_ai_manager_tool_calls', "runid $insql", $inparams);
+            $DB->delete_records_select('local_ai_manager_agent_runs', "id $insql", $inparams);
+        }
+        // Anonymise remaining older runs.
+        $DB->execute(
+            "UPDATE {local_ai_manager_agent_runs}
+                SET userid = 0,
+                    user_prompt = :anon,
+                    entity_context = NULL,
+                    error_message = NULL
+              WHERE timecreated < :cutoff
+                AND user_prompt <> :anon2",
+            [
+                'anon' => self::ANONYMIZE_STRING,
+                'anon2' => self::ANONYMIZE_STRING,
+                'cutoff' => $this->anonymizedate,
+            ],
+        );
+        $DB->execute(
+            "UPDATE {local_ai_manager_tool_calls}
+                SET args_json = :anon,
+                    result_json = NULL,
+                    approved_by = NULL,
+                    error_message = NULL,
+                    undo_payload = NULL
+              WHERE timecreated < :cutoff
+                AND args_json <> :anon2",
+            [
+                'anon' => self::ANONYMIZE_STRING,
+                'anon2' => self::ANONYMIZE_STRING,
+                'cutoff' => $this->anonymizedate,
+            ],
+        );
+        // Old trust prefs (user scope, unused for longer than deletedate) are dropped.
+        $DB->delete_records_select(
+            'local_ai_manager_trust_prefs',
+            'scope = :scope AND timemodified < :cutoff',
+            ['scope' => 'user', 'cutoff' => $this->deletedate],
+        );
     }
 
     /**

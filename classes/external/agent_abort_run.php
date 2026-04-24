@@ -116,6 +116,8 @@ class agent_abort_run extends external_api {
         $run->set('finished', $now);
         $run->save();
 
+        \local_ai_manager\agent\orchestrator::dispatch_run_finished($run);
+
         return [
             'status' => agent_run::STATUS_ABORTED_USER,
             'runid' => (int) $run->get('id'),

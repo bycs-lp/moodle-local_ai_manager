@@ -47,4 +47,11 @@ $definitions = [
                 'simpledata' => true,
                 'ttl' => 3600,
         ],
+        // MBS-10761 Paket 4: Per-model capability probe results for aitool_ollama (SPEZ §14.1).
+        'agent_ollama_model_caps' => [
+                'mode' => cache_store::MODE_APPLICATION,
+                'simplekeys' => true,
+                'simpledata' => true,
+                'ttl' => DAYSECS,
+        ],
 ];
