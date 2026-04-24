@@ -191,6 +191,33 @@ if ($hassiteconfig) {
                 PARAM_INT
             )
         );
+        $settings->add(
+            new admin_setting_configtext(
+                'local_ai_manager/file_extract_min_chars_per_page',
+                get_string('file_extract_min_chars_per_page', 'local_ai_manager'),
+                get_string('file_extract_min_chars_per_page_desc', 'local_ai_manager'),
+                '50',
+                PARAM_INT
+            )
+        );
+        $settings->add(
+            new admin_setting_configtext(
+                'local_ai_manager/file_extract_max_pages',
+                get_string('file_extract_max_pages', 'local_ai_manager'),
+                get_string('file_extract_max_pages_desc', 'local_ai_manager'),
+                '50',
+                PARAM_INT
+            )
+        );
+        $settings->add(
+            new admin_setting_configtext(
+                'local_ai_manager/file_extract_cache_ttl_days',
+                get_string('file_extract_cache_ttl_days', 'local_ai_manager'),
+                get_string('file_extract_cache_ttl_days_desc', 'local_ai_manager'),
+                '7',
+                PARAM_INT
+            )
+        );
     }
 
     $aitoolssettingpage = new admin_settingpage(

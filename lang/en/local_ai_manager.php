@@ -482,3 +482,19 @@ $string['tool_question_create_multichoice_batch_summary'] = 'Create several mult
 $string['tool_question_create_multichoice_batch_describe'] = 'Create {$a->count} multichoice questions (batch).';
 $string['tool_question_create_multichoice_batch_empty'] = 'The items array must contain at least one entry.';
 $string['tool_question_create_multichoice_batch_too_many'] = 'Too many items in batch (maximum is {$a}).';
+
+// Tool: file_extract_text.
+$string['tool_file_extract_text_summary'] = 'Extract plain text from an uploaded file (text or PDF, with OCR fallback).';
+$string['tool_file_extract_text_describe'] = 'Extract text from the uploaded file "{$a->filename}".';
+$string['tool_file_extract_text_missing_filename'] = 'A non-empty filename is required.';
+$string['tool_file_extract_text_not_found'] = 'The referenced file was not found in the draft area.';
+$string['tool_file_extract_text_unsupported'] = 'Unsupported MIME type for text extraction: {$a}.';
+$string['tool_file_extract_text_raster_failed'] = 'The PDF could not be rasterised for OCR.';
+
+// Admin settings: file_extract_text.
+$string['file_extract_min_chars_per_page'] = 'Minimum characters per page (file_extract_text)';
+$string['file_extract_min_chars_per_page_desc'] = 'Below this char-per-page density, the PDF extraction falls back to ITT/OCR.';
+$string['file_extract_max_pages'] = 'Maximum pages per OCR call (file_extract_text)';
+$string['file_extract_max_pages_desc'] = 'Hard cap on pages sent through ITT/OCR for a single file_extract_text invocation.';
+$string['file_extract_cache_ttl_days'] = 'Cache TTL in days (file_extract_text)';
+$string['file_extract_cache_ttl_days_desc'] = 'How long extracted text is kept in the per-content cache. 0 disables expiry.';

@@ -70,5 +70,13 @@ class hook_callbacks {
             \local_ai_manager\agent\tool_registry::class,
             \DI\autowire(\local_ai_manager\agent\tool_registry::class),
         );
+        $hook->add_definition(
+            \local_ai_manager\agent\itt_executor::class,
+            \DI\autowire(\local_ai_manager\agent\itt_executor::class),
+        );
+        $hook->add_definition(
+            \local_ai_manager\agent\pdf_rasterizer::class,
+            \DI\autowire(\local_ai_manager\agent\pdf_rasterizer::class),
+        );
     }
 }
