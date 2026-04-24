@@ -125,4 +125,51 @@ class connector extends \local_ai_manager\base_connector {
     public function allowed_mimetypes(): array {
         return ['image/png', 'image/jpg', 'image/jpeg'];
     }
+
+    #[\Override]
+    public function supports_native_tool_calling(): bool {
+        // Ollama supports OpenAI-compatible tool calling since ~0.3 for models that
+        // carry a tools capability in /api/show. We don't query /api/show per request
+        // for performance; instead the admin is expected to pick a tools-capable model
+        // (llama3.1, llama3.3, mistral, mixtral, qwen, gemma3). A MUC-cached /api/show
+        // capability probe lives in SPEZ §11.3 and is a follow-up for an admin-time
+        // health check.
+        $toolcapable = ['llama3.1', 'llama3.3', 'llama4', 'mistral', 'mistral-small3.1',
+            'mixtral', 'dolphin-mixtral', 'qwen', 'gemma3', 'phi4'];
+        $model = (string) $this->instance->get_model();
+        foreach ($toolcapable as $prefix) {
+            if (str_starts_with($model, $prefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    #[\Override]
+    public function build_tool_calling_payload(string $prompttext, request_options $requestoptions): array {
+        $payload = $this->get_prompt_data($prompttext, $requestoptions);
+        $tools = $requestoptions->get_option('agent_tools');
+        if (is_array($tools) && !empty($tools)) {
+            // Ollama's chat API accepts the OpenAI-compatible `tools` array directly.
+            $payload['tools'] = $tools;
+            $choice = $requestoptions->get_option('agent_tool_choice');
+            if (in_array($choice, ['auto', 'required', 'none'], true)) {
+                // Ollama currently ignores tool_choice but we forward it for forward-compat.
+                $payload['tool_choice'] = $choice;
+            }
+        }
+        return $payload;
+    }
+
+    #[\Override]
+    public function parse_tool_calling_response(array $rawresponse): \local_ai_manager\agent\tool_response {
+        // Ollama returns the OpenAI chat-completion shape with `message.tool_calls`.
+        // Re-shape into the top-level `choices[0].message` the native protocol expects.
+        if (!isset($rawresponse['choices']) && isset($rawresponse['message'])) {
+            $rawresponse = [
+                'choices' => [['message' => $rawresponse['message']]],
+            ] + $rawresponse;
+        }
+        return (new \local_ai_manager\agent\tool_protocol_native())->parse_response($rawresponse);
+    }
 }

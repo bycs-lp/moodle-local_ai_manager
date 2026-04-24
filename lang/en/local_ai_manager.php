@@ -498,3 +498,22 @@ $string['file_extract_max_pages'] = 'Maximum pages per OCR call (file_extract_te
 $string['file_extract_max_pages_desc'] = 'Hard cap on pages sent through ITT/OCR for a single file_extract_text invocation.';
 $string['file_extract_cache_ttl_days'] = 'Cache TTL in days (file_extract_text)';
 $string['file_extract_cache_ttl_days_desc'] = 'How long extracted text is kept in the per-content cache. 0 disables expiry.';
+
+// Tool: course_enroll_self.
+$string['tool_course_enroll_self_summary'] = 'Enrol the calling user into a course via self-enrolment.';
+$string['tool_course_enroll_self_describe'] = 'Enrol you into course {$a->courseid} via self-enrolment.';
+$string['tool_course_enroll_self_not_found'] = 'The requested course does not exist.';
+$string['tool_course_enroll_self_no_instance'] = 'This course has no active self-enrolment. Ask the course administrator to enable it.';
+$string['tool_course_enroll_self_bad_key'] = 'The provided enrolment key is missing or incorrect.';
+
+// Tool: reports_get_enrolled_users.
+$string['tool_reports_get_enrolled_users_summary'] = 'List users enrolled in a course, optionally filtered by role.';
+$string['tool_reports_role_not_found'] = 'No role with shortname "{$a}" is defined on this site.';
+
+// Tool: file_list_in_draft.
+$string['tool_file_list_in_draft_summary'] = 'List files attached to a draft area belonging to the calling user.';
+$string['tool_file_list_in_draft_invalid'] = 'A positive draftitemid is required.';
+
+// Shared tool strings.
+$string['tool_course_not_found'] = 'The requested course does not exist.';
+$string['tool_missing_capability'] = 'You do not hold the required capability: {$a}';

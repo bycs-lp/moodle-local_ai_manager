@@ -201,4 +201,60 @@ class connector extends \local_ai_manager\base_connector {
         // However, we restrict it to some basics.
         return ['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heiff', 'application/pdf'];
     }
+
+    #[\Override]
+    public function supports_native_tool_calling(): bool {
+        // Gemini 1.5+ and 2.x text models support the functionDeclarations API.
+        // The curated allowlist in get_models_by_purpose() already restricts us to those.
+        return true;
+    }
+
+    #[\Override]
+    public function build_tool_calling_payload(string $prompttext, request_options $requestoptions): array {
+        $payload = $this->get_prompt_data($prompttext, $requestoptions);
+
+        $tools = $requestoptions->get_option('agent_tools');
+        if (!is_array($tools) || empty($tools)) {
+            return $payload;
+        }
+
+        // Convert OpenAI-style {type:function, function:{name,description,parameters}} entries
+        // to Gemini's {functionDeclarations:[{name,description,parameters}]} shape.
+        $declarations = [];
+        foreach ($tools as $tool) {
+            if (!is_array($tool)) {
+                continue;
+            }
+            // Accept both OpenAI-wrapped and raw function entries.
+            $fn = $tool['function'] ?? $tool;
+            if (empty($fn['name'])) {
+                continue;
+            }
+            $declarations[] = [
+                'name' => (string) $fn['name'],
+                'description' => (string) ($fn['description'] ?? ''),
+                'parameters' => (array) ($fn['parameters'] ?? ['type' => 'object', 'properties' => new \stdClass()]),
+            ];
+        }
+        if (empty($declarations)) {
+            return $payload;
+        }
+        $payload['tools'] = [['functionDeclarations' => $declarations]];
+
+        // Gemini's equivalent of tool_choice=auto is the default. Force ANY when requested.
+        $choice = $requestoptions->get_option('agent_tool_choice');
+        if ($choice === 'required' || $choice === 'any') {
+            $payload['toolConfig'] = ['functionCallingConfig' => ['mode' => 'ANY']];
+        } else if ($choice === 'none') {
+            $payload['toolConfig'] = ['functionCallingConfig' => ['mode' => 'NONE']];
+        }
+        return $payload;
+    }
+
+    #[\Override]
+    public function parse_tool_calling_response(array $rawresponse): \local_ai_manager\agent\tool_response {
+        // tool_protocol_native already understands Gemini's candidates[].content.parts[]
+        // with functionCall entries (see local_ai_manager/classes/agent/tool_protocol_native.php).
+        return (new \local_ai_manager\agent\tool_protocol_native())->parse_response($rawresponse);
+    }
 }

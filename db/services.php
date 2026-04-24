@@ -125,4 +125,11 @@ $functions = [
                 'ajax' => true,
                 'capabilities' => 'local/ai_manager:use',
         ],
+        'local_ai_manager_agent_check_intent' => [
+                'classname' => 'local_ai_manager\external\agent_check_intent',
+                'description' => 'Keyword-based intent check for client-side auto-promote hints.',
+                'type' => 'read',
+                'ajax' => true,
+                'capabilities' => 'local/ai_manager:use',
+        ],
 ];
