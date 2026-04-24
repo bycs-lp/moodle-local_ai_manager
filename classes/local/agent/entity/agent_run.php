@@ -53,6 +53,8 @@ class agent_run extends persistent {
     public const STATUS_FAILED = 'failed';
     /** Status: aborted because max-iterations were reached. */
     public const STATUS_ABORTED_MAXITER = 'aborted_maxiter';
+    /** Status: aborted by the user via the UI (MBS-10761 Paket 2). */
+    public const STATUS_ABORTED_USER = 'aborted_user';
 
     /** Protocol mode: native tool-calling. */
     public const MODE_NATIVE = 'native';
@@ -102,6 +104,7 @@ class agent_run extends persistent {
                     self::STATUS_COMPLETED,
                     self::STATUS_FAILED,
                     self::STATUS_ABORTED_MAXITER,
+                    self::STATUS_ABORTED_USER,
                 ],
             ],
             'iterations' => [

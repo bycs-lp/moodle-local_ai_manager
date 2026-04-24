@@ -327,6 +327,7 @@ $string['within'] = 'in';
 $string['agent_call_not_awaiting'] = 'This tool call is not awaiting approval.';
 $string['agent_undo_window_expired'] = 'The time window for undoing this action has expired.';
 $string['agent_undo_payload_invalid'] = 'The undo payload for this tool call is invalid or missing.';
+$string['agent_run_aborted_by_user'] = 'Run aborted by the user.';
 $string['error_toolparse'] = 'Could not parse the model response into a tool call: {$a}';
 $string['error_invalidtoken_malformed'] = 'The approval token is malformed.';
 $string['error_invalidtoken_expired'] = 'The approval token has expired.';

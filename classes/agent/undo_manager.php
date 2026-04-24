@@ -57,6 +57,26 @@ class undo_manager {
     }
 
     /**
+     * Persist the undo payload of a reversible tool call.
+     *
+     * Called by the orchestrator once a tool execution has returned a non-null
+     * `undo_payload`. This is a thin wrapper that centralises the write so
+     * future storage changes (e.g. encryption, separate table) only touch one
+     * place. The orchestrator still owns the rest of the result persistence.
+     *
+     * @param tool_call $call the persisted tool call row
+     * @param array $payload {tool: string, args: array}
+     * @return void
+     */
+    public function register(tool_call $call, array $payload): void {
+        if (empty($payload['tool'])) {
+            return;
+        }
+        $call->set('undo_payload', json_encode($payload, JSON_UNESCAPED_UNICODE));
+        $call->save();
+    }
+
+    /**
      * Check if an undo is still allowed for the given tool call.
      *
      * @param tool_call $call

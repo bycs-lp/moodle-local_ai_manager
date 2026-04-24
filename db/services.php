@@ -111,4 +111,18 @@ $functions = [
                 'ajax' => true,
                 'capabilities' => 'local/ai_manager:use',
         ],
+        'local_ai_manager_agent_abort_run' => [
+                'classname' => 'local_ai_manager\external\agent_abort_run',
+                'description' => 'Abort a running or awaiting-approval agent run.',
+                'type' => 'write',
+                'ajax' => true,
+                'capabilities' => 'local/ai_manager:use',
+        ],
+        'local_ai_manager_agent_undo_tool_result' => [
+                'classname' => 'local_ai_manager\external\agent_undo_tool_result',
+                'description' => 'Undo a reversible tool call within the configured window.',
+                'type' => 'write',
+                'ajax' => true,
+                'capabilities' => 'local/ai_manager:use',
+        ],
 ];
