@@ -252,10 +252,58 @@ class base_purpose {
         // It uses MarkdownExtra which already escapes HTML inside code blocks by default.
         $html = markdown_to_html($markdown);
 
+        // Escape MathJax \begin{...}/\end{...} environment patterns outside <pre> blocks.
+        // MathJax's client-side processing picks up these patterns anywhere in the page DOM
+        // and tries to render them as math environments. This is undesirable when the LLM
+        // returns LaTeX code (like \begin{document}) outside of fenced code blocks.
+        $html = self::escape_mathjax_environments($html);
+
         // Apply Moodle output function for both sanitizing and other Moodle specific formatting.
         // Previously converted markdown-generated structure is being preserved.
         // This prevents XSS from raw HTML that the LLM might return.
         return format_text($html, FORMAT_HTML, $options);
+    }
+
+    /**
+     * Escapes MathJax \begin{...} and \end{...} patterns outside pre blocks in HTML.
+     *
+     * MathJax's client-side processing picks up \begin{...}...\end{...} patterns
+     * anywhere in the page DOM and tries to render them as math environments.
+     * This is undesirable when the LLM returns LaTeX structural commands
+     * (like \begin{document}) outside of code blocks, as they get incorrectly
+     * rendered as (broken) math.
+     *
+     * This method wraps such patterns in a span element with the
+     * mathjax_ignore class that tells MathJax v3 to ignore them.
+     * Content inside pre blocks is not modified, since MathJax already
+     * skips pre elements by default.
+     *
+     * @param string $html The HTML to process.
+     * @return string The HTML with MathJax environment patterns escaped outside pre blocks.
+     */
+    public static function escape_mathjax_environments(string $html): string {
+        // Split on <pre>...</pre> to avoid modifying content inside code blocks.
+        // MathJax already ignores content inside <pre> elements by default.
+        $parts = preg_split(
+            '/(<pre[\s>][\s\S]*?<\/pre>)/i',
+            $html,
+            -1,
+            PREG_SPLIT_DELIM_CAPTURE
+        );
+
+        for ($i = 0, $count = count($parts); $i < $count; $i++) {
+            // Even indices are outside <pre> blocks, odd indices are matched <pre> blocks.
+            if ($i % 2 === 0) {
+                // Wrap \begin{...} and \end{...} patterns in MathJax ignore spans.
+                $parts[$i] = preg_replace(
+                    '/\\\\(begin|end)\\{[^}]*\\}/',
+                    '<span class="mathjax_ignore">$0</span>',
+                    $parts[$i]
+                );
+            }
+        }
+
+        return implode('', $parts);
     }
 
     /**

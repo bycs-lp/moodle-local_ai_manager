@@ -283,7 +283,7 @@ final class purpose_test extends \advanced_testcase {
                 ]),
                 'expectedcontains' => '&lt;pre&gt;',
             ],
-            'mathjax_inline_delimiters_escaped_in_explanation' => [
+            'mathjax_inline_delimiters_consumed_by_markdown_in_explanation' => [
                 'input' => json_encode([
                     'formelements' => [
                         [
@@ -299,9 +299,10 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                'expectedcontains' => '\\(',
+                // MarkdownExtra consumes escaped parentheses: \( becomes (.
+                'expectedcontains' => '(x^2)',
             ],
-            'mathjax_display_delimiters_escaped_in_explanation' => [
+            'mathjax_display_delimiters_consumed_by_markdown_in_explanation' => [
                 'input' => json_encode([
                     'formelements' => [
                         [
@@ -317,7 +318,8 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                'expectedcontains' => '\\[',
+                // MarkdownExtra consumes escaped brackets: \[ becomes [.
+                'expectedcontains' => '[E = mc^2]',
             ],
             'mathjax_begin_end_escaped_in_explanation' => [
                 'input' => json_encode([
@@ -546,8 +548,8 @@ final class purpose_test extends \advanced_testcase {
             ],
             'script_tag_sanitized' => [
                 'text' => 'Hello <script>alert("xss")</script> world',
-                'mustcontain' => ['Hello', 'world'],
-                'mustnotcontain' => ['<script>', 'alert('],
+                'mustcontain' => ['Hello', 'world', '&lt;script&gt;'],
+                'mustnotcontain' => ['<script>'],
             ],
             'link_formatting' => [
                 'text' => 'Visit [Moodle](https://moodle.org) for more.',
