@@ -203,6 +203,39 @@ class base_purpose {
         // identifiers work correctly without this fix.
         $markdown = preg_replace('/(?<!\n)\n(\s*\x60{3}\w)/', "\n\n$1", $markdown);
 
+        // Escape raw HTML tags outside code blocks so they are displayed as literal text
+        // instead of being silently removed by format_text() sanitization.
+        // Strategy: Extract code regions first, escape the remaining text with s(), then restore code regions.
+
+        // Step 1: Extract fenced code blocks, inline code and blockquote markers,
+        // replacing them with placeholders.
+        $placeholders = [];
+        $counter = 0;
+        // Generate a unique placeholder prefix that does not appear in the markdown text.
+        // The prefix starts with a null byte (\x00) which never occurs in normal text or LLM output,
+        // making collisions extremely unlikely. If a collision is detected, 'X' is appended
+        // repeatedly until the prefix is unique.
+        $placeholderprefix = self::generate_placeholder_prefix($markdown);
+        // Fenced code blocks (triple backticks or triple tildes) and inline code.
+        $codepattern = '/(\x60{3,}[\s\S]*?\x60{3,}|~{3,}[\s\S]*?~{3,}|\x60[^\x60\n]+\x60)/';
+        $markdown = preg_replace_callback($codepattern, function ($m) use (&$placeholders, &$counter, $placeholderprefix) {
+            $key = $placeholderprefix . $counter++ . "\x00";
+            $placeholders[$key] = $m[0];
+            return $key;
+        }, $markdown);
+        // Blockquote markers (> at start of line, possibly nested).
+        $markdown = preg_replace_callback('/^(\s*>)+/m', function ($m) use (&$placeholders, &$counter, $placeholderprefix) {
+            $key = $placeholderprefix . $counter++ . "\x00";
+            $placeholders[$key] = $m[0];
+            return $key;
+        }, $markdown);
+
+        // Step 2: Escape all HTML in the remaining (non-code) text using Moodle's core s() function.
+        $markdown = s($markdown);
+
+        // Step 3: Restore code regions and blockquote markers from placeholders.
+        $markdown = str_replace(array_keys($placeholders), array_values($placeholders), $markdown);
+
         // Use Moodle's core markdown_to_html() function.
         // It uses MarkdownExtra which already escapes HTML inside code blocks by default.
         $html = markdown_to_html($markdown);
@@ -211,6 +244,26 @@ class base_purpose {
         // Previously converted markdown-generated structure is being preserved.
         // This prevents XSS from raw HTML that the LLM might return.
         return format_text($html, FORMAT_HTML, $options);
+    }
+
+    /**
+     * Generates a unique placeholder prefix string that does not occur in the given text.
+     *
+     * This is used to safely replace and restore code regions and blockquote markers
+     * during HTML escaping without collisions with existing text content.
+     * The prefix starts with a null byte (\x00) which never occurs in normal text or
+     * LLM output, making collisions extremely unlikely. If a collision is still detected,
+     * 'X' is appended deterministically until the prefix is unique.
+     *
+     * @param string $text The text to check for collisions.
+     * @return string A placeholder prefix guaranteed not to appear in the text.
+     */
+    public static function generate_placeholder_prefix(string $text): string {
+        $placeholderprefix = "\x00PLACEHOLDER";
+        while (str_contains($text, $placeholderprefix)) {
+            $placeholderprefix .= 'X';
+        }
+        return $placeholderprefix;
     }
 
     /**

@@ -192,13 +192,13 @@ final class base_purpose_test extends \advanced_testcase {
         return [
             'raw_script_outside_code_block' => [
                 'input' => 'Hello <script>alert(\'xss\')</script> world',
-                'mustcontain' => ['Hello', 'world'],
-                'mustnotcontain' => ['<script>', 'alert('],
+                'mustcontain' => ['Hello', 'world', '&lt;script&gt;', '&lt;/script&gt;'],
+                'mustnotcontain' => ['<script>'],
             ],
             'svg_script_payload' => [
                 'input' => 'Image: <svg onload="alert(\'xss\')"><circle r="50"/></svg>',
-                'mustcontain' => [],
-                'mustnotcontain' => ['onload='],
+                'mustcontain' => ['&lt;svg'],
+                'mustnotcontain' => ['<svg'],
             ],
         ];
     }
@@ -583,6 +583,75 @@ final class base_purpose_test extends \advanced_testcase {
                     $codeblock . 'python',
                 ],
             ],
+            'html_tag_outside_code_block_is_escaped' => [
+                'input' => 'Use <div> for containers',
+                'mustcontain' => [
+                    '&lt;div&gt;',
+                ],
+                'mustnotcontain' => [
+                    '<div>',
+                ],
+            ],
+            'multiple_html_tags_outside_code_block_are_escaped' => [
+                'input' => 'Use <div> and </div> and <span class="test"> elements',
+                'mustcontain' => [
+                    '&lt;div&gt;',
+                    '&lt;/div&gt;',
+                    '&lt;span class=',
+                ],
+                'mustnotcontain' => [
+                    '<div>',
+                    '</div>',
+                    '<span class=',
+                ],
+            ],
+            'html_tags_outside_code_block_mixed_with_markdown' => [
+                'input' => '## Heading' . "\n\n"
+                    . 'Use <div> for layout and **bold** text.' . "\n\n"
+                    . $codeblock . 'html' . "\n"
+                    . '<div>inside code block</div>' . "\n"
+                    . $codeblock,
+                'mustcontain' => [
+                    '<h2>',
+                    '&lt;div&gt;',
+                    '<strong>bold</strong>',
+                    '<pre>',
+                    '<code',
+                ],
+                'mustnotcontain' => [],
+            ],
+            'html_tags_outside_code_block_with_blockquote' => [
+                'input' => '> A blockquote' . "\n\n" . 'Use <div> for layout',
+                'mustcontain' => [
+                    '<blockquote>',
+                    '&lt;div&gt;',
+                ],
+                'mustnotcontain' => [
+                    '<div>',
+                ],
+            ],
+            'nested_blockquotes' => [
+                'input' => '> Level 1' . "\n" . '>> Level 2' . "\n" . '>>> Level 3',
+                'mustcontain' => [
+                    '<blockquote>',
+                    'Level 1',
+                    'Level 2',
+                    'Level 3',
+                ],
+                'mustnotcontain' => [],
+            ],
+            'blockquote_with_html_tag' => [
+                'input' => '> Use <div> for layout' . "\n" . '>> And <span> for inline',
+                'mustcontain' => [
+                    '<blockquote>',
+                    '&lt;div&gt;',
+                    '&lt;span&gt;',
+                ],
+                'mustnotcontain' => [
+                    '<div>',
+                    '<span>',
+                ],
+            ],
         ];
     }
 
@@ -611,5 +680,44 @@ final class base_purpose_test extends \advanced_testcase {
         foreach ($mustnotcontain as $notexpected) {
             $this->assertStringNotContainsString($notexpected, $output);
         }
+    }
+
+    /**
+     * Data provider for placeholder prefix generation tests.
+     *
+     * Ensures that generate_placeholder_prefix returns a prefix that does not
+     * collide with existing content in the given text.
+     *
+     * @return array test cases with input text
+     */
+    public static function generate_placeholder_prefix_provider(): array {
+        return [
+            'plain_text' => [
+                'input' => 'Just some normal text without anything special.',
+                'expectedprefix' => "\x00PLACEHOLDER",
+            ],
+            'text_contains_default_placeholder' => [
+                'input' => "The string \x00PLACEHOLDER is used internally.",
+                'expectedprefix' => "\x00PLACEHOLDER" . 'X',
+            ],
+            'text_contains_extended_placeholder' => [
+                'input' => "Both \x00PLACEHOLDER and \x00PLACEHOLDERX appear here.",
+                'expectedprefix' => "\x00PLACEHOLDER" . 'XX',
+            ],
+        ];
+    }
+
+    /**
+     * Test that generate_placeholder_prefix returns a prefix not contained in the input.
+     *
+     * @param string $input The text to generate a placeholder prefix for
+     * @param string $expectedprefix The exact expected placeholder prefix
+     * @covers \local_ai_manager\base_purpose::generate_placeholder_prefix
+     * @dataProvider generate_placeholder_prefix_provider
+     */
+    public function test_generate_placeholder_prefix(string $input, string $expectedprefix): void {
+        $prefix = base_purpose::generate_placeholder_prefix($input);
+        $this->assertEquals($expectedprefix, $prefix);
+        $this->assertStringNotContainsString($prefix, $input);
     }
 }
