@@ -32,6 +32,106 @@ use local_ai_manager\local\userinfo;
  */
 final class purpose_test extends \advanced_testcase {
     /**
+     * Data provider for test_format_output.
+     *
+     * @return array test cases
+     */
+    public static function format_output_provider(): array {
+        return [
+            'plain text remains unchanged' => [
+                'input' => 'This is plain text output from OCR.',
+                'expected' => 'This is plain text output from OCR.',
+            ],
+            'asterisks used as multiplication are preserved' => [
+                'input' => '=B$3*B6',
+                'expected' => '=B$3*B6',
+            ],
+            'spreadsheet formulas with multiple asterisks are preserved' => [
+                'input' => "Montag 20 =B\$3*B6\nDienstag 210 =B\$3*B7\nMittwoch 80 =B\$3*B8",
+                'expected' => "Montag 20 =B\$3*B6\nDienstag 210 =B\$3*B7\nMittwoch 80 =B\$3*B8",
+            ],
+            'markdown bold syntax is not converted to html' => [
+                'input' => 'This is **bold** text',
+                'expected' => 'This is **bold** text',
+            ],
+            'markdown italic syntax is not converted to html' => [
+                'input' => 'This is *italic* text',
+                'expected' => 'This is *italic* text',
+            ],
+            'markdown headings are not converted to html' => [
+                'input' => "## Heading\nSome content",
+                'expected' => "## Heading\nSome content",
+            ],
+            'markdown list is not converted to html' => [
+                'input' => "- Item 1\n- Item 2\n- Item 3",
+                'expected' => "- Item 1\n- Item 2\n- Item 3",
+            ],
+            'empty string returns empty string' => [
+                'input' => '',
+                'expected' => '',
+            ],
+            'complex spreadsheet extraction is preserved' => [
+                'input' => "Tabelle1\n\nA B C D\n1 Fahrkosten einer Woche\n"
+                    . "6 Montag 20 =B\$3*B6\n7 Dienstag 210 =B\$3*B7\n"
+                    . "13 Gesamt =SUMME(B6:B12) =SUMME(C6:C12)\n"
+                    . "15 Wochendurchschnitt =MITTELWERT(B6:B12) =MITTELWERT(C6:C12)",
+                'expected' => "Tabelle1\n\nA B C D\n1 Fahrkosten einer Woche\n"
+                    . "6 Montag 20 =B\$3*B6\n7 Dienstag 210 =B\$3*B7\n"
+                    . "13 Gesamt =SUMME(B6:B12) =SUMME(C6:C12)\n"
+                    . "15 Wochendurchschnitt =MITTELWERT(B6:B12) =MITTELWERT(C6:C12)",
+            ],
+            'dollar signs in cell references are preserved' => [
+                'input' => '=B$3*B6 =$A$1+$B$2',
+                'expected' => '=B$3*B6 =$A$1+$B$2',
+            ],
+        ];
+    }
+
+    /**
+     * Tests that format_output returns plain text without Markdown-to-HTML conversion.
+     *
+     * @covers \aipurpose_itt\purpose::format_output
+     * @dataProvider format_output_provider
+     * @param string $input the raw LLM output
+     * @param string $expected the expected output after format_output
+     */
+    public function test_format_output(string $input, string $expected): void {
+        $purpose = new purpose();
+        $this->assertEquals($expected, $purpose->format_output($input));
+    }
+
+    /**
+     * Tests that format_output does NOT produce em tags from asterisks.
+     *
+     * This is the specific regression that caused MBS-10770: spreadsheet formulas
+     * like =B$3*B6 were being converted to =B$3<em>B6 by the base class.
+     *
+     * @covers \aipurpose_itt\purpose::format_output
+     */
+    public function test_format_output_does_not_produce_em_tags(): void {
+        $purpose = new purpose();
+        $input = "6 Montag 20 =B\$3*B6\n7 Dienstag 210 =B\$3*B7\n8 Mittwoch 80 =B\$3*B8";
+        $result = $purpose->format_output($input);
+        $this->assertStringNotContainsString('<em>', $result);
+        $this->assertStringNotContainsString('</em>', $result);
+        $this->assertStringContainsString('*', $result);
+    }
+
+    /**
+     * Tests that format_output strips dangerous HTML tags for XSS prevention.
+     *
+     * @covers \aipurpose_itt\purpose::format_output
+     */
+    public function test_format_output_strips_dangerous_html(): void {
+        $this->resetAfterTest();
+        $purpose = new purpose();
+        $input = '<script>alert("xss")</script>Normal text';
+        $result = $purpose->format_output($input);
+        $this->assertStringNotContainsString('<script>', $result);
+        $this->assertStringContainsString('Normal text', $result);
+    }
+
+    /**
      * Makes sure that all connector plugins that declare themselves compatible with the itt purpose also define allowed mimetypes.
      *
      * @covers \aipurpose_itt\purpose::get_allowed_mimetypes

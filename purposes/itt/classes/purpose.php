@@ -31,6 +31,23 @@ use local_ai_manager\local\userinfo;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class purpose extends base_purpose {
+    /**
+     * Returns the output as sanitized plain text without any Markdown-to-HTML conversion.
+     *
+     * The ITT (image to text) output is frequently consumed by other plugins
+     * (e.g. assignfeedback_aif, qbank_questiongen) as raw text input for further
+     * LLM processing. Converting Markdown to HTML would mangle special characters
+     * like asterisks (used as multiplication operators in spreadsheet formulas
+     * such as =B$3*B6), turning them into <em> tags and corrupting downstream prompts.
+     *
+     * @param string $output the output/result from the API of the AI tool
+     * @return string the sanitized plain text output
+     */
+    #[\Override]
+    public function format_output(string $output): string {
+        return clean_text($output);
+    }
+
     #[\Override]
     public function get_additional_purpose_options(): array {
         global $USER;
