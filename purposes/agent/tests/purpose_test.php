@@ -265,6 +265,78 @@ final class purpose_test extends \advanced_testcase {
                 ]),
                 'expectedcontains' => 'href="https://moodle.org"',
             ],
+            'html_tags_escaped_in_explanation' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => 'Label',
+                            'explanation' => 'I used <pre> tags for code blocks.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectedcontains' => '&lt;pre&gt;',
+            ],
+            'mathjax_inline_delimiters_escaped_in_explanation' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => 'Label',
+                            'explanation' => 'The formula \(x^2\) is quadratic.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectedcontains' => '\\(',
+            ],
+            'mathjax_display_delimiters_escaped_in_explanation' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => 'Label',
+                            'explanation' => 'Display math: \[E = mc^2\] here.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectedcontains' => '\\[',
+            ],
+            'mathjax_begin_end_escaped_in_explanation' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => 'Label',
+                            'explanation' => 'Use \begin{equation} for numbered math.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectedcontains' => '\\begin{equation}',
+            ],
         ];
     }
 
@@ -485,6 +557,16 @@ final class purpose_test extends \advanced_testcase {
             'bold_text' => [
                 'text' => 'This is **important**.',
                 'mustcontain' => ['<strong>important</strong>'],
+                'mustnotcontain' => [],
+            ],
+            'mathjax_inline_delimiters_consumed_by_markdown' => [
+                'text' => 'The formula \(x^2 + y^2\) is a sum of squares.',
+                'mustcontain' => ['(x^2 + y^2)'],
+                'mustnotcontain' => [],
+            ],
+            'mathjax_display_delimiters_consumed_by_markdown' => [
+                'text' => 'Display: \[E = mc^2\] is famous.',
+                'mustcontain' => ['[E = mc^2]'],
                 'mustnotcontain' => [],
             ],
         ];

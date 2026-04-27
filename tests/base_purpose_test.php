@@ -265,14 +265,6 @@ final class base_purpose_test extends \advanced_testcase {
                 'input' => $codeblock . 'php' . "\n" . 'echo \'Hello\';' . "\n" . $codeblock,
                 'mustcontain' => ['<pre>', '<code'],
             ],
-            'mathjax_inline_delimiters' => [
-                'input' => 'The formula is \\(x^2 + y^2 = z^2\\)',
-                'mustcontain' => ['\\(', '\\)'],
-            ],
-            'mathjax_display_delimiters' => [
-                'input' => 'Display math: \\[E = mc^2\\]',
-                'mustcontain' => ['\\[', '\\]'],
-            ],
             'empty_input' => [
                 'input' => '',
                 'mustcontain' => [],

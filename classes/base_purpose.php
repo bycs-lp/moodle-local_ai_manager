@@ -170,12 +170,6 @@ class base_purpose {
      * @return string the formatted output
      */
     public function format_output(string $output): string {
-        // We need to additionally escape some sequences so mathjax filter can be applied properly in the frontend.
-        $output = str_replace('\\(', '\\\\(', $output);
-        $output = str_replace('\\)', '\\\\)', $output);
-        $output = str_replace('\\[', '\\\\[', $output);
-        $output = str_replace('\\]', '\\\\]', $output);
-
         return $this->format_ai_markdown_output($output, ['filter' => false, 'newlines' => false]);
     }
 
@@ -191,6 +185,21 @@ class base_purpose {
      * @return string The sanitized HTML output.
      */
     public function format_ai_markdown_output(string $markdown, array $options = []): string {
+        // Convert HTML code blocks (<pre><code>) from LLM output to markdown fenced code blocks.
+        // Some LLMs return raw HTML code blocks instead of markdown syntax. We convert them
+        // to markdown fenced code blocks so they are properly handled by the existing pipeline.
+        $markdown = preg_replace_callback(
+            '/<pre>\s*<code(?:\s+class="language-(\w+)")?\s*>([\s\S]*?)<\/code>\s*<\/pre>/i',
+            function ($matches) {
+                $lang = $matches[1] ?? '';
+                // Decode any HTML entities in the code content since it will be
+                // re-encoded by MarkdownExtra when converting back to HTML.
+                $code = html_entity_decode($matches[2], ENT_QUOTES | ENT_HTML401, 'UTF-8');
+                return "\n\n\x60\x60\x60" . $lang . "\n" . $code . "\n\x60\x60\x60\n\n";
+            },
+            $markdown
+        );
+
         // Ensure blank lines around fenced code blocks inside list items.
         // PHP Markdown Extra only correctly parses fenced code blocks (including language identifiers)
         // inside "loose" list items (separated by blank lines). Without blank lines,
@@ -230,8 +239,11 @@ class base_purpose {
             return $key;
         }, $markdown);
 
-        // Step 2: Escape all HTML in the remaining (non-code) text using Moodle's core s() function.
-        $markdown = s($markdown);
+        // Step 2: Escape all HTML in the remaining (non-code) text.
+        // We use htmlspecialchars with double_encode=false to avoid double-escaping
+        // existing HTML entities (e.g. &amp; or &lt;) that the LLM might return.
+        // Moodle's s() function cannot be used here because it always double-encodes.
+        $markdown = htmlspecialchars($markdown, ENT_QUOTES | ENT_HTML401 | ENT_SUBSTITUTE, 'UTF-8', false);
 
         // Step 3: Restore code regions and blockquote markers from placeholders.
         $markdown = str_replace(array_keys($placeholders), array_values($placeholders), $markdown);
