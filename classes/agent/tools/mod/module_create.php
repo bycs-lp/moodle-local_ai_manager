@@ -73,18 +73,30 @@ Do NOT use this tool to update an existing activity (use module_update) or to
 add questions to a quiz (use quiz_add_question). Do NOT use it for activity
 types outside the supported list — the tool will fail with unsupported_modname.
 
-Behavior: Requires {courseid, section, modname, name}. Optional: intro (HTML,
-used for description), url (required for modname=url), content (for page),
+Behavior: Requires {courseid, section, modname, name}. Optional: intro (HTML),
+url (required for modname=url), content (HTML body for page or label),
 visible (default true). For quiz and assign only the shell is created with
 defaults — configure details afterwards via module_update or the web UI. The
 tool requires explicit approval and affects a shared object. It is reversible
 by deleting the created course module.
+
+IMPORTANT — where to put the visible body text:
+  - modname="label": The label has NO separate name shown to learners. The
+    visible body MUST be passed in `content` (or `intro`); `name` is only an
+    internal identifier. Do NOT cram the body into `name`.
+  - modname="page": The visible body MUST be passed in `content`. `intro`
+    becomes the optional short description shown above the page link.
+  - modname="forum"/"assign"/"quiz"/"url"/"resource"/"folder"/"book":
+    `name` is the activity title shown in the course; `intro` is the
+    description.
 
 Examples:
   - "Neues Forum 'Diskussion' in Kurs 42, Abschnitt 1"
     -> module_create({courseid:42, section:1, modname:"forum", name:"Diskussion", intro:"Austausch zum Thema."})
   - "Page 'Willkommen' mit HTML-Inhalt anlegen"
     -> module_create({courseid:42, section:0, modname:"page", name:"Willkommen", content:"<p>Hallo</p>"})
+  - "Label mit der Geschichte von Einstein anlegen"
+    -> module_create({courseid:42, section:1, modname:"label", name:"Einstein", content:"<p>Albert Einstein wurde …</p>"})
 EOT;
     }
 
@@ -235,6 +247,19 @@ EOT;
         $content = (string) ($args['content'] ?? '');
         $visible = (bool) ($args['visible'] ?? true);
 
+        // Label has no separate display name: the intro IS the body. LLMs
+        // frequently misroute the body into `name` or `content`, so we coalesce
+        // content -> intro -> name (last-resort) to avoid empty labels.
+        if ($modname === 'label') {
+            if (trim($intro) === '') {
+                if (trim($content) !== '') {
+                    $intro = $content;
+                } else if ($name !== '') {
+                    $intro = $name;
+                }
+            }
+        }
+
         if (!in_array($modname, self::SUPPORTED_MODNAMES, true)) {
             return tool_result::failure('unsupported_modname',
                 get_string('tool_module_create_unsupported_modname', 'local_ai_manager'));
@@ -295,7 +320,8 @@ EOT;
                 $data->printlastmodified = 1;
                 break;
             case 'label':
-                // Label uses the intro field as its body. No extra config.
+                // Label uses the intro field as its body (already coalesced above).
+                $data->introeditor['text'] = $intro;
                 break;
             case 'forum':
                 $data->type = 'general';
