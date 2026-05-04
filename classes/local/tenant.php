@@ -70,7 +70,7 @@ class tenant {
             return false;
         }
 
-        return preg_match('/^[A-Za-z0-9_\- ]+$/', $identifier) != false;
+        return preg_match('/^[\p{L}\p{N}_\- ]+$/u', $identifier) != false;
     }
 
     /**
