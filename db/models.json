@@ -74,7 +74,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": ["chatgpt", "telli"]
     },
     {
         "name": "gpt-5-pro",
@@ -96,7 +96,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": ["chatgpt", "telli"]
     },
     {
         "name": "gpt-5-nano",
@@ -107,7 +107,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": ["chatgpt", "telli"]
     },
     {
         "name": "gpt-4.1",
@@ -175,7 +175,7 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["chatgpt"]
+        "connectors": ["chatgpt", "telli"]
     },
     {
         "name": "o4-mini",
@@ -199,7 +199,7 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["chatgpt"]
+        "connectors": ["chatgpt", "telli"]
     },
     {
         "name": "gpt-4o-mini",
@@ -210,7 +210,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": ["chatgpt", "telli"]
     },
     {
         "name": "o1",
@@ -328,7 +328,7 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["dalle"]
+        "connectors": ["dalle", "telli"]
     },
     {
         "name": "dalle_preconfigured_azure",
@@ -589,7 +589,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
-        "connectors": ["imagen"]
+        "connectors": ["imagen", "telli"]
     },
     {
         "name": "imagen-4.0-ultra-generate-001",
@@ -965,6 +965,71 @@
         "tts": 0,
         "stt": 0,
         "connectors": ["ollama"]
+    },
+    {
+        "name": "meta-llama/Meta-Llama-3.1-405B-Instruct-FP8",
+        "displayname": "Llama 3.1 405B",
+        "description": "Meta Llama 3.1 405B Instruct open model for demanding scenarios (Telli/IONOS)",
+        "mimetypes": "",
+        "vision": 0,
+        "imggen": 0,
+        "tts": 0,
+        "stt": 0,
+        "connectors": ["telli"]
+    },
+    {
+        "name": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+        "displayname": "Llama 3.1 8B",
+        "description": "Meta Llama 3.1 8B Instruct efficient model for lighter tasks (Telli/IONOS)",
+        "mimetypes": "",
+        "vision": 0,
+        "imggen": 0,
+        "tts": 0,
+        "stt": 0,
+        "connectors": ["telli"]
+    },
+    {
+        "name": "meta-llama/Llama-3.3-70B-Instruct",
+        "displayname": "Llama 3.3 70B",
+        "description": "Meta Llama 3.3 70B Instruct powerful current model (Telli/IONOS)",
+        "mimetypes": "",
+        "vision": 0,
+        "imggen": 0,
+        "tts": 0,
+        "stt": 0,
+        "connectors": ["telli"]
+    },
+    {
+        "name": "mistralai/Mistral-Nemo-Instruct-2407",
+        "displayname": "Mistral Nemo Instruct",
+        "description": "Mistral Nemo Instruct multilingual open source model (Telli/IONOS)",
+        "mimetypes": "",
+        "vision": 0,
+        "imggen": 0,
+        "tts": 0,
+        "stt": 0,
+        "connectors": ["telli"]
+    },
+    {
+        "name": "stabilityai/stable-diffusion-xl-base-1.0",
+        "displayname": "Stable Diffusion XL",
+        "description": "Stability AI Stable Diffusion XL image generation model (Telli/IONOS)",
+        "mimetypes": "",
+        "vision": 0,
+        "imggen": 1,
+        "tts": 0,
+        "stt": 0,
+        "connectors": ["telli"]
+    },
+    {
+        "name": "black-forest-labs/FLUX.1-schnell",
+        "displayname": "FLUX.1",
+        "description": "Black Forest Labs FLUX.1 schnell image generation model (Telli/IONOS)",
+        "mimetypes": "",
+        "vision": 0,
+        "imggen": 1,
+        "tts": 0,
+        "stt": 0,
+        "connectors": ["telli"]
     }
 ]
-
