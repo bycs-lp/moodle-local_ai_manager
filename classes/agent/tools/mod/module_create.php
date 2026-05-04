@@ -49,7 +49,7 @@ class module_create extends base_tool {
 
     /** @var string[] Module names this tool explicitly supports. */
     private const SUPPORTED_MODNAMES = [
-        'page', 'label', 'url', 'resource', 'forum', 'assign', 'quiz', 'folder', 'book',
+        'page', 'label', 'url', 'resource', 'forum', 'assign', 'quiz', 'folder', 'book', 'qbank',
     ];
 
     #[\Override]
@@ -237,6 +237,7 @@ EOT;
         global $CFG, $DB;
         require_once($CFG->dirroot . '/course/lib.php');
         require_once($CFG->dirroot . '/course/modlib.php');
+        require_once($CFG->libdir . '/questionlib.php');
 
         $courseid = (int) $args['courseid'];
         $section = (int) $args['section'];
@@ -380,7 +381,7 @@ EOT;
                 $data->showuserpicture = 0;
                 $data->showblocks = 0;
                 break;
-            // Folder / book / resource fall through with defaults.
+            // Folder / book / resource / qbank fall through with defaults.
         }
 
         $result = create_module($data);

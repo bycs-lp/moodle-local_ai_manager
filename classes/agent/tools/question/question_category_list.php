@@ -68,6 +68,22 @@ returns {id, name, qbank_cmid, qbank_name, parent, info, questioncount} per
 category. The "top" category of each qbank is included and flagged with
 is_top:true.
 
+Failure modes the caller MUST handle:
+  - errorcode="no_qbank_in_course": the course has no question-bank activity
+    yet. To proceed, create one with module_create({modname:"qbank", ...})
+    and then call this tool again. This is NOT a permission problem and the
+    user does NOT need to contact the administrator.
+  - errorcode="no_accessible_qbank": qbank activities exist but the calling
+    user lacks moodle/question:viewall or :viewmine on every one. Inform
+    the user and stop.
+
+Workflow tip — creating a quiz with new questions in a fresh course:
+  1) module_create({modname:"qbank", name:"Fragensammlung", ...})
+  2) question_category_list({courseid}) -> pick qbank_cmid + a category id
+  3) module_create({modname:"quiz", name:"..."}) for the quiz shell
+  4) question_create({categoryid, qtype:"multichoice", ...}) per question
+  5) quiz_add_question({quiz_cmid, questionid}) per question
+
 Examples:
   - "Kategorien in Kurs 42" -> question_category_list({courseid:42})
 EOT;
@@ -146,8 +162,15 @@ EOT;
         require_capability('moodle/course:view', $coursectx, $ctx->user);
 
         $modinfo = get_fast_modinfo($course, (int) $ctx->user->id);
+        $qbankcms = $modinfo->get_instances_of('qbank');
+        if (empty($qbankcms)) {
+            return tool_result::failure('no_qbank_in_course',
+                get_string('tool_question_no_qbank_in_course', 'local_ai_manager'));
+        }
+
         $out = [];
-        foreach ($modinfo->get_instances_of('qbank') as $cm) {
+        $accessiblecount = 0;
+        foreach ($qbankcms as $cm) {
             if (!$cm->uservisible) {
                 continue;
             }
@@ -156,6 +179,7 @@ EOT;
                 && !has_capability('moodle/question:viewmine', $qbankctx, $ctx->user)) {
                 continue;
             }
+            $accessiblecount++;
             $cats = $DB->get_records('question_categories', ['contextid' => $qbankctx->id],
                 'sortorder ASC, id ASC');
             foreach ($cats as $cat) {
@@ -180,6 +204,10 @@ EOT;
                     break 2;
                 }
             }
+        }
+        if ($accessiblecount === 0) {
+            return tool_result::failure('no_accessible_qbank',
+                get_string('tool_question_no_accessible_qbank', 'local_ai_manager'));
         }
         return tool_result::success(['categories' => $out]);
     }

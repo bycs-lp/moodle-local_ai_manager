@@ -517,3 +517,5 @@ $string['tool_file_list_in_draft_invalid'] = 'A positive draftitemid is required
 // Shared tool strings.
 $string['tool_course_not_found'] = 'The requested course does not exist.';
 $string['tool_missing_capability'] = 'You do not hold the required capability: {$a}';
+$string['tool_question_no_qbank_in_course'] = 'This course has no question bank activity yet. Create one first via module_create({modname:"qbank"}) and try again.';
+$string['tool_question_no_accessible_qbank'] = 'No question bank in this course is accessible to you. Ask a teacher to grant moodle/question:viewall or moodle/question:viewmine.';
