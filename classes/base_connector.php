@@ -19,6 +19,7 @@ namespace local_ai_manager;
 use core\http_client;
 use core_plugin_manager;
 use GuzzleHttp\Psr7\Response;
+use local_ai_manager\local\model;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\request_response;
 use local_ai_manager\local\unit;
@@ -50,23 +51,74 @@ abstract class base_connector {
     /**
      * Returns the model wrapper object for the model assigned to the underlying instance.
      *
-     * @return ?\local_ai_manager\local\model the model object or null if no model is assigned
+     * @return ?model the model object or null if no model is assigned
      */
-    public function get_model_object(): ?\local_ai_manager\local\model {
+    public function get_model_object(): ?model {
         return $this->instance->get_model_object();
     }
 
     /**
-     * Define available models.
+     * Returns the available models grouped by purpose based on the model management database.
      *
-     * IMPORTANT: You will have to define a key for every purpose. If your connector should not support
-     * certain purposes, return an empty array for this purpose.
+     * All models assigned to this connector are available for all purposes, except:
+     * - 'tts': only models with the tts attribute
+     * - 'imggen': only models with the imggen attribute
+     * - 'itt': only models with the vision attribute
      *
-     * A unit test in base_connector_test class will check if you implemented all existing purposes.
+     * Subclasses may override this method if they need custom logic.
      *
-     * @return array names of the available models
+     * @return array associative array of purpose => array of model name strings
      */
-    abstract public function get_models_by_purpose(): array;
+    public function get_models_by_purpose(): array {
+        $component = aitool::get_component_name_by_connector($this);
+        // Derive connector name from component: 'aitool_chatgpt' => 'chatgpt'.
+        $connectorname = str_replace('aitool_', '', $component);
+
+        $models = model::get_all_models($connectorname);
+
+        $allmodels = [];
+        $visionmodels = [];
+        $imggenmodels = [];
+        $ttsmodels = [];
+
+        foreach ($models as $model) {
+            $name = $model->get_name();
+            $allmodels[] = $name;
+            if ($model->get_vision()) {
+                $visionmodels[] = $name;
+            }
+            if ($model->get_imggen()) {
+                $imggenmodels[] = $name;
+            }
+            if ($model->get_tts()) {
+                $ttsmodels[] = $name;
+            }
+        }
+
+        // Text models are all models that are not pure imggen or tts models.
+        $textmodels = array_values(array_filter($allmodels, function ($name) use ($imggenmodels, $ttsmodels) {
+            return !in_array($name, $imggenmodels) || !in_array($name, $ttsmodels);
+        }));
+
+        $purposes = base_purpose::get_installed_purposes_array();
+        foreach (array_keys($purposes) as $purpose) {
+            switch ($purpose) {
+                case 'tts':
+                    $purposes[$purpose] = $ttsmodels;
+                    break;
+                case 'imggen':
+                    $purposes[$purpose] = $imggenmodels;
+                    break;
+                case 'itt':
+                    $purposes[$purpose] = $visionmodels;
+                    break;
+                default:
+                    $purposes[$purpose] = $textmodels;
+                    break;
+            }
+        }
+        return $purposes;
+    }
 
     /**
      * Returns the list of models that are selectable when creating/editing AI tools in the frontend.

@@ -60,6 +60,7 @@ $string['apikey'] = 'API key';
 $string['applyfilter'] = 'Apply filter';
 $string['assignpurposes'] = 'Assign purposes';
 $string['assignrole'] = 'Assign role';
+$string['azure_model_info'] = 'Please select the same model that is deployed at your Azure endpoint. If the exact model is not available in the list, select one with the most similar capabilities.';
 $string['backtodashboard'] = 'Back to dashboard';
 $string['basicsettings'] = 'Basic settings';
 $string['basicsettingsdesc'] = 'Configure basic settings for the AI manager plugin';
@@ -347,4 +348,3 @@ $string['vertex_nocachestatus'] = 'Click the refresh button to query the current
 $string['vertexcachestatus'] = 'Query and change Vertex AI cache status';
 $string['viewprompts'] = 'View prompts';
 $string['within'] = 'in';
-

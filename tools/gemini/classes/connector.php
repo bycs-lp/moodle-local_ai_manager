@@ -36,21 +36,6 @@ class connector extends \local_ai_manager\base_connector {
     /** @var string The access token to use for authentication against the Google API endpoint. */
     private string $accesstoken = '';
 
-    #[\Override]
-    public function get_models_by_purpose(): array {
-        $textmodels = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash', 'gemini-2.0-pro'];
-        return [
-            'chat' => $textmodels,
-            'feedback' => $textmodels,
-            'singleprompt' => $textmodels,
-            'translate' => $textmodels,
-            'tts' => [],
-            'imggen' => [],
-            'itt' => $textmodels,
-            'questiongeneration' => $textmodels,
-            'agent' => $textmodels,
-        ];
-    }
 
     #[\Override]
     public function get_unit(): unit {

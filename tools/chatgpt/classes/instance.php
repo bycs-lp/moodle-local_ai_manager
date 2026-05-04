@@ -19,6 +19,7 @@ namespace aitool_chatgpt;
 use local_ai_manager\base_instance;
 use local_ai_manager\local\aitool_option_azure;
 use local_ai_manager\local\aitool_option_temperature;
+use local_ai_manager\local\connector_factory;
 use stdClass;
 
 /**
@@ -33,7 +34,9 @@ class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
         global $DB;
-        $notemperaturemodels = ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'];
+        $connectorfactory = \core\di::get(connector_factory::class);
+        $connector = $connectorfactory->get_connector_by_connectorname('chatgpt');
+        $notemperaturemodels = $connector->get_no_temperature_models();
         [$insql, $params] = $DB->get_in_or_equal($notemperaturemodels, SQL_PARAMS_NAMED);
         $notemperatureids = array_map(
             'intval',
@@ -84,9 +87,6 @@ class instance extends base_instance {
         $this->set_customfield1($temperature);
 
         [$enabled] = aitool_option_azure::extract_azure_data_to_store($data);
-        if ($enabled) {
-            $this->set_model_id_from_name(aitool_option_azure::get_azure_model_name($this->get_connector()));
-        }
         $this->set_customfield2($enabled);
     }
 

@@ -124,8 +124,12 @@ class instance extends base_instance {
         // Google endpoint URLs encode the model name (e.g. ".../models/gemini-2.0-flash:generateContent").
         // We require the selected model to appear in the custom URL to prevent mismatches, since the
         // ai_manager architecture depends on knowing the active model at request time.
-        if (!empty($data['endpoint']) && !str_contains($data['endpoint'], $data['model'])) {
-            $errors['endpoint'] = get_string('formvalidation_editinstance_endpointmodelnotinurl', 'local_ai_manager');
+        if (!empty($data['endpoint']) && !empty($data['model'])) {
+            $modelobj = new \local_ai_manager\local\model((int) $data['model']);
+            $modelname = $modelobj->get_name();
+            if (!empty($modelname) && !str_contains($data['endpoint'], $modelname)) {
+                $errors['endpoint'] = get_string('formvalidation_editinstance_endpointmodelnotinurl', 'local_ai_manager');
+            }
         }
         return $errors;
     }

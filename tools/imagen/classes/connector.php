@@ -17,7 +17,6 @@
 namespace aitool_imagen;
 
 use local_ai_manager\base_connector;
-use local_ai_manager\base_purpose;
 use local_ai_manager\local\aitool_option_vertexai_authhandler;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\request_response;
@@ -39,17 +38,6 @@ class connector extends base_connector {
     /** @var string The access token to use for authentication against the Google imagen API endpoint. */
     private string $accesstoken = '';
 
-    #[\Override]
-    public function get_models_by_purpose(): array {
-        $modelsbypurpose = base_purpose::get_installed_purposes_array();
-        $modelsbypurpose['imggen'] = [
-            'imagen-3.0-generate-002',
-            'imagen-4.0-generate-001',
-            'imagen-4.0-ultra-generate-001',
-            'imagen-4.0-fast-generate-001',
-        ];
-        return $modelsbypurpose;
-    }
 
     #[\Override]
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {

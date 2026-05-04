@@ -23,7 +23,7 @@ use stdClass;
  *
  * @package    local_ai_manager
  * @copyright  2026 ISB Bayern
- * @author     Copilot
+ * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class model {
@@ -405,19 +405,35 @@ class model {
     }
 
     /**
-     * Returns all model objects.
+     * Returns all model objects, optionally filtered by connector and/or deprecation status.
      *
+     * @param ?string $connector optional connector plugin name to filter by (e.g. 'chatgpt', 'gemini')
      * @param bool $includedeprecated whether to include deprecated models, defaults to true
      * @return array array of model objects
      */
-    public static function get_all_models(bool $includedeprecated = true): array {
+    public static function get_all_models(?string $connector = null, bool $includedeprecated = true): array {
         global $DB;
 
-        $params = [];
-        if (!$includedeprecated) {
-            $params['deprecated'] = 0;
+        if (!is_null($connector)) {
+            $sql = "SELECT m.id
+                      FROM {local_ai_manager_model} m
+                      JOIN {local_ai_manager_model_purpose} mp ON mp.modelid = m.id
+                     WHERE mp.connector = :connector";
+            $params = ['connector' => $connector];
+            if (!$includedeprecated) {
+                $sql .= " AND m.deprecated = :deprecated";
+                $params['deprecated'] = 0;
+            }
+            $sql .= " ORDER BY m.name ASC";
+            $records = $DB->get_records_sql($sql, $params);
+        } else {
+            $params = [];
+            if (!$includedeprecated) {
+                $params['deprecated'] = 0;
+            }
+            $records = $DB->get_records('local_ai_manager_model', $params, 'name ASC', 'id');
         }
-        $records = $DB->get_records('local_ai_manager_model', $params, 'name ASC', 'id');
+
         $models = [];
         foreach ($records as $record) {
             $models[] = new self((int) $record->id);

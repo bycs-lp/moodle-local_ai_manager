@@ -281,6 +281,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "deprecated": 1,
         "connectors": ["chatgpt"]
     },
     {
@@ -338,6 +339,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "deprecated": 1,
         "connectors": ["dalle"]
     },
     {
@@ -383,6 +385,7 @@
         "imggen": 0,
         "tts": 1,
         "stt": 0,
+        "deprecated": 1,
         "connectors": ["openaitts"]
     },
     {
@@ -394,6 +397,7 @@
         "imggen": 0,
         "tts": 1,
         "stt": 0,
+        "deprecated": 1,
         "connectors": ["openaitts"]
     },
     {

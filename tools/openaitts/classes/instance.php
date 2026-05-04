@@ -31,7 +31,7 @@ use stdClass;
 class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
-        aitool_option_azure::extend_form_definition($mform, true);
+        aitool_option_azure::extend_form_definition($mform);
         $endpointdescription = get_string('endpointhint', 'aitool_openaitts')
             . '<br>' . get_string('endpointdefault', 'local_ai_manager', connector::DEFAULT_OPENAI_TTS_ENDPOINT);
         $mform->getElement('endpointdescription')->setValue($endpointdescription);
@@ -57,31 +57,16 @@ class instance extends base_instance {
 
     #[\Override]
     protected function get_extended_formdata(): stdClass {
-        global $DB;
         $data = new stdClass();
         foreach (aitool_option_azure::add_azure_options_to_form_data($this->get_customfield2()) as $key => $value) {
             $data->{$key} = $value;
-        }
-
-        // When using Azure, the stored model is the azure variant. We need to resolve the base model name
-        // to its ID so the form select can show the correct selection.
-        $basemodelname = self::extract_model_name_from_azure_model_name($this->get_model_name());
-        $basemodelid = $DB->get_field('local_ai_manager_model', 'id', ['name' => $basemodelname]);
-        if ($basemodelid) {
-            $data->model = (int) $basemodelid;
         }
         return $data;
     }
 
     #[\Override]
     protected function extend_store_formdata(stdClass $data): void {
-        global $DB;
         [$enabled] = aitool_option_azure::extract_azure_data_to_store($data);
-        if ($enabled) {
-            // The form submits a model ID. We need to resolve it to the model name to generate the azure variant.
-            $basemodelname = $DB->get_field('local_ai_manager_model', 'name', ['id' => (int) $data->model]);
-            $this->set_model_id_from_name(self::get_model_specific_azure_model_name($basemodelname));
-        }
         $this->set_customfield2($enabled);
     }
 
@@ -97,28 +82,5 @@ class instance extends base_instance {
      */
     public function azure_enabled(): bool {
         return !empty($this->get_customfield2());
-    }
-
-    /**
-     * Standardized way of creating a name that is used for storing the model information in case of using Azure.
-     *
-     * In the case of openaitts we, however, need to also add the real model being used to the name, because we have to distinguish
-     * between tts and gpt-4o-mini-tts, for example, because these models do not have the same API options available.
-     *
-     * @param string $model the model name, for example 'tts' or 'gpt-4o-mini-tts'
-     * @return string the calculated model name
-     */
-    public static function get_model_specific_azure_model_name(string $model): string {
-        return aitool_option_azure::get_azure_model_name('openaitts_' . $model);
-    }
-
-    /**
-     * Extracts the real model name from the azure model name calculated by {@see self::get_model_specific_azure_model_name()}.
-     *
-     * @param string $azuremodelname the model name when using Azure, for example 'openaitts_tts_preconfigured_azure'
-     * @return string the extracted model name, for example 'tts'
-     */
-    public static function extract_model_name_from_azure_model_name(string $azuremodelname): string {
-        return preg_replace('/^openaitts_/', '', aitool_option_azure::get_value_from_azure_model_name($azuremodelname));
     }
 }

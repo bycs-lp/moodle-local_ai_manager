@@ -644,6 +644,7 @@ class base_instance {
         }
 
         $mform->addElement('select', 'model', get_string('model', 'local_ai_manager'), $availablemodels, $textelementparams);
+        $mform->addElement('static', 'modeldescription', '', '');
 
         // Show a warning if the currently selected model is deprecated.
         if (!empty($currentmodelid)) {
