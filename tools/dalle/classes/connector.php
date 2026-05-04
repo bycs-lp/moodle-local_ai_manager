@@ -51,23 +51,31 @@ class connector extends base_connector {
     }
 
     #[\Override]
+    public function get_selectable_model_ids(): array {
+        global $DB;
+        $azuremodelname = aitool_option_azure::get_azure_model_name('dalle');
+        $azuremodelid = $DB->get_field('local_ai_manager_model', 'id', ['name' => $azuremodelname]);
+        return array_filter($this->get_model_ids(), fn($id) => (int) $azuremodelid !== $id);
+    }
+
+    #[\Override]
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
         $options = $requestoptions->get_options();
-        $defaultimagesize = $this->instance->get_model() === 'dall-e-2' ? '256x256' : '1024x1024';
+        $defaultimagesize = $this->instance->get_model_name() === 'dall-e-2' ? '256x256' : '1024x1024';
         $parameters = [
             'prompt' => $prompttext,
             'size' => empty($options['sizes'][0]) ? $defaultimagesize : $options['sizes'][0],
         ];
         if (
-            $this->instance->get_model() !== 'gpt-image-1'
-            && $this->instance->get_model() !== aitool_option_azure::get_azure_model_name('gpt-image-1')
+            $this->instance->get_model_name() !== 'gpt-image-1'
+            && $this->instance->get_model_name() !== aitool_option_azure::get_azure_model_name('gpt-image-1')
         ) {
             // Only dalle models support this parameter, because gpt-image-1 will always return base64 string anyways.
             $parameters['response_format'] = 'b64_json';
         }
         if (!$this->instance->azure_enabled()) {
             // If azure is enabled, the model will be preconfigured in the azure resource, so we do not need to send it.
-            $parameters['model'] = $this->instance->get_model();
+            $parameters['model'] = $this->instance->get_model_name();
         }
         return $parameters;
     }
@@ -118,13 +126,13 @@ class connector extends base_connector {
             $file->get_filename()
         )->out();
 
-        return prompt_response::create_from_result($this->instance->get_model(), new usage(1.0), $filepath);
+        return prompt_response::create_from_result($this->instance->get_model_name(), new usage(1.0), $filepath);
     }
 
     #[\Override]
     public function get_available_options(): array {
         $options = [];
-        switch ($this->instance->get_model()) {
+        switch ($this->instance->get_model_name()) {
             case 'dall-e-3':
             case aitool_option_azure::get_azure_model_name('dalle'):
                 $options['sizes'] = [

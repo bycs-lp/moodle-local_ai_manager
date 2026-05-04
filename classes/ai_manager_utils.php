@@ -676,4 +676,22 @@ class ai_manager_utils {
         }
         return $returnarray;
     }
+
+    /**
+     * Returns all model IDs that are assigned to a given connector.
+     *
+     * @param string $connector The connector plugin name (e.g. 'chatgpt', 'dalle', 'gemini')
+     * @return array Array of model IDs (int) assigned to the connector
+     */
+    public static function get_model_ids_by_connector(string $connector): array {
+        global $DB;
+
+        $sql = "SELECT m.id
+                  FROM {local_ai_manager_model} m
+                  JOIN {local_ai_manager_model_purpose} mp ON mp.modelid = m.id
+                 WHERE mp.connector = :connector
+              ORDER BY m.name ASC";
+
+        return $DB->get_fieldset_sql($sql, ['connector' => $connector]);
+    }
 }

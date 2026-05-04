@@ -57,20 +57,30 @@ class instance extends base_instance {
 
     #[\Override]
     protected function get_extended_formdata(): stdClass {
+        global $DB;
         $data = new stdClass();
         foreach (aitool_option_azure::add_azure_options_to_form_data($this->get_customfield2()) as $key => $value) {
             $data->{$key} = $value;
         }
 
-        $data->model = self::extract_model_name_from_azure_model_name($this->get_model());
+        // When using Azure, the stored model is the azure variant. We need to resolve the base model name
+        // to its ID so the form select can show the correct selection.
+        $basemodelname = self::extract_model_name_from_azure_model_name($this->get_model_name());
+        $basemodelid = $DB->get_field('local_ai_manager_model', 'id', ['name' => $basemodelname]);
+        if ($basemodelid) {
+            $data->model = (int) $basemodelid;
+        }
         return $data;
     }
 
     #[\Override]
     protected function extend_store_formdata(stdClass $data): void {
+        global $DB;
         [$enabled] = aitool_option_azure::extract_azure_data_to_store($data);
         if ($enabled) {
-            $this->set_model(self::get_model_specific_azure_model_name($data->model));
+            // The form submits a model ID. We need to resolve it to the model name to generate the azure variant.
+            $basemodelname = $DB->get_field('local_ai_manager_model', 'name', ['id' => (int) $data->model]);
+            $this->set_model_id_from_name(self::get_model_specific_azure_model_name($basemodelname));
         }
         $this->set_customfield2($enabled);
     }

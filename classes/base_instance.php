@@ -320,8 +320,13 @@ class base_instance {
      * Standard getter.
      *
      * @return ?string name of the model or null if not set
+     * @deprecated since 2026050400 Use {@see get_model_id()}, {@see get_model_name()} or {@see get_model_object()} instead.
      */
     public function get_model(): ?string {
+        debugging(
+            'get_model() is deprecated. Use get_model_id(), get_model_name() or get_model_object() instead.',
+            DEBUG_DEVELOPER
+        );
         return $this->model;
     }
 
@@ -329,9 +334,73 @@ class base_instance {
      * Standard setter.
      *
      * @param string $model the name of the model
+     * @deprecated since 2026050400 Use {@see set_model_id()} or {@see set_model_id_from_name()} instead.
      */
     public function set_model(string $model): void {
+        debugging(
+            'set_model() is deprecated. Use set_model_id() or set_model_id_from_name() instead.',
+            DEBUG_DEVELOPER
+        );
         $this->model = $model;
+    }
+
+    /**
+     * Returns the model ID stored for this instance.
+     *
+     * @return ?int the model ID or null if not set
+     */
+    public function get_model_id(): ?int {
+        if (is_null($this->model) || $this->model === '') {
+            return null;
+        }
+        return (int) $this->model;
+    }
+
+    /**
+     * Sets the model by its ID.
+     *
+     * @param int $modelid the model ID from local_ai_manager_model table
+     */
+    public function set_model_id(int $modelid): void {
+        $this->model = (string) $modelid;
+    }
+
+    /**
+     * Resolves the model ID to the model name from the local_ai_manager_model table.
+     *
+     * @return ?string the model name or null if not set or not found
+     */
+    public function get_model_name(): ?string {
+        $model = $this->get_model_object();
+        return $model?->get_name();
+    }
+
+    /**
+     * Resolves a model name to its ID and stores it.
+     *
+     * @param string $modelname the model name to resolve and set
+     * @throws \moodle_exception if the model name is not found in the database
+     */
+    public function set_model_id_from_name(string $modelname): void {
+        $model = \local_ai_manager\local\model::get_by_name($modelname);
+        if (is_null($model)) {
+            throw new \moodle_exception('exception_modelnotfound', 'local_ai_manager', '', $modelname);
+        }
+        $this->set_model_id($model->get_id());
+    }
+
+    /**
+     * Returns the model wrapper object for the model assigned to this instance.
+     *
+     * @return ?\local_ai_manager\local\model the model object or null if no model is assigned
+     */
+    public function get_model_object(): ?\local_ai_manager\local\model {
+        $modelid = $this->get_model_id();
+        if (is_null($modelid)) {
+            return null;
+        }
+        $model = new \local_ai_manager\local\model($modelid);
+        return $model->record_exists() ? $model : null;
     }
 
     /**
@@ -472,7 +541,7 @@ class base_instance {
         $data->endpoint = $this->get_endpoint();
         $data->apikey = $this->get_apikey();
         $data->useglobalapikey = $this->get_useglobalapikey();
-        $data->model = $this->get_model();
+        $data->model = $this->get_model_id();
         $data->infolink = $this->get_infolink();
         foreach ($this->get_extended_formdata() as $key => $value) {
             $data->{$key} = $value;
@@ -506,6 +575,7 @@ class base_instance {
      * @param array $customdata the customdata which has been passed to the form when created
      */
     final public function edit_form_definition(\MoodleQuickForm $mform, array $customdata): void {
+        global $DB;
         $textelementparams = ['style' => 'width: 100%'];
         $mform->addElement('text', 'name', get_string('instancename', 'local_ai_manager'), $textelementparams);
         $mform->setType('name', PARAM_TEXT);
@@ -554,13 +624,42 @@ class base_instance {
         $classname = '\\aitool_' . $connector . '\\connector';
         $connectorobject = \core\di::get($classname);
         $availablemodels = [];
-        foreach ($connectorobject->get_selectable_models() as $modelname) {
-            // phpcs:disable moodle.Commenting.TodoComment.MissingInfoInline
-            // TODO maybe add lang strings, so we have $availablemodels[$modelname] = get_string($modelname); or sth similar.
-            // phpcs:enable moodle.Commenting.TodoComment.MissingInfoInline
-            $availablemodels[$modelname] = $modelname;
+        $selectableids = $connectorobject->get_selectable_model_ids();
+        foreach ($selectableids as $modelid) {
+            $modelobject = new \local_ai_manager\local\model($modelid);
+            if ($modelobject->record_exists()) {
+                $availablemodels[$modelid] = $modelobject->get_name();
+            }
         }
+
+        // If the instance already has a model assigned that is deprecated, still show it in the dropdown
+        // so the form works correctly, but mark it as deprecated.
+        $currentmodelid = $this->get_model_id();
+        if (!empty($currentmodelid) && !isset($availablemodels[$currentmodelid])) {
+            $currentmodelobject = new \local_ai_manager\local\model($currentmodelid);
+            if ($currentmodelobject->record_exists()) {
+                $availablemodels[$currentmodelid] = $currentmodelobject->get_name()
+                    . ' (' . get_string('deprecated_model', 'local_ai_manager') . ')';
+            }
+        }
+
         $mform->addElement('select', 'model', get_string('model', 'local_ai_manager'), $availablemodels, $textelementparams);
+
+        // Show a warning if the currently selected model is deprecated.
+        if (!empty($currentmodelid)) {
+            $currentmodelobject = $currentmodelobject ?? new \local_ai_manager\local\model($currentmodelid);
+            if ($currentmodelobject->record_exists() && $currentmodelobject->is_deprecated()) {
+                $mform->addElement(
+                    'static',
+                    'model_deprecated_warning',
+                    '',
+                    \html_writer::div(
+                        get_string('deprecated_model_warning', 'local_ai_manager'),
+                        'alert alert-warning'
+                    )
+                );
+            }
+        }
 
         $mform->addElement('text', 'infolink', get_string('infolink', 'local_ai_manager'), $textelementparams);
         $mform->setType('infolink', PARAM_URL);
@@ -584,9 +683,10 @@ class base_instance {
         if (empty($data->model)) {
             // This is only a fallback. If the connector does not support the selection of a model,
             // it is supposed to overwrite this default value in the extend_store_formdata function.
-            $data->model = self::PRECONFIGURED_MODEL;
+            $this->set_model_id_from_name(self::PRECONFIGURED_MODEL);
+        } else {
+            $this->set_model_id((int) $data->model);
         }
-        $this->set_model($data->model);
         $this->set_infolink(trim($data->infolink));
         $this->extend_store_formdata($data);
         $this->store();
@@ -675,13 +775,13 @@ class base_instance {
      * @return array list of purpose names
      */
     final public function supported_purposes(): array {
-        if (empty($this->get_model())) {
+        if (empty($this->get_model_id())) {
             return [];
         }
         $connector = \core\di::get(connector_factory::class)->get_connector_by_connectorname($this->connector);
         $purposesofcurrentmodel = [];
-        foreach ($connector->get_models_by_purpose() as $purpose => $models) {
-            if (in_array($this->get_model(), $models)) {
+        foreach ($connector->get_model_ids_by_purpose() as $purpose => $modelids) {
+            if (in_array($this->get_model_id(), $modelids)) {
                 $purposesofcurrentmodel[] = $purpose;
             }
         }

@@ -99,7 +99,7 @@ class connector extends base_connector {
             return '';
         }
         return 'https://europe-north1-aiplatform.googleapis.com/v1/projects/' . $projectid
-            . '/locations/europe-north1/publishers/google/models/' . $this->instance->get_model()
+            . '/locations/europe-north1/publishers/google/models/' . $this->instance->get_model_name()
             . ':predict';
     }
 
@@ -159,7 +159,7 @@ class connector extends base_connector {
             $file->get_filename()
         )->out();
 
-        return prompt_response::create_from_result($this->instance->get_model(), new usage(1.0), $filepath);
+        return prompt_response::create_from_result($this->instance->get_model_name(), new usage(1.0), $filepath);
     }
 
     #[\Override]

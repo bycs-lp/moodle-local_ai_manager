@@ -106,5 +106,43 @@
         <INDEX NAME="purpose-userid" UNIQUE="true" FIELDS="purpose, userid"/>
       </INDEXES>
     </TABLE>
+    <TABLE NAME="local_ai_manager_model" COMMENT="Table storing AI model definitions and their capabilities">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Unique model identifier string"/>
+        <FIELD NAME="displayname" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Human-readable display name"/>
+        <FIELD NAME="description" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Description of the model"/>
+        <FIELD NAME="mimetypes" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Comma-separated list of supported mimetypes"/>
+        <FIELD NAME="vision" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Whether the model supports vision"/>
+        <FIELD NAME="imggen" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Whether the model supports image generation"/>
+        <FIELD NAME="tts" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Whether the model supports text-to-speech"/>
+        <FIELD NAME="stt" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Whether the model supports speech-to-text"/>
+        <FIELD NAME="deprecated" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether the model is deprecated and should not be selectable for new instances"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="name" UNIQUE="true" FIELDS="name"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_ai_manager_model_purpose" COMMENT="Table mapping models to connectors">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="modelid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Foreign key to local_ai_manager_model.id"/>
+        <FIELD NAME="connector" TYPE="char" LENGTH="50" NOTNULL="true" SEQUENCE="false" COMMENT="Connector plugin name"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="modelid" TYPE="foreign" FIELDS="modelid" REFTABLE="local_ai_manager_model" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="modelid_connector" UNIQUE="true" FIELDS="modelid, connector"/>
+      </INDEXES>
+    </TABLE>
   </TABLES>
 </XMLDB>
