@@ -39,14 +39,14 @@ class purpose extends base_purpose {
      * That's why there should not be any markdown to HTML conversion at this point.
      * CARE: The LLM will eventually return Markdown anyway. If this is not what
      * the plugin expects/wants this can be controlled by the prompt (e.g. "do not use
-     * any formatting like Markdown for output"). 
+     * any formatting like Markdown for output").
      *
      * @param string $output the output/result from the API of the AI tool
      * @return string the sanitized plain text output
      */
     #[\Override]
     public function format_output(string $output): string {
-        return clean_text($output);
+        return s($output);
     }
 
     #[\Override]

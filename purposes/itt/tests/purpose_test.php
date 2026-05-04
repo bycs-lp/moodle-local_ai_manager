@@ -38,39 +38,39 @@ final class purpose_test extends \advanced_testcase {
      */
     public static function format_output_provider(): array {
         return [
-            'plain text remains unchanged' => [
+            'plain_text_remains_unchanged' => [
                 'input' => 'This is plain text output from OCR.',
                 'expected' => 'This is plain text output from OCR.',
             ],
-            'asterisks used as multiplication are preserved' => [
+            'asterisks_used_as_multiplication_are_preserved' => [
                 'input' => '=B$3*B6',
                 'expected' => '=B$3*B6',
             ],
-            'spreadsheet formulas with multiple asterisks are preserved' => [
+            'spreadsheet_formulas_with_multiple_asterisks_are_preserved' => [
                 'input' => "Montag 20 =B\$3*B6\nDienstag 210 =B\$3*B7\nMittwoch 80 =B\$3*B8",
                 'expected' => "Montag 20 =B\$3*B6\nDienstag 210 =B\$3*B7\nMittwoch 80 =B\$3*B8",
             ],
-            'markdown bold syntax is not converted to html' => [
+            'markdown_bold_syntax_is_not_converted_to_html' => [
                 'input' => 'This is **bold** text',
                 'expected' => 'This is **bold** text',
             ],
-            'markdown italic syntax is not converted to html' => [
+            'markdown_italic_syntax_is_not_converted_to_html' => [
                 'input' => 'This is *italic* text',
                 'expected' => 'This is *italic* text',
             ],
-            'markdown headings are not converted to html' => [
+            'markdown_headings_are_not_converted_to_html' => [
                 'input' => "## Heading\nSome content",
                 'expected' => "## Heading\nSome content",
             ],
-            'markdown list is not converted to html' => [
+            'markdown_list_is_not_converted_to_html' => [
                 'input' => "- Item 1\n- Item 2\n- Item 3",
                 'expected' => "- Item 1\n- Item 2\n- Item 3",
             ],
-            'empty string returns empty string' => [
+            'empty_string_returns_empty_string' => [
                 'input' => '',
                 'expected' => '',
             ],
-            'complex spreadsheet extraction is preserved' => [
+            'complex_spreadsheet_extraction_is_preserved' => [
                 'input' => "Tabelle1\n\nA B C D\n1 Fahrkosten einer Woche\n"
                     . "6 Montag 20 =B\$3*B6\n7 Dienstag 210 =B\$3*B7\n"
                     . "13 Gesamt =SUMME(B6:B12) =SUMME(C6:C12)\n"
@@ -80,9 +80,25 @@ final class purpose_test extends \advanced_testcase {
                     . "13 Gesamt =SUMME(B6:B12) =SUMME(C6:C12)\n"
                     . "15 Wochendurchschnitt =MITTELWERT(B6:B12) =MITTELWERT(C6:C12)",
             ],
-            'dollar signs in cell references are preserved' => [
+            'dollar_signs_in_cell_references_are_preserved' => [
                 'input' => '=B$3*B6 =$A$1+$B$2',
                 'expected' => '=B$3*B6 =$A$1+$B$2',
+            ],
+            'html_tags_are_escaped_not_stripped' => [
+                'input' => '<div class="test">Content inside div</div>',
+                'expected' => '&lt;div class=&quot;test&quot;&gt;Content inside div&lt;/div&gt;',
+            ],
+            'html_code_in_document_is_fully_preserved' => [
+                'input' => '<p>Hello <strong>World</strong></p>',
+                'expected' => '&lt;p&gt;Hello &lt;strong&gt;World&lt;/strong&gt;&lt;/p&gt;',
+            ],
+            'script_tags_are_escaped_not_executed' => [
+                'input' => '<script>alert("xss")</script>Normal text',
+                'expected' => '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;Normal text',
+            ],
+            'ampersands_and_special_html_entities_are_escaped' => [
+                'input' => 'Price: 5 < 10 & 20 > 15',
+                'expected' => 'Price: 5 &lt; 10 &amp; 20 &gt; 15',
             ],
         ];
     }
@@ -118,17 +134,44 @@ final class purpose_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that format_output strips dangerous HTML tags for XSS prevention.
+     * Tests that format_output escapes HTML tags for XSS prevention.
+     *
+     * The s() function escapes HTML via htmlspecialchars, so tags are rendered
+     * as visible text rather than being interpreted as HTML.
      *
      * @covers \aipurpose_itt\purpose::format_output
      */
-    public function test_format_output_strips_dangerous_html(): void {
-        $this->resetAfterTest();
+    public function test_format_output_escapes_html_for_xss_prevention(): void {
         $purpose = new purpose();
         $input = '<script>alert("xss")</script>Normal text';
         $result = $purpose->format_output($input);
         $this->assertStringNotContainsString('<script>', $result);
+        $this->assertStringContainsString('&lt;script&gt;', $result);
         $this->assertStringContainsString('Normal text', $result);
+    }
+
+    /**
+     * Tests that format_output escapes HTML tags instead of stripping them.
+     *
+     * When a document contains HTML code, the content must be preserved
+     * (escaped) rather than removed, so downstream plugins receive the
+     * full extracted text.
+     *
+     * @covers \aipurpose_itt\purpose::format_output
+     */
+    public function test_format_output_escapes_html_instead_of_stripping(): void {
+        $purpose = new purpose();
+        $input = '<div>Some <b>HTML</b> content</div>';
+        $result = $purpose->format_output($input);
+        // The s() function escapes — content inside tags must still be present.
+        $this->assertStringContainsString('Some', $result);
+        $this->assertStringContainsString('HTML', $result);
+        $this->assertStringContainsString('content', $result);
+        // Tags must be escaped, not present as real HTML.
+        $this->assertStringNotContainsString('<div>', $result);
+        $this->assertStringNotContainsString('<b>', $result);
+        $this->assertStringContainsString('&lt;div&gt;', $result);
+        $this->assertStringContainsString('&lt;b&gt;', $result);
     }
 
     /**
