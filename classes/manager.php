@@ -300,7 +300,7 @@ class manager {
             $data->customvalue2 = $promptcompletion->get_usage()->customvalue2;
         }
         $data->purpose = $this->purpose->get_plugin_name();
-        $data->model = $this->connector->get_instance()->get_model();
+        $data->model = $this->connector->get_instance()->get_model_name();
         $data->modelinfo = $promptcompletion->get_modelinfo();
         $data->prompttext = $prompttext;
         $data->promptcompletion = $promptcompletion->get_content();

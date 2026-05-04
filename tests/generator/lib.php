@@ -68,4 +68,31 @@ class local_ai_manager_generator extends component_generator_base {
 
         return $data;
     }
+
+    /**
+     * Create a model record.
+     *
+     * @param array $record the record data if you want to override any defaults.
+     * @return stdClass the created model record (with id set).
+     */
+    public function create_model(array $record = []): stdClass {
+        global $DB;
+        $default = [
+            'name' => 'test-model',
+            'displayname' => 'Test Model',
+            'description' => '',
+            'mimetypes' => '',
+            'vision' => 0,
+            'imggen' => 0,
+            'tts' => 0,
+            'stt' => 0,
+            'temperature' => null,
+            'deprecated' => 0,
+            'timecreated' => 0,
+            'timemodified' => 0,
+        ];
+        $data = (object) array_merge($default, $record);
+        $data->id = $DB->insert_record('local_ai_manager_model', $data);
+        return $data;
+    }
 }

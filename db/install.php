@@ -15,18 +15,20 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for local_ai_manager.
+ * Post-install script for local_ai_manager.
  *
  * @package    local_ai_manager
- * @copyright  ISB Bayern, 2024
- * @author     Dr. Peter Mayer
+ * @copyright  2026 ISB Bayern
+ * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2026102301;
-$plugin->requires = 2025041400;
-$plugin->supported = [500, 502];
-$plugin->release = '4.0';
-$plugin->component = 'local_ai_manager';
-$plugin->maturity = MATURITY_STABLE;
+/**
+ * Post-install hook to seed initial model definitions.
+ *
+ * @return bool true on success
+ */
+function xmldb_local_ai_manager_install() {
+    \local_ai_manager\local\utils::import_models_from_json();
+    return true;
+}

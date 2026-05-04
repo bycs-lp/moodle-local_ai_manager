@@ -73,13 +73,20 @@ $functions = [
                 'description' => 'Fetch the prompts of a user in a given context',
                 'type' => 'read',
                 'ajax' => true,
-                'capabilities' => 'local_ai_manager:viewprompts',
+                'capabilities' => 'local/ai_manager:viewprompts',
         ],
         'local_ai_manager_get_purposes_usage_info' => [
                 'classname' => 'local_ai_manager\external\get_purposes_usage_info',
                 'description' => 'Gets information about the usage of the purposes by different plugins',
                 'type' => 'read',
                 'ajax' => true,
-                'capabilities' => 'local_ai_manager:use',
+                'capabilities' => 'local/ai_manager:use',
+        ],
+        'local_ai_manager_delete_model' => [
+                'classname' => 'local_ai_manager\external\delete_model',
+                'description' => 'Delete an AI model definition',
+                'type' => 'write',
+                'ajax' => true,
+                'capabilities' => 'local/ai_manager:managemodels',
         ],
 ];

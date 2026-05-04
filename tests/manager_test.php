@@ -21,6 +21,7 @@ use aitool_chatgpt\instance;
 use context_system;
 use GuzzleHttp\Psr7\Stream;
 use local_ai_manager\local\config_manager;
+use local_ai_manager\ai_manager_utils;
 use local_ai_manager\local\connector_factory;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\request_response;
@@ -126,7 +127,7 @@ final class manager_test extends \advanced_testcase {
         $userusage->store();
 
         $chatgptinstance = new instance();
-        $chatgptinstance->set_model('gpt-4o');
+        $chatgptinstance->set_model_id_from_name('gpt-4o');
         $chatgptinstance->set_connector('chatgpt');
 
         // Fake a stream object, because we will mock the method that access it anyway.

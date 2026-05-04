@@ -472,11 +472,9 @@ final class ai_manager_utils_test extends \advanced_testcase {
         $configmanager->set_config('chat_max_requests_basic', 50);
         $blockcontextid = \context_block::instance($block->id)->id;
 
-        $chatgptinstance = new instance();
-        $chatgptinstance->set_model('gpt-4o');
-
         $factory = \core\di::get(\local_ai_manager\local\connector_factory::class);
         $instance = $factory->get_new_instance('chatgpt');
+        $instance->set_model_id_from_name('gpt-4o');
         $instance->store();
 
         $configmanager->set_config(base_purpose::get_purpose_tool_config_key('chat', userinfo::ROLE_BASIC), $instance->get_id());
