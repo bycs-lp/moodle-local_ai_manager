@@ -71,5 +71,88 @@ function xmldb_aitool_telli_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025103100, 'aitool', 'telli');
     }
 
+    if ($oldversion < 2026050400) {
+        // Migrate the availablemodels setting to the model management system.
+        $availablemodels = get_config('aitool_telli', 'availablemodels');
+        if (!empty($availablemodels)) {
+            $clock = \core\di::get(\core\clock::class);
+            $now = $clock->time();
+
+            foreach (explode("\n", $availablemodels) as $line) {
+                $line = trim($line);
+                if ($line === '') {
+                    continue;
+                }
+
+                $imggen = 0;
+                $vision = 0;
+
+                if (str_ends_with($line, '#IMGGEN')) {
+                    $line = trim(preg_replace('/#IMGGEN$/', '', $line));
+                    $imggen = 1;
+                } else if (str_ends_with($line, '#VISION')) {
+                    $line = trim(preg_replace('/#VISION$/', '', $line));
+                    $vision = 1;
+                }
+
+                // Check if model already exists.
+                $existing = $DB->get_record('local_ai_manager_model', ['name' => $line]);
+                if ($existing) {
+                    $modelid = (int) $existing->id;
+                    // Update capabilities if the existing model does not have them yet.
+                    $updated = false;
+                    if ($imggen && !(int) $existing->imggen) {
+                        $existing->imggen = 1;
+                        $updated = true;
+                    }
+                    if ($vision && !(int) $existing->vision) {
+                        $existing->vision = 1;
+                        $updated = true;
+                    }
+                    if ($updated) {
+                        $existing->timemodified = $now;
+                        $DB->update_record('local_ai_manager_model', $existing);
+                    }
+                } else {
+                    // Create a new model record.
+                    $record = new stdClass();
+                    $record->name = $line;
+                    $record->displayname = $line;
+                    $record->description = '';
+                    $record->mimetypes = '';
+                    $record->vision = $vision;
+                    $record->imggen = $imggen;
+                    $record->tts = 0;
+                    $record->stt = 0;
+                    $record->deprecated = 0;
+                    $record->timecreated = $now;
+                    $record->timemodified = $now;
+                    $modelid = $DB->insert_record('local_ai_manager_model', $record);
+                }
+
+                // Assign the telli connector to this model.
+                if (
+                    !$DB->record_exists('local_ai_manager_model_purpose', [
+                    'modelid' => $modelid,
+                    'connector' => 'telli',
+                    ])
+                ) {
+                    $purposerecord = new stdClass();
+                    $purposerecord->modelid = $modelid;
+                    $purposerecord->connector = 'telli';
+                    $purposerecord->timecreated = $now;
+                    $purposerecord->timemodified = $now;
+                    $DB->insert_record('local_ai_manager_model_purpose', $purposerecord);
+                }
+            }
+
+            // Remove the old setting.
+            unset_config('availablemodels', 'aitool_telli');
+        }
+
+        // Telli savepoint reached.
+        upgrade_plugin_savepoint(true, 2026050400, 'aitool', 'telli');
+    }
+
     return true;
 }

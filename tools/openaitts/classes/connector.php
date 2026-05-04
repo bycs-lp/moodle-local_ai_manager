@@ -34,36 +34,7 @@ use Psr\Http\Message\StreamInterface;
 class connector extends \local_ai_manager\base_connector {
     /** @var string Default OpenAI text-to-speech endpoint. */
     public const DEFAULT_OPENAI_TTS_ENDPOINT = 'https://api.openai.com/v1/audio/speech';
-    #[\Override]
-    public function get_models_by_purpose(): array {
-        $modelsbypurpose = base_purpose::get_installed_purposes_array();
-        $modelsbypurpose['tts'] = ['tts-1', 'gpt-4o-mini-tts'];
-        foreach ($modelsbypurpose['tts'] as $model) {
-            $modelsbypurpose['tts'][] = instance::get_model_specific_azure_model_name($model);
-        }
-        return $modelsbypurpose;
-    }
 
-    #[\Override]
-    public function get_selectable_models(): array {
-        // Do not offer the azure fake model identifiers as option.
-        return array_filter(
-            $this->get_models(),
-            fn($model) => instance::extract_model_name_from_azure_model_name($model) === $model
-        );
-    }
-
-    #[\Override]
-    public function get_selectable_model_ids(): array {
-        global $DB;
-        // Only return IDs of non-azure models.
-        $selectablenames = $this->get_selectable_models();
-        if (empty($selectablenames)) {
-            return [];
-        }
-        [$insql, $params] = $DB->get_in_or_equal($selectablenames, SQL_PARAMS_NAMED);
-        return array_map('intval', $DB->get_fieldset_select('local_ai_manager_model', 'id', "name $insql", $params));
-    }
 
     #[\Override]
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
@@ -72,18 +43,14 @@ class connector extends \local_ai_manager\base_connector {
             'input' => $prompttext,
             'voice' => empty($options['voices'][0]) ? 'alloy' : $options['voices'][0],
         ];
-        if (
-            ($this->instance->get_model_name() === 'gpt-4o-mini-tts'
-                || instance::get_model_specific_azure_model_name($this->instance->get_model_name()) === 'gpt-4o-mini-tts')
-            && !empty($options['instructions'])
-        ) {
+        if ($this->instance->get_model_name() === 'gpt-4o-mini-tts' && !empty($options['instructions'])) {
             $data['instructions'] = $options['instructions'];
         }
         if (!$this->instance->azure_enabled()) {
             // If azure is enabled, the model will be preconfigured in the azure resource, so we do not need to send it.
             $data['model'] = $this->instance->get_model_name();
         } else {
-            // OpenAI via Azure expects the model to be sent despite being preconfigured in the resource. So we hardcode "tts".
+            // OpenAI via Azure expects the model to be sent despite being preconfigured in the resource.
             $data['model'] = 'ineffective_parameter_value';
         }
 
@@ -155,10 +122,7 @@ class connector extends \local_ai_manager\base_connector {
                 ['key' => 'verse', 'displayname' => 'Verse'],
             ],
         ];
-        if (
-            $this->instance->get_model_name() === 'gpt-4o-mini-tts'
-            || instance::extract_model_name_from_azure_model_name($this->instance->get_model_name()) === 'gpt-4o-mini-tts'
-        ) {
+        if ($this->instance->get_model_name() === 'gpt-4o-mini-tts') {
             $options['instructions'] = PARAM_TEXT;
         }
         return $options;

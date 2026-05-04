@@ -17,8 +17,6 @@
 namespace aitool_dalle;
 
 use local_ai_manager\base_connector;
-use local_ai_manager\base_purpose;
-use local_ai_manager\local\aitool_option_azure;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\unit;
 use local_ai_manager\local\usage;
@@ -37,26 +35,7 @@ use Psr\Http\Message\StreamInterface;
 class connector extends base_connector {
     /** @var string Default DALL-E image generations endpoint. */
     public const DEFAULT_DALLE_GENERATIONS_ENDPOINT = 'https://api.openai.com/v1/images/generations';
-    #[\Override]
-    public function get_models_by_purpose(): array {
-        $modelsbypurpose = base_purpose::get_installed_purposes_array();
-        $modelsbypurpose['imggen'] = ['dall-e-3', 'gpt-image-1'];
-        $modelsbypurpose['imggen'][] = aitool_option_azure::get_azure_model_name('dalle');
-        return $modelsbypurpose;
-    }
 
-    #[\Override]
-    public function get_selectable_models(): array {
-        return array_filter($this->get_models(), fn($model) => aitool_option_azure::get_azure_model_name('dalle') !== $model);
-    }
-
-    #[\Override]
-    public function get_selectable_model_ids(): array {
-        global $DB;
-        $azuremodelname = aitool_option_azure::get_azure_model_name('dalle');
-        $azuremodelid = $DB->get_field('local_ai_manager_model', 'id', ['name' => $azuremodelname]);
-        return array_filter($this->get_model_ids(), fn($id) => (int) $azuremodelid !== $id);
-    }
 
     #[\Override]
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
@@ -66,11 +45,8 @@ class connector extends base_connector {
             'prompt' => $prompttext,
             'size' => empty($options['sizes'][0]) ? $defaultimagesize : $options['sizes'][0],
         ];
-        if (
-            $this->instance->get_model_name() !== 'gpt-image-1'
-            && $this->instance->get_model_name() !== aitool_option_azure::get_azure_model_name('gpt-image-1')
-        ) {
-            // Only dalle models support this parameter, because gpt-image-1 will always return base64 string anyways.
+        if (!str_starts_with($this->instance->get_model_name(), 'gpt-image-')) {
+            // Only dall-e models need this parameter explicitly, gpt-image-* models always return base64 string.
             $parameters['response_format'] = 'b64_json';
         }
         if (!$this->instance->azure_enabled()) {
@@ -134,7 +110,6 @@ class connector extends base_connector {
         $options = [];
         switch ($this->instance->get_model_name()) {
             case 'dall-e-3':
-            case aitool_option_azure::get_azure_model_name('dalle'):
                 $options['sizes'] = [
                     ['key' => '1024x1024', 'displayname' => get_string('squared', 'local_ai_manager') . ' (1024px x 1024px)'],
                     ['key' => '1792x1024', 'displayname' => get_string('landscape', 'local_ai_manager') . ' (1792px x 1024px)'],
@@ -142,7 +117,6 @@ class connector extends base_connector {
                 ];
                 break;
             case 'gpt-image-1':
-            case aitool_option_azure::get_azure_model_name('gpt-image-1'):
                 $options['sizes'] = [
                     ['key' => '1024x1024', 'displayname' => get_string('squared', 'local_ai_manager') . ' (1024px x 1024px)'],
                     ['key' => '1536x1024', 'displayname' => get_string('landscape', 'local_ai_manager') . ' (1536px x 1024px)'],

@@ -48,42 +48,6 @@ class connector extends base_connector {
     }
 
     #[\Override]
-    public function get_models_by_purpose(): array {
-        $models = [];
-        $visionmodels = [];
-        $imggenmodels = [];
-        $availablemodelssetting = get_config('aitool_telli', 'availablemodels');
-        foreach (explode("\n", $availablemodelssetting) as $model) {
-            $model = trim($model);
-            if (str_ends_with($model, '#IMGGEN')) {
-                $model = trim(preg_replace('/#IMGGEN$/', '', $model));
-                $imggenmodels[] = $model;
-            } else if (str_ends_with($model, '#VISION')) {
-                $model = trim(preg_replace('/#VISION$/', '', $model));
-                $visionmodels[] = $model;
-                $models[] = $model;
-            } else {
-                $models[] = $model;
-            }
-        }
-
-        asort($models);
-        asort($visionmodels);
-
-        return [
-            'chat' => $models,
-            'feedback' => $models,
-            'singleprompt' => $models,
-            'translate' => $models,
-            'tts' => [],
-            'itt' => $visionmodels,
-            'imggen' => $imggenmodels,
-            'questiongeneration' => $models,
-            'agent' => $models,
-        ];
-    }
-
-    #[\Override]
     public function get_unit(): unit {
         return $this->wrappedconnector->get_unit();
     }
