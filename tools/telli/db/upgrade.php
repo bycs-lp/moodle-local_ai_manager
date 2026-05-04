@@ -72,7 +72,9 @@ function xmldb_aitool_telli_upgrade($oldversion) {
     }
 
     if ($oldversion < 2026050400) {
-        // Migrate the availablemodels setting to the model management system.
+        // Migrate the availablemodels setting to connector assignments in the model management system.
+        // All models are expected to already exist in the local_ai_manager_model table (imported via models.json).
+        // This step only assigns the telli connector to models that were listed in the old setting.
         $availablemodels = get_config('aitool_telli', 'availablemodels');
         if (!empty($availablemodels)) {
             $clock = \core\di::get(\core\clock::class);
@@ -84,59 +86,18 @@ function xmldb_aitool_telli_upgrade($oldversion) {
                     continue;
                 }
 
-                $imggen = 0;
-                $vision = 0;
+                // Strip capability suffixes that were used in the old setting format.
+                $line = trim(preg_replace('/#(IMGGEN|VISION)$/', '', $line));
 
-                if (str_ends_with($line, '#IMGGEN')) {
-                    $line = trim(preg_replace('/#IMGGEN$/', '', $line));
-                    $imggen = 1;
-                } else if (str_ends_with($line, '#VISION')) {
-                    $line = trim(preg_replace('/#VISION$/', '', $line));
-                    $vision = 1;
+                // Look up the model in the database.
+                $modelid = $DB->get_field('local_ai_manager_model', 'id', ['name' => $line]);
+                if (!$modelid) {
+                    // Model not found in the table, skip.
+                    continue;
                 }
 
-                // Check if model already exists.
-                $existing = $DB->get_record('local_ai_manager_model', ['name' => $line]);
-                if ($existing) {
-                    $modelid = (int) $existing->id;
-                    // Update capabilities if the existing model does not have them yet.
-                    $updated = false;
-                    if ($imggen && !(int) $existing->imggen) {
-                        $existing->imggen = 1;
-                        $updated = true;
-                    }
-                    if ($vision && !(int) $existing->vision) {
-                        $existing->vision = 1;
-                        $updated = true;
-                    }
-                    if ($updated) {
-                        $existing->timemodified = $now;
-                        $DB->update_record('local_ai_manager_model', $existing);
-                    }
-                } else {
-                    // Create a new model record.
-                    $record = new stdClass();
-                    $record->name = $line;
-                    $record->displayname = $line;
-                    $record->description = '';
-                    $record->mimetypes = '';
-                    $record->vision = $vision;
-                    $record->imggen = $imggen;
-                    $record->tts = 0;
-                    $record->stt = 0;
-                    $record->deprecated = 0;
-                    $record->timecreated = $now;
-                    $record->timemodified = $now;
-                    $modelid = $DB->insert_record('local_ai_manager_model', $record);
-                }
-
-                // Assign the telli connector to this model.
-                if (
-                    !$DB->record_exists('local_ai_manager_model_purpose', [
-                    'modelid' => $modelid,
-                    'connector' => 'telli',
-                    ])
-                ) {
+                // Assign the telli connector to this model if not already assigned.
+                if (!$DB->record_exists('local_ai_manager_model_purpose', ['modelid' => $modelid, 'connector' => 'telli'])) {
                     $purposerecord = new stdClass();
                     $purposerecord->modelid = $modelid;
                     $purposerecord->connector = 'telli';
