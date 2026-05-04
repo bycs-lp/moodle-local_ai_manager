@@ -36,11 +36,15 @@ use stdClass;
 final class ai_manager_utils_test extends \advanced_testcase {
     #[\Override]
     protected function setUp(): void {
+        global $CFG;
         parent::setUp();
         // We disable the hooks here, so we have a defined setup for these unit tests.
         // The hook callbacks should be tested wherever the callbacks are being implemented.
         $this->redirectHook(\local_ai_manager\hook\userinfo_extend::class, fn() => null);
         $this->redirectHook(\local_ai_manager\hook\custom_tenant::class, fn() => null);
+        // Ensure model definitions are available in the database.
+        require_once($CFG->dirroot . '/local/ai_manager/db/upgradelib.php');
+        local_ai_manager_import_models_from_json();
     }
 
     /**

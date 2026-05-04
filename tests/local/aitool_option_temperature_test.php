@@ -344,3 +344,4 @@ final class aitool_option_temperature_test extends \advanced_testcase {
         $this->assertEmpty($errors);
     }
 }
+
