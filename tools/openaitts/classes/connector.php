@@ -54,6 +54,18 @@ class connector extends \local_ai_manager\base_connector {
     }
 
     #[\Override]
+    public function get_selectable_model_ids(): array {
+        global $DB;
+        // Only return IDs of non-azure models.
+        $selectablenames = $this->get_selectable_models();
+        if (empty($selectablenames)) {
+            return [];
+        }
+        [$insql, $params] = $DB->get_in_or_equal($selectablenames, SQL_PARAMS_NAMED);
+        return array_map('intval', $DB->get_fieldset_select('local_ai_manager_model', 'id', "name $insql", $params));
+    }
+
+    #[\Override]
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
         $options = $requestoptions->get_options();
         $data = [
@@ -61,15 +73,15 @@ class connector extends \local_ai_manager\base_connector {
             'voice' => empty($options['voices'][0]) ? 'alloy' : $options['voices'][0],
         ];
         if (
-            ($this->instance->get_model() === 'gpt-4o-mini-tts'
-                || instance::get_model_specific_azure_model_name($this->instance->get_model()) === 'gpt-4o-mini-tts')
+            ($this->instance->get_model_name() === 'gpt-4o-mini-tts'
+                || instance::get_model_specific_azure_model_name($this->instance->get_model_name()) === 'gpt-4o-mini-tts')
             && !empty($options['instructions'])
         ) {
             $data['instructions'] = $options['instructions'];
         }
         if (!$this->instance->azure_enabled()) {
             // If azure is enabled, the model will be preconfigured in the azure resource, so we do not need to send it.
-            $data['model'] = $this->instance->get_model();
+            $data['model'] = $this->instance->get_model_name();
         } else {
             // OpenAI via Azure expects the model to be sent despite being preconfigured in the resource. So we hardcode "tts".
             $data['model'] = 'ineffective_parameter_value';
@@ -123,7 +135,7 @@ class connector extends \local_ai_manager\base_connector {
             $file->get_filename()
         )->out();
 
-        return prompt_response::create_from_result($this->instance->get_model(), new usage(1.0), $filepath);
+        return prompt_response::create_from_result($this->instance->get_model_name(), new usage(1.0), $filepath);
     }
 
     #[\Override]
@@ -144,8 +156,8 @@ class connector extends \local_ai_manager\base_connector {
             ],
         ];
         if (
-            $this->instance->get_model() === 'gpt-4o-mini-tts'
-            || instance::extract_model_name_from_azure_model_name($this->instance->get_model()) === 'gpt-4o-mini-tts'
+            $this->instance->get_model_name() === 'gpt-4o-mini-tts'
+            || instance::extract_model_name_from_azure_model_name($this->instance->get_model_name()) === 'gpt-4o-mini-tts'
         ) {
             $options['instructions'] = PARAM_TEXT;
         }

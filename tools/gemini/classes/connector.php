@@ -71,7 +71,7 @@ class connector extends \local_ai_manager\base_connector {
             $textanswer .= $part['text'];
         }
         return prompt_response::create_from_result(
-            $this->instance->get_model(),
+            $this->instance->get_model_name(),
             new usage(
                 (float) $content['usageMetadata']['totalTokenCount'],
                 (float) $content['usageMetadata']['promptTokenCount'],
@@ -210,18 +210,11 @@ class connector extends \local_ai_manager\base_connector {
                 return '';
             }
             return 'https://europe-north1-aiplatform.googleapis.com/v1/projects/' . $projectid
-                . '/locations/europe-north1/publishers/google/models/' . $this->instance->get_model()
+                . '/locations/europe-north1/publishers/google/models/' . $this->instance->get_model_name()
                 . ':generateContent';
         } else {
-            return 'https://generativelanguage.googleapis.com/v1beta/models/' . $this->instance->get_model()
+            return 'https://generativelanguage.googleapis.com/v1beta/models/' . $this->instance->get_model_name()
                 . ':generateContent';
         }
-    }
-
-    #[\Override]
-    public function allowed_mimetypes(): array {
-        // We use the inline_data for sending data to the API, so we basically support every format.
-        // However, we restrict it to some basics.
-        return ['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heiff', 'application/pdf'];
     }
 }

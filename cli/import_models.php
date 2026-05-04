@@ -15,18 +15,20 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for local_ai_manager.
+ * CLI script to import models from db/models.json into the database.
  *
  * @package    local_ai_manager
- * @copyright  ISB Bayern, 2024
- * @author     Dr. Peter Mayer
+ * @copyright  2026 ISB Bayern
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2026050400;
-$plugin->requires = 2025041400;
-$plugin->supported = [500, 501];
-$plugin->release = '2.5';
-$plugin->component = 'local_ai_manager';
-$plugin->maturity = MATURITY_STABLE;
+define('CLI_SCRIPT', true);
+
+require(__DIR__ . '/../../../config.php');
+require_once($CFG->libdir . '/clilib.php');
+
+cli_heading('Importing AI models from models.json');
+
+\local_ai_manager\local\utils::import_models_from_json();
+
+cli_writeln('Done. Models have been imported successfully.');

@@ -74,7 +74,7 @@ foreach ($configmanager->get_purpose_config($userinfo->get_role()) as $purpose =
     }
     $templatepurpose['name'] = $instance->get_name();
     $templatepurpose['endpoint'] = $instance->get_endpoint();
-    $templatepurpose['model'] = $instance->get_model();
+    $templatepurpose['model'] = $instance->get_model_name();
     $templatepurpose['infolink'] = $instance->get_infolink();
     $templatepurpose['highlight'] = in_array($purpose, $purposes);
     $templatecontext['purposes'][] = $templatepurpose;

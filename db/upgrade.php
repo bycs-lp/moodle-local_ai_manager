@@ -354,5 +354,51 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026042000, 'local', 'ai_manager');
     }
 
+    if ($oldversion < 2026050400) {
+        // Step 1: Create the local_ai_manager_model table.
+        $table = new xmldb_table('local_ai_manager_model');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('name', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('displayname', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+        $table->add_field('description', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('mimetypes', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('vision', XMLDB_TYPE_INTEGER, '1', null, null, null, null);
+        $table->add_field('imggen', XMLDB_TYPE_INTEGER, '1', null, null, null, null);
+        $table->add_field('tts', XMLDB_TYPE_INTEGER, '1', null, null, null, null);
+        $table->add_field('stt', XMLDB_TYPE_INTEGER, '1', null, null, null, null);
+        $table->add_field('deprecated', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Step 2: Create the local_ai_manager_model_purpose table.
+        $table = new xmldb_table('local_ai_manager_model_purpose');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('modelid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('connector', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('modelid', XMLDB_KEY_FOREIGN, ['modelid'], 'local_ai_manager_model', ['id']);
+        $table->add_index('modelid_connector', XMLDB_INDEX_UNIQUE, ['modelid', 'connector']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Step 3: Import all known models from the JSON seed file.
+        \local_ai_manager\local\utils::import_models_from_json();
+
+        // Step 4: Migrate instance model field from name string to model ID.
+        local_ai_manager_migrate_instance_model_to_id();
+
+        // AI manager savepoint reached.
+        upgrade_plugin_savepoint(true, 2026050400, 'local', 'ai_manager');
+    }
+
     return true;
 }

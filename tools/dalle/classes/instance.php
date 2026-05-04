@@ -69,7 +69,7 @@ class instance extends base_instance {
     protected function extend_store_formdata(stdClass $data): void {
         [$enabled] = aitool_option_azure::extract_azure_data_to_store($data);
         if ($enabled) {
-            $this->set_model(aitool_option_azure::get_azure_model_name($this->get_connector()));
+            $this->set_model_id_from_name(aitool_option_azure::get_azure_model_name($this->get_connector()));
         }
         $this->set_customfield2($enabled);
     }

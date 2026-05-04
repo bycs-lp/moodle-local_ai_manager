@@ -72,6 +72,14 @@ class connector extends \local_ai_manager\base_connector {
     }
 
     #[\Override]
+    public function get_selectable_model_ids(): array {
+        global $DB;
+        $azuremodelname = aitool_option_azure::get_azure_model_name('chatgpt');
+        $azuremodelid = $DB->get_field('local_ai_manager_model', 'id', ['name' => $azuremodelname]);
+        return array_filter($this->get_model_ids(), fn($id) => (int) $azuremodelid !== $id);
+    }
+
+    #[\Override]
     public function get_unit(): unit {
         return unit::TOKEN;
     }
@@ -98,6 +106,7 @@ class connector extends \local_ai_manager\base_connector {
 
     #[\Override]
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
+        global $DB;
         $options = $requestoptions->get_options();
         $messages = [];
         if (array_key_exists('conversationcontext', $options)) {
@@ -144,12 +153,18 @@ class connector extends \local_ai_manager\base_connector {
         $parameters = [
             'messages' => $messages,
         ];
-        if (!in_array($this->get_instance()->get_model(), ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'])) {
+        $notemperaturemodels = ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'];
+        [$insql, $inparams] = $DB->get_in_or_equal($notemperaturemodels, SQL_PARAMS_NAMED);
+        $notemperatureids = array_map(
+            'intval',
+            $DB->get_fieldset_select('local_ai_manager_model', 'id', "name $insql", $inparams)
+        );
+        if (!in_array($this->get_instance()->get_model_id(), $notemperatureids)) {
             $parameters['temperature'] = $this->instance->get_temperature();
         }
         if (!$this->instance->azure_enabled()) {
             // If azure is enabled, the model will be preconfigured in the azure resource, so we do not need to send it.
-            $parameters['model'] = $this->instance->get_model();
+            $parameters['model'] = $this->instance->get_model_name();
         }
         return $parameters;
     }
@@ -183,10 +198,6 @@ class connector extends \local_ai_manager\base_connector {
         return $this->instance->get_endpoint() ?: self::DEFAULT_OPENAI_COMPLETIONS_ENDPOINT;
     }
 
-    #[\Override]
-    public function allowed_mimetypes(): array {
-        return ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
-    }
 
     #[\Override]
     protected function get_custom_error_message(int $code, ?ClientExceptionInterface $exception = null): string {

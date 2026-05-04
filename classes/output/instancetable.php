@@ -97,9 +97,9 @@ class instancetable implements renderable, templatable {
             $instances[] = [
                 'name' => $linkedname,
                 'toolname' => get_string('pluginname', 'aitool_' . $instance->get_connector()),
-                'model' => $instance->get_model() === base_instance::PRECONFIGURED_MODEL
+                'model' => $instance->get_model_name() === base_instance::PRECONFIGURED_MODEL
                     ? get_string('preconfiguredmodel', 'local_ai_manager')
-                    : $instance->get_model(),
+                    : $instance->get_model_name(),
                 'enabled' => $instance->is_enabled(),
                 'purposesrolebasic' => $purposesrolebasic,
                 'purposesroleextended' => $purposesroleextended,

@@ -105,7 +105,7 @@ class connector extends \local_ai_manager\base_connector {
             $file->get_filename()
         )->out();
 
-        return prompt_response::create_from_result($this->instance->get_model(), new usage(1.0), $filepath);
+        return prompt_response::create_from_result($this->instance->get_model_name(), new usage(1.0), $filepath);
     }
 
     #[\Override]

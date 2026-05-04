@@ -14,19 +14,29 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace local_ai_manager\table;
+
+use core_table\local\filter\integer_filter;
+use core_table\local\filter\string_filter;
+
 /**
- * Version file for local_ai_manager.
+ * Filterset for the model management table.
  *
  * @package    local_ai_manager
- * @copyright  ISB Bayern, 2024
- * @author     Dr. Peter Mayer
+ * @copyright  2026 ISB Bayern
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->version  = 2026050400;
-$plugin->requires = 2025041400;
-$plugin->supported = [500, 501];
-$plugin->release = '2.5';
-$plugin->component = 'local_ai_manager';
-$plugin->maturity = MATURITY_STABLE;
+class model_management_table_filterset extends \core_table\local\filter\filterset {
+    /**
+     * Get the optional filters.
+     *
+     * @return array
+     */
+    public function get_optional_filters(): array {
+        return [
+            'namepattern' => string_filter::class,
+            'connector' => string_filter::class,
+            'deprecated' => integer_filter::class,
+        ];
+    }
+}

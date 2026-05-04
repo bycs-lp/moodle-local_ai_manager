@@ -109,7 +109,7 @@ class connector extends \local_ai_manager\base_connector {
             $messages[] = ['role' => 'user', 'content' => $prompttext];
         }
         $data = [
-            'model' => $this->instance->get_model(),
+            'model' => $this->instance->get_model_name(),
             'messages' => $messages,
             'stream' => false,
             'keep_alive' => '60m',
@@ -118,10 +118,5 @@ class connector extends \local_ai_manager\base_connector {
             ],
         ];
         return $data;
-    }
-
-    #[\Override]
-    public function allowed_mimetypes(): array {
-        return ['image/png', 'image/jpg', 'image/jpeg'];
     }
 }

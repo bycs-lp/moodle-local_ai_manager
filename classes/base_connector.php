@@ -48,6 +48,15 @@ abstract class base_connector {
     }
 
     /**
+     * Returns the model wrapper object for the model assigned to the underlying instance.
+     *
+     * @return ?\local_ai_manager\local\model the model object or null if no model is assigned
+     */
+    public function get_model_object(): ?\local_ai_manager\local\model {
+        return $this->instance->get_model_object();
+    }
+
+    /**
      * Define available models.
      *
      * IMPORTANT: You will have to define a key for every purpose. If your connector should not support
@@ -62,14 +71,14 @@ abstract class base_connector {
     /**
      * Returns the list of models that are selectable when creating/editing AI tools in the frontend.
      *
-     * @return array list of models
+     * @return array list of model name strings
      */
     public function get_selectable_models(): array {
         return $this->get_models();
     }
 
     /**
-     * Get the available models as plain array.
+     * Get the available models as plain array of model name strings.
      *
      * @return array array of strings of model identifiers
      */
@@ -79,6 +88,76 @@ abstract class base_connector {
             $models = array_merge($models, $modelarray);
         }
         return array_unique($models);
+    }
+
+    /**
+     * Returns model IDs grouped by purpose, resolved from the model name strings.
+     *
+     * @return array associative array of purpose => array of model IDs
+     */
+    final public function get_model_ids_by_purpose(): array {
+        global $DB;
+
+        $modelsbypurpose = $this->get_models_by_purpose();
+        $allnames = array_unique(array_merge(...array_values($modelsbypurpose)));
+        if (empty($allnames)) {
+            return array_fill_keys(array_keys($modelsbypurpose), []);
+        }
+
+        [$insql, $params] = $DB->get_in_or_equal($allnames, SQL_PARAMS_NAMED);
+        $namelookup = $DB->get_records_select_menu('local_ai_manager_model', "name $insql", $params, '', 'name, id');
+
+        $result = [];
+        foreach ($modelsbypurpose as $purpose => $names) {
+            $ids = [];
+            foreach ($names as $name) {
+                if (isset($namelookup[$name])) {
+                    $ids[] = (int) $namelookup[$name];
+                }
+            }
+            $result[$purpose] = $ids;
+        }
+        return $result;
+    }
+
+    /**
+     * Get all available model IDs as a plain array.
+     *
+     * @return array array of int model IDs
+     */
+    final public function get_model_ids(): array {
+        $ids = [];
+        foreach ($this->get_model_ids_by_purpose() as $idarray) {
+            $ids = array_merge($ids, $idarray);
+        }
+        return array_unique($ids);
+    }
+
+    /**
+     * Returns the list of model IDs that are selectable when creating/editing AI tools in the frontend.
+     *
+     * Deprecated models are excluded from this list so they cannot be chosen for new instances.
+     *
+     * @return array list of selectable model IDs
+     */
+    public function get_selectable_model_ids(): array {
+        global $DB;
+
+        $allids = $this->get_model_ids();
+        if (empty($allids)) {
+            return [];
+        }
+
+        // Filter out deprecated models.
+        [$insql, $params] = $DB->get_in_or_equal($allids, SQL_PARAMS_NAMED);
+        $params['deprecated'] = 0;
+        $ids = $DB->get_fieldset_select(
+            'local_ai_manager_model',
+            'id',
+            "id $insql AND deprecated = :deprecated",
+            $params
+        );
+        return array_map('intval', $ids);
     }
 
     /**
@@ -278,14 +357,22 @@ abstract class base_connector {
     }
 
     /**
-     * Returns the allowed mimetypes.
+     * Returns the allowed mimetypes based on the model assigned to the current instance.
      *
-     * This can be overwritten in connector classes that are capable of files being submitted.
+     * Falls back to an empty array if no model is assigned or no mimetypes are defined.
      *
      * @return array an array of allowed mimetypes
      */
     public function allowed_mimetypes(): array {
-        return [];
+        $model = $this->instance->get_model_object();
+        if (is_null($model)) {
+            return [];
+        }
+        $mimetypes = $model->get_mimetypes();
+        if (empty($mimetypes)) {
+            return [];
+        }
+        return array_map('trim', explode(',', $mimetypes));
     }
 
     /**

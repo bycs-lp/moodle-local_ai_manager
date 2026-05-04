@@ -215,6 +215,16 @@ if ($hassiteconfig) {
 
     $ADMIN->add(
         'local_ai_manager_settings',
+        new admin_externalpage(
+            'local_ai_manager_manage_models',
+            get_string('manage_models', 'local_ai_manager'),
+            new moodle_url('/local/ai_manager/manage_models.php'),
+            'local/ai_manager:managemodels'
+        )
+    );
+
+    $ADMIN->add(
+        'local_ai_manager_settings',
         new admin_category(
             'aitoolplugins',
             new lang_string('aitoolplugins', 'local_ai_manager')
