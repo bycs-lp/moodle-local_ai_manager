@@ -32,13 +32,14 @@ use local_ai_manager\local\userinfo;
  */
 class purpose extends base_purpose {
     /**
-     * Returns the output as sanitized plain text without any Markdown-to-HTML conversion.
+     * Returns the output as sanitized plain text.
      *
-     * The ITT (image to text) output is frequently consumed by other plugins
-     * (e.g. assignfeedback_aif, qbank_questiongen) as raw text input for further
-     * LLM processing. Converting Markdown to HTML would mangle special characters
-     * like asterisks (used as multiplication operators in spreadsheet formulas
-     * such as =B$3*B6), turning them into <em> tags and corrupting downstream prompts.
+     * The ITT output can be consumed by other plugins (e.g. assignfeedback_aif,
+     * qbank_questiongen) which eventually will use it for further (LLM) processing.
+     * That's why there should not be any markdown to HTML conversion at this point.
+     * CARE: The LLM will eventually return Markdown anyway. If this is not what
+     * the plugin expects/wants this can be controlled by the prompt (e.g. "do not use
+     * any formatting like Markdown for output"). 
      *
      * @param string $output the output/result from the API of the AI tool
      * @return string the sanitized plain text output
