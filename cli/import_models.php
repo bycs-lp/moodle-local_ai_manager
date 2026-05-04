@@ -15,17 +15,20 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for aitool_telli.
+ * CLI script to import models from db/models.json into the database.
  *
- * @package    aitool_telli
- * @copyright  2025 ISB Bayern
- * @author     Philipp Memmel
+ * @package    local_ai_manager
+ * @copyright  2026 ISB Bayern
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2026050400;
-$plugin->requires = 2023042403;
-$plugin->release = '0.0.1';
-$plugin->component = 'aitool_telli';
-$plugin->maturity = MATURITY_ALPHA;
+define('CLI_SCRIPT', true);
+
+require(__DIR__ . '/../../../config.php');
+require_once($CFG->libdir . '/clilib.php');
+
+cli_heading('Importing AI models from models.json');
+
+\local_ai_manager\local\utils::import_models_from_json();
+
+cli_writeln('Done. Models have been imported successfully.');

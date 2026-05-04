@@ -18,7 +18,6 @@ namespace aitool_telli;
 
 use local_ai_manager\base_instance;
 use local_ai_manager\local\aitool_option_temperature;
-use local_ai_manager\local\connector_factory;
 use stdClass;
 
 /**
@@ -45,16 +44,14 @@ class instance extends base_instance {
         if (!empty($globalendpoint)) {
             $mform->removeElement('endpoint');
         }
-        $connectorfactory = \core\di::get(connector_factory::class);
-        $connectorinstance = $connectorfactory->get_connector_by_connectorname($this->connector);
-        aitool_option_temperature::extend_form_definition($mform, $connectorinstance->get_models_by_purpose()['imggen']);
+        aitool_option_temperature::extend_form_definition($mform, $this->selectablemodelsobjects);
     }
 
     #[\Override]
     protected function get_extended_formdata(): stdClass {
         $data = new stdClass();
         $temperature = floatval($this->get_customfield1());
-        $temperaturedata = aitool_option_temperature::add_temperature_to_form_data($temperature);
+        $temperaturedata = aitool_option_temperature::add_temperature_to_form_data($temperature, $this->get_model_object());
         foreach ($temperaturedata as $key => $value) {
             $data->{$key} = $value;
         }

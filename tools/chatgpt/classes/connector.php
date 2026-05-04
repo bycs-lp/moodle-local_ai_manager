@@ -16,10 +16,6 @@
 
 namespace aitool_chatgpt;
 
-use local_ai_manager\ai_manager_utils;
-use local_ai_manager\base_connector;
-use local_ai_manager\local\aitool_option_azure;
-use local_ai_manager\local\connector_factory;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\unit;
 use local_ai_manager\local\usage;
@@ -38,38 +34,6 @@ use Psr\Http\Message\StreamInterface;
 class connector extends \local_ai_manager\base_connector {
     /** @var string Default OpenAI Chat Completions endpoint. */
     public const DEFAULT_OPENAI_COMPLETIONS_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
-
-    #[\Override]
-    public function get_models_by_purpose(): array {
-        $chatgptmodels =
-                ['gpt-3.5-turbo', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'];
-        $modelsbypurpose = [
-                'chat' => $chatgptmodels,
-                'feedback' => $chatgptmodels,
-                'singleprompt' => $chatgptmodels,
-                'translate' => $chatgptmodels,
-                'tts' => [],
-                'imggen' => [],
-                'itt' => ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o3', 'o4-mini'],
-                'questiongeneration' => $chatgptmodels,
-                'agent' => $chatgptmodels,
-        ];
-        foreach ($modelsbypurpose as $purpose => $models) {
-            // We assume that the azure models support all the purposes. This is kind of a blind guess, because in case
-            // of azure we do not have any information which model lies behind the azure endpoint. So we will go for the less
-            // restrictive definition, but of course it could be that there's a model behind the azure endpoint that, for example,
-            // does not support vision (itt). In this case we let the user run into an error, but that's not avoidable right now.
-            if (!empty($models)) {
-                $modelsbypurpose[$purpose][] = aitool_option_azure::get_azure_model_name('chatgpt');
-            }
-        }
-        return $modelsbypurpose;
-    }
-
-    #[\Override]
-    public function get_selectable_models(): array {
-        return array_filter($this->get_models(), fn($model) => aitool_option_azure::get_azure_model_name('chatgpt') !== $model);
-    }
 
     #[\Override]
     public function get_unit(): unit {
@@ -144,12 +108,13 @@ class connector extends \local_ai_manager\base_connector {
         $parameters = [
             'messages' => $messages,
         ];
-        if (!in_array($this->get_instance()->get_model(), ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'])) {
+        // Only send temperature if the model supports it (reasoning models do not).
+        if ($this->instance->get_model_object()->supports_temperature()) {
             $parameters['temperature'] = $this->instance->get_temperature();
         }
         if (!$this->instance->azure_enabled()) {
             // If azure is enabled, the model will be preconfigured in the azure resource, so we do not need to send it.
-            $parameters['model'] = $this->instance->get_model();
+            $parameters['model'] = $this->instance->get_model_name();
         }
         return $parameters;
     }
@@ -183,10 +148,6 @@ class connector extends \local_ai_manager\base_connector {
         return $this->instance->get_endpoint() ?: self::DEFAULT_OPENAI_COMPLETIONS_ENDPOINT;
     }
 
-    #[\Override]
-    public function allowed_mimetypes(): array {
-        return ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
-    }
 
     #[\Override]
     protected function get_custom_error_message(int $code, ?ClientExceptionInterface $exception = null): string {
