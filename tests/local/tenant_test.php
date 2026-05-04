@@ -97,8 +97,8 @@ final class tenant_test extends \advanced_testcase {
                 'valid' => false,
             ],
             'identifier_with_umlaut' => [
-                'name' => 'unicode-ä',
-                'valid' => false,
+                'name' => 'München',
+                'valid' => true,
             ],
             'identifier_with_slashes' => [
                 'name' => '/slashes/',

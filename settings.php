@@ -50,6 +50,12 @@ if ($hassiteconfig) {
             )
         );
 
+        $settings->add(new admin_setting_check(
+            'local_ai_manager/validtenantcolumnidentifiers',
+            new  \local_ai_manager\check\tenantcolumn_identifiers_valid(),
+            true
+        ));
+
         $settings->add(
             new admin_setting_configselect(
                 'local_ai_manager/tenantcolumn',

@@ -39,7 +39,6 @@ $PAGE->add_body_class('limitcontentwidth');
 $enabletenant = optional_param('enabletenant', 'not_set', PARAM_ALPHANUM);
 
 $url = new moodle_url('/local/ai_manager/tenant_config.php');
-
 try {
     tenant_config_output_utils::setup_tenant_config_page($url);
     /** @var \local_ai_manager\local\config_manager $configmanager */
