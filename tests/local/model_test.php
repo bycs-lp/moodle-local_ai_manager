@@ -299,3 +299,4 @@ final class model_test extends \advanced_testcase {
         $this->assertFalse($nonexistent->record_exists());
     }
 }
+

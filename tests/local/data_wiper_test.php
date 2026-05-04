@@ -41,7 +41,10 @@ final class data_wiper_test extends \advanced_testcase {
      * Basic setup.
      */
     protected function setUp(): void {
+        global $CFG;
         parent::setUp();
+        require_once($CFG->dirroot . '/local/ai_manager/db/upgradelib.php');
+        local_ai_manager_import_models_from_json();
         $tenant = new tenant('1234');
 
         // We disable the hooks here, so we have a defined setup for these unit tests.

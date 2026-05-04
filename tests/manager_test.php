@@ -48,7 +48,10 @@ final class manager_test extends \advanced_testcase {
      * @dataProvider perform_request_provider
      */
     public function test_perform_request(array $configuration, int $expectedcode, string $message): void {
+        global $CFG;
         $this->resetAfterTest();
+        require_once($CFG->dirroot . '/local/ai_manager/db/upgradelib.php');
+        local_ai_manager_import_models_from_json();
 
         $tenant = new tenant('1234');
 
