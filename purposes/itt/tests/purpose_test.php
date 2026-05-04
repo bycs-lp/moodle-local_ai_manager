@@ -84,21 +84,21 @@ final class purpose_test extends \advanced_testcase {
                 'input' => '=B$3*B6 =$A$1+$B$2',
                 'expected' => '=B$3*B6 =$A$1+$B$2',
             ],
-            'html_tags_are_escaped_not_stripped' => [
+            'html_tags_are_passed_through_unchanged' => [
                 'input' => '<div class="test">Content inside div</div>',
-                'expected' => '&lt;div class=&quot;test&quot;&gt;Content inside div&lt;/div&gt;',
+                'expected' => '<div class="test">Content inside div</div>',
             ],
             'html_code_in_document_is_fully_preserved' => [
                 'input' => '<p>Hello <strong>World</strong></p>',
-                'expected' => '&lt;p&gt;Hello &lt;strong&gt;World&lt;/strong&gt;&lt;/p&gt;',
+                'expected' => '<p>Hello <strong>World</strong></p>',
             ],
-            'script_tags_are_escaped_not_executed' => [
+            'script_tags_are_passed_through_for_downstream_handling' => [
                 'input' => '<script>alert("xss")</script>Normal text',
-                'expected' => '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;Normal text',
+                'expected' => '<script>alert("xss")</script>Normal text',
             ],
-            'ampersands_and_special_html_entities_are_escaped' => [
+            'special_characters_are_not_encoded' => [
                 'input' => 'Price: 5 < 10 & 20 > 15',
-                'expected' => 'Price: 5 &lt; 10 &amp; 20 &gt; 15',
+                'expected' => 'Price: 5 < 10 & 20 > 15',
             ],
         ];
     }
@@ -134,44 +134,18 @@ final class purpose_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that format_output escapes HTML tags for XSS prevention.
+     * Tests that format_output returns the output completely unmodified.
      *
-     * The s() function escapes HTML via htmlspecialchars, so tags are rendered
-     * as visible text rather than being interpreted as HTML.
-     *
-     * @covers \aipurpose_itt\purpose::format_output
-     */
-    public function test_format_output_escapes_html_for_xss_prevention(): void {
-        $purpose = new purpose();
-        $input = '<script>alert("xss")</script>Normal text';
-        $result = $purpose->format_output($input);
-        $this->assertStringNotContainsString('<script>', $result);
-        $this->assertStringContainsString('&lt;script&gt;', $result);
-        $this->assertStringContainsString('Normal text', $result);
-    }
-
-    /**
-     * Tests that format_output escapes HTML tags instead of stripping them.
-     *
-     * When a document contains HTML code, the content must be preserved
-     * (escaped) rather than removed, so downstream plugins receive the
-     * full extracted text.
+     * The consuming plugin is responsible for escaping or sanitizing the output
+     * depending on its use case (forwarding to LLM, displaying in frontend, etc.).
      *
      * @covers \aipurpose_itt\purpose::format_output
      */
-    public function test_format_output_escapes_html_instead_of_stripping(): void {
+    public function test_format_output_returns_raw_output(): void {
         $purpose = new purpose();
-        $input = '<div>Some <b>HTML</b> content</div>';
+        $input = '<div>Some <b>HTML</b> & "special" content</div>';
         $result = $purpose->format_output($input);
-        // The s() function escapes — content inside tags must still be present.
-        $this->assertStringContainsString('Some', $result);
-        $this->assertStringContainsString('HTML', $result);
-        $this->assertStringContainsString('content', $result);
-        // Tags must be escaped, not present as real HTML.
-        $this->assertStringNotContainsString('<div>', $result);
-        $this->assertStringNotContainsString('<b>', $result);
-        $this->assertStringContainsString('&lt;div&gt;', $result);
-        $this->assertStringContainsString('&lt;b&gt;', $result);
+        $this->assertSame($input, $result);
     }
 
     /**

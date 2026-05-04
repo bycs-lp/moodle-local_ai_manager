@@ -32,21 +32,22 @@ use local_ai_manager\local\userinfo;
  */
 class purpose extends base_purpose {
     /**
-     * Returns the output as sanitized plain text.
+     * Returns the raw unmodified output from the AI tool.
      *
-     * The ITT output can be consumed by other plugins (e.g. assignfeedback_aif,
-     * qbank_questiongen) which eventually will use it for further (LLM) processing.
-     * That's why there should not be any markdown to HTML conversion at this point.
-     * CARE: The LLM will eventually return Markdown anyway. If this is not what
-     * the plugin expects/wants this can be controlled by the prompt (e.g. "do not use
-     * any formatting like Markdown for output").
+     * The ITT output is consumed by various plugins (e.g. assignfeedback_aif,
+     * qbank_questiongen) for different purposes: some forward it to another LLM,
+     * some display it in the frontend. Only the consuming plugin knows whether
+     * the output should be escaped, sanitized or displayed as-is.
+     * Therefore the ITT purpose must not apply any transformation (no Markdown
+     * to HTML conversion, no escaping, no tag stripping) and delegates the
+     * responsibility for output handling to the consuming plugin.
      *
      * @param string $output the output/result from the API of the AI tool
-     * @return string the sanitized plain text output
+     * @return string the unmodified output
      */
     #[\Override]
     public function format_output(string $output): string {
-        return s($output);
+        return $output;
     }
 
     #[\Override]
