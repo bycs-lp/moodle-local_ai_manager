@@ -991,6 +991,8 @@ final class purpose_test extends \advanced_testcase {
     private function setup_ai_manager(stdClass $user): void {
         global $DB, $CFG;
 
+        require_once($CFG->dirroot . '/local/ai_manager/db/upgradelib.php');
+        local_ai_manager_import_models_from_json();
         $tenant = new tenant('1234');
         $systemcontext = context_system::instance();
         $aiuserrole = $DB->get_record('role', ['shortname' => 'aiuser']);
