@@ -41,7 +41,10 @@ final class data_wiper_test extends \advanced_testcase {
      * Basic setup.
      */
     protected function setUp(): void {
+        global $CFG;
         parent::setUp();
+        require_once($CFG->dirroot . '/local/ai_manager/db/upgradelib.php');
+        local_ai_manager_import_models_from_json();
         $tenant = new tenant('1234');
 
         // We disable the hooks here, so we have a defined setup for these unit tests.
@@ -271,21 +274,21 @@ final class data_wiper_test extends \advanced_testcase {
             case 'imggen':
                 $purposeobject = new \aipurpose_imggen\purpose();
                 $instance = new \aitool_dalle\instance();
-                $instance->set_model('dalle-3');
+                $instance->set_model_id_from_name('dall-e-3');
                 $connector =
                         $this->getMockBuilder('\aitool_dalle\connector')->setConstructorArgs([$instance])->getMock();
                 break;
             case 'tts':
                 $purposeobject = new \aipurpose_tts\purpose();
                 $instance = new \aitool_openaitts\instance();
-                $instance->set_model('tts1');
+                $instance->set_model_id_from_name('tts-1');
                 $connector =
                         $this->getMockBuilder('\aitool_openaitts\connector')->setConstructorArgs([$instance])->getMock();
                 break;
             case 'singleprompt':
                 $purposeobject = new \aipurpose_singleprompt\purpose();
                 $instance = new \aitool_chatgpt\instance();
-                $instance->set_model('gpt-4o');
+                $instance->set_model_id_from_name('gpt-4o');
                 $connector =
                         $this->getMockBuilder('\aitool_chatgpt\connector')->setConstructorArgs([$instance])->getMock();
                 break;
@@ -293,7 +296,7 @@ final class data_wiper_test extends \advanced_testcase {
             default:
                 $purposeobject = new \aipurpose_chat\purpose();
                 $instance = new \aitool_chatgpt\instance();
-                $instance->set_model('gpt-4o');
+                $instance->set_model_id_from_name('gpt-4o');
                 $connector =
                         $this->getMockBuilder('\aitool_chatgpt\connector')->setConstructorArgs([$instance])->getMock();
                 break;

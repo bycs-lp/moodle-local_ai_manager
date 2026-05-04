@@ -15,17 +15,22 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for aitool_telli.
+ * Post-install script for local_ai_manager.
  *
- * @package    aitool_telli
- * @copyright  2025 ISB Bayern
- * @author     Philipp Memmel
+ * @package    local_ai_manager
+ * @copyright  2026 ISB Bayern
+ * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2026050400;
-$plugin->requires = 2023042403;
-$plugin->release = '0.0.1';
-$plugin->component = 'aitool_telli';
-$plugin->maturity = MATURITY_ALPHA;
+/**
+ * Post-install hook to seed initial model definitions.
+ *
+ * @return bool true on success
+ */
+function xmldb_local_ai_manager_install() {
+    global $CFG;
+    require_once($CFG->dirroot . '/local/ai_manager/db/upgradelib.php');
+    local_ai_manager_import_models_from_json();
+    return true;
+}

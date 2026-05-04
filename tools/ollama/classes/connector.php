@@ -32,27 +32,6 @@ use Psr\Http\Message\StreamInterface;
  */
 class connector extends \local_ai_manager\base_connector {
     #[\Override]
-    public function get_models_by_purpose(): array {
-        $visionmodels =
-            ['llava-llama3', 'llava-phi3', 'granite-3.2-vision', 'bakllava', 'moondream', 'llama3.2-vision', 'llama4', 'gemma3',
-                'qwen2.5vl', 'mistral-small3.1'];
-        $textmodels =
-            ['gemma', 'gemma3', 'llama3', 'llama3.1', 'llama3.2-vision', 'llama3.3', 'llama4', 'phi4', 'mistral',
-                'mistral-small3.1', 'codellama', 'qwen', 'mixtral', 'dolphin-mixtral', 'tinyllama'];
-        return [
-            'chat' => $textmodels,
-            'feedback' => $textmodels,
-            'singleprompt' => $textmodels,
-            'translate' => $textmodels,
-            'tts' => [],
-            'imggen' => [],
-            'itt' => $visionmodels,
-            'questiongeneration' => $textmodels,
-            'agent' => $textmodels,
-        ];
-    }
-
-    #[\Override]
     public function get_unit(): unit {
         return unit::TOKEN;
     }
@@ -109,7 +88,7 @@ class connector extends \local_ai_manager\base_connector {
             $messages[] = ['role' => 'user', 'content' => $prompttext];
         }
         $data = [
-            'model' => $this->instance->get_model(),
+            'model' => $this->instance->get_model_name(),
             'messages' => $messages,
             'stream' => false,
             'keep_alive' => '60m',
@@ -118,10 +97,5 @@ class connector extends \local_ai_manager\base_connector {
             ],
         ];
         return $data;
-    }
-
-    #[\Override]
-    public function allowed_mimetypes(): array {
-        return ['image/png', 'image/jpg', 'image/jpeg'];
     }
 }

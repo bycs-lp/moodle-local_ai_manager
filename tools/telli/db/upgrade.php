@@ -71,5 +71,49 @@ function xmldb_aitool_telli_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025103100, 'aitool', 'telli');
     }
 
+    if ($oldversion < 2026050400) {
+        // Migrate the availablemodels setting to connector assignments in the model management system.
+        // All models are expected to already exist in the local_ai_manager_model table (imported via models.json).
+        // This step only assigns the telli connector to models that were listed in the old setting.
+        $availablemodels = get_config('aitool_telli', 'availablemodels');
+        if (!empty($availablemodels)) {
+            $clock = \core\di::get(\core\clock::class);
+            $now = $clock->time();
+
+            foreach (explode("\n", $availablemodels) as $line) {
+                $line = trim($line);
+                if ($line === '') {
+                    continue;
+                }
+
+                // Strip capability suffixes that were used in the old setting format.
+                $line = trim(preg_replace('/#(IMGGEN|VISION)$/', '', $line));
+
+                // Look up the model in the database.
+                $modelid = $DB->get_field('local_ai_manager_model', 'id', ['name' => $line]);
+                if (!$modelid) {
+                    // Model not found in the table, skip.
+                    continue;
+                }
+
+                // Assign the telli connector to this model if not already assigned.
+                if (!$DB->record_exists('local_ai_manager_model_purpose', ['modelid' => $modelid, 'connector' => 'telli'])) {
+                    $purposerecord = new stdClass();
+                    $purposerecord->modelid = $modelid;
+                    $purposerecord->connector = 'telli';
+                    $purposerecord->timecreated = $now;
+                    $purposerecord->timemodified = $now;
+                    $DB->insert_record('local_ai_manager_model_purpose', $purposerecord);
+                }
+            }
+
+            // Remove the old setting.
+            unset_config('availablemodels', 'aitool_telli');
+        }
+
+        // Telli savepoint reached.
+        upgrade_plugin_savepoint(true, 2026050400, 'aitool', 'telli');
+    }
+
     return true;
 }

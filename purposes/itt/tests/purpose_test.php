@@ -38,7 +38,10 @@ final class purpose_test extends \advanced_testcase {
      * @covers \local_ai_manager\base_connector::allowed_mimetypes
      */
     public function test_get_allowed_mimetypes(): void {
+        global $CFG;
         $this->resetAfterTest();
+        require_once($CFG->dirroot . '/local/ai_manager/db/upgradelib.php');
+        local_ai_manager_import_models_from_json();
         $connectorfactory = \core\di::get(connector_factory::class);
         foreach (array_keys(core_plugin_manager::instance()->get_installed_plugins('aitool')) as $aitool) {
             $newconnector = $connectorfactory->get_connector_by_connectorname($aitool);
@@ -52,7 +55,7 @@ final class purpose_test extends \advanced_testcase {
                 $empty = true;
                 // We check that the connector returns at least for one of the models a non-empty list of allowed mimetypes.
                 foreach ($newconnector->get_models_by_purpose()['itt'] as $model) {
-                    $newinstance->set_model($model);
+                    $newinstance->set_model_id_from_name($model);
                     $newinstance->store();
                     $configmanager = \core\di::get(config_manager::class);
                     $configmanager->set_config(

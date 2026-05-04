@@ -36,21 +36,6 @@ class connector extends \local_ai_manager\base_connector {
     /** @var string The access token to use for authentication against the Google API endpoint. */
     private string $accesstoken = '';
 
-    #[\Override]
-    public function get_models_by_purpose(): array {
-        $textmodels = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash', 'gemini-2.0-pro'];
-        return [
-            'chat' => $textmodels,
-            'feedback' => $textmodels,
-            'singleprompt' => $textmodels,
-            'translate' => $textmodels,
-            'tts' => [],
-            'imggen' => [],
-            'itt' => $textmodels,
-            'questiongeneration' => $textmodels,
-            'agent' => $textmodels,
-        ];
-    }
 
     #[\Override]
     public function get_unit(): unit {
@@ -71,7 +56,7 @@ class connector extends \local_ai_manager\base_connector {
             $textanswer .= $part['text'];
         }
         return prompt_response::create_from_result(
-            $this->instance->get_model(),
+            $this->instance->get_model_name(),
             new usage(
                 (float) $content['usageMetadata']['totalTokenCount'],
                 (float) $content['usageMetadata']['promptTokenCount'],
@@ -210,18 +195,11 @@ class connector extends \local_ai_manager\base_connector {
                 return '';
             }
             return 'https://europe-north1-aiplatform.googleapis.com/v1/projects/' . $projectid
-                . '/locations/europe-north1/publishers/google/models/' . $this->instance->get_model()
+                . '/locations/europe-north1/publishers/google/models/' . $this->instance->get_model_name()
                 . ':generateContent';
         } else {
-            return 'https://generativelanguage.googleapis.com/v1beta/models/' . $this->instance->get_model()
+            return 'https://generativelanguage.googleapis.com/v1beta/models/' . $this->instance->get_model_name()
                 . ':generateContent';
         }
-    }
-
-    #[\Override]
-    public function allowed_mimetypes(): array {
-        // We use the inline_data for sending data to the API, so we basically support every format.
-        // However, we restrict it to some basics.
-        return ['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heiff', 'application/pdf'];
     }
 }

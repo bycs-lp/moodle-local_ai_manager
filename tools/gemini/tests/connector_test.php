@@ -47,7 +47,8 @@ final class connector_test extends \advanced_testcase {
         $instance->method('get_endpoint')->willReturn($endpoint);
         $instance->method('get_customfield2')->willReturn($backend);
         $instance->method('get_customfield3')->willReturn($serviceaccountjson);
-        $instance->method('get_model')->willReturn('gemini-2.0-flash');
+        $instance->method('get_model_name')->willReturn('gemini-2.0-flash');
+        $instance->method('get_model_id')->willReturn(1);
         return new connector($instance);
     }
 

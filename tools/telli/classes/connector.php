@@ -48,42 +48,6 @@ class connector extends base_connector {
     }
 
     #[\Override]
-    public function get_models_by_purpose(): array {
-        $models = [];
-        $visionmodels = [];
-        $imggenmodels = [];
-        $availablemodelssetting = get_config('aitool_telli', 'availablemodels');
-        foreach (explode("\n", $availablemodelssetting) as $model) {
-            $model = trim($model);
-            if (str_ends_with($model, '#IMGGEN')) {
-                $model = trim(preg_replace('/#IMGGEN$/', '', $model));
-                $imggenmodels[] = $model;
-            } else if (str_ends_with($model, '#VISION')) {
-                $model = trim(preg_replace('/#VISION$/', '', $model));
-                $visionmodels[] = $model;
-                $models[] = $model;
-            } else {
-                $models[] = $model;
-            }
-        }
-
-        asort($models);
-        asort($visionmodels);
-
-        return [
-            'chat' => $models,
-            'feedback' => $models,
-            'singleprompt' => $models,
-            'translate' => $models,
-            'tts' => [],
-            'itt' => $visionmodels,
-            'imggen' => $imggenmodels,
-            'questiongeneration' => $models,
-            'agent' => $models,
-        ];
-    }
-
-    #[\Override]
     public function get_unit(): unit {
         return $this->wrappedconnector->get_unit();
     }
@@ -102,7 +66,7 @@ class connector extends base_connector {
 
     #[\Override]
     public function has_customvalue1(): bool {
-        if (in_array($this->instance->get_model(), $this->get_models_by_purpose()['imggen'])) {
+        if (in_array($this->instance->get_model_id(), $this->get_model_ids_by_purpose()['imggen'])) {
             return false;
         } else {
             return true;
@@ -235,10 +199,10 @@ class connector extends base_connector {
         // We have to be very careful. The connector should also basically work when we only have a model set and
         // - besides that - are working with a fake instance.
         $connectorfactory = \core\di::get(connector_factory::class);
-        if (is_null($instance->get_model()) || !in_array($instance->get_model(), $this->get_models())) {
+        if (is_null($instance->get_model_id()) || !in_array($instance->get_model_id(), $this->get_model_ids())) {
             return;
         }
-        if (in_array($instance->get_model(), $this->get_models_by_purpose()['imggen'])) {
+        if (in_array($instance->get_model_id(), $this->get_model_ids_by_purpose()['imggen'])) {
             $this->wrappedconnector = $connectorfactory->get_connector_by_connectorname('dalle');
             $endpointsuffix = 'v1/images/generations';
         } else {
@@ -251,7 +215,7 @@ class connector extends base_connector {
             }
         }
         // Pass the model to the wrapped instance.
-        $this->wrappedconnector->instance->set_model($instance->get_model());
+        $this->wrappedconnector->instance->set_model_id($instance->get_model_id());
         // Set the endpoint.
         $baseurl = get_config('aitool_telli', 'baseurl');
         if (!empty($baseurl)) {

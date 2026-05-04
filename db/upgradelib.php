@@ -58,3 +58,64 @@ function local_ai_manager_cleanup_legacy_azure_instance_data(): void {
         $params
     );
 }
+
+/**
+ * Migrates the model field in local_ai_manager_instance from model name strings to model IDs.
+ */
+function local_ai_manager_migrate_instance_model_to_id(): void {
+    global $DB;
+
+    $clock = \core\di::get(\core\clock::class);
+    $now = $clock->time();
+
+    // Build a lookup map of model name => id.
+    $modellookup = $DB->get_records_menu('local_ai_manager_model', null, '', 'name, id');
+
+    $rs = $DB->get_recordset('local_ai_manager_instance');
+    foreach ($rs as $record) {
+        if (empty($record->model)) {
+            // Should not be possible.
+            continue;
+        }
+
+        // If the model field is already numeric (already migrated), skip.
+        if (is_numeric($record->model)) {
+            continue;
+        }
+
+        $modelname = $record->model;
+
+        if (isset($modellookup[$modelname])) {
+            $modelid = $modellookup[$modelname];
+        } else {
+            // Model not found in our table yet - create it as an unknown model.
+            $newmodel = new \stdClass();
+            $newmodel->name = $modelname;
+            $newmodel->displayname = $modelname;
+            $newmodel->description = 'Auto-created during migration';
+            $newmodel->mimetypes = '';
+            $newmodel->vision = 0;
+            $newmodel->imggen = 0;
+            $newmodel->tts = 0;
+            $newmodel->stt = 0;
+            $newmodel->timecreated = $now;
+            $newmodel->timemodified = $now;
+            $modelid = $DB->insert_record('local_ai_manager_model', $newmodel);
+            $modellookup[$modelname] = $modelid;
+
+            // Also create the connector assignment if we have a connector.
+            if (!empty($record->connector)) {
+                $purposerecord = new \stdClass();
+                $purposerecord->modelid = $modelid;
+                $purposerecord->connector = $record->connector;
+                $purposerecord->timecreated = $now;
+                $purposerecord->timemodified = $now;
+                $DB->insert_record('local_ai_manager_model_purpose', $purposerecord);
+            }
+        }
+
+        $record->model = (string) $modelid;
+        $DB->update_record('local_ai_manager_instance', $record);
+    }
+    $rs->close();
+}

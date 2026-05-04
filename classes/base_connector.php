@@ -19,6 +19,7 @@ namespace local_ai_manager;
 use core\http_client;
 use core_plugin_manager;
 use GuzzleHttp\Psr7\Response;
+use local_ai_manager\local\model;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\request_response;
 use local_ai_manager\local\unit;
@@ -48,28 +49,88 @@ abstract class base_connector {
     }
 
     /**
-     * Define available models.
+     * Returns the model wrapper object for the model assigned to the underlying instance.
      *
-     * IMPORTANT: You will have to define a key for every purpose. If your connector should not support
-     * certain purposes, return an empty array for this purpose.
-     *
-     * A unit test in base_connector_test class will check if you implemented all existing purposes.
-     *
-     * @return array names of the available models
+     * @return ?model the model object or null if no model is assigned
      */
-    abstract public function get_models_by_purpose(): array;
+    public function get_model_object(): ?model {
+        return $this->instance->get_model_object();
+    }
+
+    /**
+     * Returns the available models grouped by purpose based on the model management database.
+     *
+     * All models assigned to this connector are available for all purposes, except:
+     * - 'tts': only models with the tts attribute
+     * - 'imggen': only models with the imggen attribute
+     * - 'itt': only models with the vision attribute
+     *
+     * Subclasses may override this method if they need custom logic.
+     *
+     * @return array associative array of purpose => array of model name strings
+     */
+    public function get_models_by_purpose(): array {
+        $component = aitool::get_component_name_by_connector($this);
+        // Derive connector name from component: 'aitool_chatgpt' => 'chatgpt'.
+        $connectorname = str_replace('aitool_', '', $component);
+
+        $models = model::get_all_models($connectorname);
+
+        $allmodels = [];
+        $visionmodels = [];
+        $imggenmodels = [];
+        $ttsmodels = [];
+
+        foreach ($models as $model) {
+            $name = $model->get_name();
+            $allmodels[] = $name;
+            if ($model->get_vision()) {
+                $visionmodels[] = $name;
+            }
+            if ($model->get_imggen()) {
+                $imggenmodels[] = $name;
+            }
+            if ($model->get_tts()) {
+                $ttsmodels[] = $name;
+            }
+        }
+
+        // Text models are all models that are not pure imggen or tts models.
+        $textmodels = array_values(array_filter($allmodels, function ($name) use ($imggenmodels, $ttsmodels) {
+            return !in_array($name, $imggenmodels) || !in_array($name, $ttsmodels);
+        }));
+
+        $purposes = base_purpose::get_installed_purposes_array();
+        foreach (array_keys($purposes) as $purpose) {
+            switch ($purpose) {
+                case 'tts':
+                    $purposes[$purpose] = $ttsmodels;
+                    break;
+                case 'imggen':
+                    $purposes[$purpose] = $imggenmodels;
+                    break;
+                case 'itt':
+                    $purposes[$purpose] = $visionmodels;
+                    break;
+                default:
+                    $purposes[$purpose] = $textmodels;
+                    break;
+            }
+        }
+        return $purposes;
+    }
 
     /**
      * Returns the list of models that are selectable when creating/editing AI tools in the frontend.
      *
-     * @return array list of models
+     * @return array list of model name strings
      */
     public function get_selectable_models(): array {
         return $this->get_models();
     }
 
     /**
-     * Get the available models as plain array.
+     * Get the available models as plain array of model name strings.
      *
      * @return array array of strings of model identifiers
      */
@@ -79,6 +140,76 @@ abstract class base_connector {
             $models = array_merge($models, $modelarray);
         }
         return array_unique($models);
+    }
+
+    /**
+     * Returns model IDs grouped by purpose, resolved from the model name strings.
+     *
+     * @return array associative array of purpose => array of model IDs
+     */
+    final public function get_model_ids_by_purpose(): array {
+        global $DB;
+
+        $modelsbypurpose = $this->get_models_by_purpose();
+        $allnames = array_unique(array_merge(...array_values($modelsbypurpose)));
+        if (empty($allnames)) {
+            return array_fill_keys(array_keys($modelsbypurpose), []);
+        }
+
+        [$insql, $params] = $DB->get_in_or_equal($allnames, SQL_PARAMS_NAMED);
+        $namelookup = $DB->get_records_select_menu('local_ai_manager_model', "name $insql", $params, '', 'name, id');
+
+        $result = [];
+        foreach ($modelsbypurpose as $purpose => $names) {
+            $ids = [];
+            foreach ($names as $name) {
+                if (isset($namelookup[$name])) {
+                    $ids[] = (int) $namelookup[$name];
+                }
+            }
+            $result[$purpose] = $ids;
+        }
+        return $result;
+    }
+
+    /**
+     * Get all available model IDs as a plain array.
+     *
+     * @return array array of int model IDs
+     */
+    final public function get_model_ids(): array {
+        $ids = [];
+        foreach ($this->get_model_ids_by_purpose() as $idarray) {
+            $ids = array_merge($ids, $idarray);
+        }
+        return array_unique($ids);
+    }
+
+    /**
+     * Returns the list of model IDs that are selectable when creating/editing AI tools in the frontend.
+     *
+     * Deprecated models are excluded from this list so they cannot be chosen for new instances.
+     *
+     * @return array list of selectable model IDs
+     */
+    public function get_selectable_model_ids(): array {
+        global $DB;
+
+        $allids = $this->get_model_ids();
+        if (empty($allids)) {
+            return [];
+        }
+
+        // Filter out deprecated models.
+        [$insql, $params] = $DB->get_in_or_equal($allids, SQL_PARAMS_NAMED);
+        $params['deprecated'] = 0;
+        $ids = $DB->get_fieldset_select(
+            'local_ai_manager_model',
+            'id',
+            "id $insql AND deprecated = :deprecated",
+            $params
+        );
+        return array_map('intval', $ids);
     }
 
     /**
@@ -278,14 +409,22 @@ abstract class base_connector {
     }
 
     /**
-     * Returns the allowed mimetypes.
+     * Returns the allowed mimetypes based on the model assigned to the current instance.
      *
-     * This can be overwritten in connector classes that are capable of files being submitted.
+     * Falls back to an empty array if no model is assigned or no mimetypes are defined.
      *
      * @return array an array of allowed mimetypes
      */
     public function allowed_mimetypes(): array {
-        return [];
+        $model = $this->instance->get_model_object();
+        if (is_null($model)) {
+            return [];
+        }
+        $mimetypes = $model->get_mimetypes();
+        if (empty($mimetypes)) {
+            return [];
+        }
+        return array_map('trim', explode(',', $mimetypes));
     }
 
     /**
