@@ -559,7 +559,21 @@ class ai_manager_utils {
 
             // If the connector plugin to which the instance configured for this purpose belongs, is disabled or not available,
             // we disable the frontend plugin for this purpose.
-            $instance = $factory->get_connector_instance_by_purpose($purpose, $userinfo->get_role());
+            $instance = null;
+            try {
+                $instance = $factory->get_connector_instance_by_purpose($purpose, $userinfo->get_role());
+            } catch (\Throwable) {
+                $purposes[] = [
+                    'purpose' => $purpose,
+                    'available' => self::AVAILABILITY_DISABLED,
+                    'errormessage' => get_string(
+                        'exception_purposeconnectorinvalid',
+                        'local_ai_manager',
+                        get_string('pluginname', 'aipurpose_' . $purpose)
+                    ),
+                ];
+                continue;
+            }
             if (!$instance->is_enabled()) {
                 $purposes[] = [
                     'purpose' => $purpose,
