@@ -273,6 +273,38 @@ final class base_purpose_test extends \advanced_testcase {
                 'input' => 'Display math: \\[E = mc^2\\]',
                 'mustcontain' => ['\\[', '\\]'],
             ],
+            'mathjax_inline_frac_delta_preserved' => [
+                'input' => 'Formel: \\( v = \\frac{\\Delta x}{\\Delta t} \\)',
+                'mustcontain' => ['\\( v = \\frac{\\Delta x}{\\Delta t} \\)'],
+            ],
+            'mathjax_inline_vec_preserved' => [
+                'input' => 'Vektor: \\( \\vec{v} = \\frac{\\Delta \\vec{x}}{\\Delta t} \\)',
+                'mustcontain' => ['\\vec{v}', '\\frac{\\Delta \\vec{x}}{\\Delta t}'],
+            ],
+            'mathjax_display_dollar_text_preserved' => [
+                'input' => 'Umrechnung: $$1\\ \\text{m/s} = 3{,}6\\ \\text{km/h}$$',
+                'mustcontain' => ['$$', '\\text{m/s}', '\\text{km/h}'],
+            ],
+            'mathjax_cdot_preserved' => [
+                'input' => 'Kraft: \\( \\vec{F} = m \\cdot \\vec{a} \\)',
+                'mustcontain' => ['\\vec{F}', '\\cdot', '\\vec{a}'],
+            ],
+            'mathjax_sqrt_preserved' => [
+                'input' => 'Betrag: \\( |\\vec{v}| = \\sqrt{v_x^2 + v_y^2} \\)',
+                'mustcontain' => ['\\sqrt{v_x^2 + v_y^2}', '\\vec{v}'],
+            ],
+            'mathjax_multiple_blocks_all_preserved' => [
+                'input' => 'Erst \\( a = b \\) dann \\( c = d \\) und $$e = f$$',
+                'mustcontain' => ['\\( a = b \\)', '\\( c = d \\)', '$$e = f$$'],
+            ],
+            'mathjax_rightarrow_quad_preserved' => [
+                'input' => '\\( \\vec{F} = m\\vec{a} \\quad\\Rightarrow\\quad \\Delta\\vec{v} = \\frac{\\vec{F}}{m} \\)',
+                'mustcontain' => ['\\Rightarrow', '\\quad', '\\frac{\\vec{F}}{m}'],
+            ],
+            'mathjax_mathrm_preserved' => [
+                'input' => 'Einheit: \\( 1\\ \\mathrm{m/s} = 3{,}6\\ \\mathrm{km/h} \\)',
+                'mustcontain' => ['\\mathrm{m/s}', '\\mathrm{km/h}'],
+            ],
             'empty_input' => [
                 'input' => '',
                 'mustcontain' => [],
