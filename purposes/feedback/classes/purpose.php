@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Purpose chat methods
+ * Purpose feedback methods.
  *
  * @package    aipurpose_feedback
  * @copyright  ISB Bayern, 2024
@@ -28,7 +28,11 @@ namespace aipurpose_feedback;
 use local_ai_manager\base_purpose;
 
 /**
- * Purpose chat methods
+ * Purpose feedback methods.
+ *
+ * The feedback purpose formats AI-generated feedback for student submissions.
+ * It relies on the base_purpose's format_output() which handles MathJax/LaTeX
+ * protection, Markdown-to-HTML conversion, and XSS sanitization.
  *
  * @package    aipurpose_feedback
  * @copyright  ISB Bayern, 2024
@@ -41,8 +45,12 @@ class purpose extends base_purpose {
         return [];
     }
 
-    #[\Override]
-    public function format_output(string $output): string {
-        return clean_text($output);
-    }
+    // No override of format_output() needed.
+    // The parent's format_output() handles:
+    //   1. MathJax/LaTeX protection (placeholder extraction before Markdown parsing)
+    //   2. Markdown-to-HTML conversion via markdown_to_html()
+    //   3. XSS sanitization via format_text()
+    //
+    // The previous clean_text() call destroyed LaTeX backslashes (\frac -> frac,
+    // \vec -> vec, \( -> () and did not convert Markdown to HTML.
 }

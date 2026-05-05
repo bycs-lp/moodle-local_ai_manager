@@ -170,13 +170,63 @@ class base_purpose {
      * @return string the formatted output
      */
     public function format_output(string $output): string {
-        // We need to additionally escape some sequences so mathjax filter can be applied properly in the frontend.
-        $output = str_replace('\\(', '\\\\(', $output);
-        $output = str_replace('\\)', '\\\\)', $output);
-        $output = str_replace('\\[', '\\\\[', $output);
-        $output = str_replace('\\]', '\\\\]', $output);
+        // Protect all MathJax/LaTeX math blocks from being mangled by the Markdown parser.
+        //
+        // Problem: markdown_to_html() uses PHP Markdown Extra which interprets backslashes
+        // as escape characters. So \( becomes (, \frac becomes frac, \vec becomes vec, etc.
+        // The old approach of only doubling delimiter backslashes (\( -> \\() was incomplete
+        // because it did not protect LaTeX commands inside math blocks (\frac, \Delta, \vec, ...).
+        //
+        // Solution: Extract all math blocks before Markdown conversion, replace them with
+        // inert placeholders, convert the remaining Markdown to HTML, then restore the
+        // original math blocks verbatim. This way the Markdown parser never sees any LaTeX.
+        //
+        // We use null-byte delimited placeholders because null bytes cannot appear in valid
+        // AI output or user input, guaranteeing zero collision risk.
+        $mathblocks = [];
+        $counter = 0;
 
-        return $this->format_ai_markdown_output($output, ['filter' => false, 'newlines' => false]);
+        // Helper to register a math block and return its placeholder.
+        $protect = function (string $fullmatch) use (&$mathblocks, &$counter): string {
+            $placeholder = "\x00MATHBLOCK_{$counter}\x00";
+            $mathblocks[$placeholder] = $fullmatch;
+            $counter++;
+            return $placeholder;
+        };
+
+        // Protect \[ ... \] display math (must come before \( to avoid partial overlap).
+        $output = preg_replace_callback(
+            '/\\\\\[(.+?)\\\\\]/s',
+            fn(array $m) => $protect($m[0]),
+            $output
+        );
+
+        // Protect $$ ... $$ display math.
+        $output = preg_replace_callback(
+            '/\$\$(.+?)\$\$/s',
+            fn(array $m) => $protect($m[0]),
+            $output
+        );
+
+        // Protect \( ... \) inline math.
+        $output = preg_replace_callback(
+            '/\\\\\((.+?)\\\\\)/s',
+            fn(array $m) => $protect($m[0]),
+            $output
+        );
+
+        // Convert the (now math-free) Markdown to sanitized HTML.
+        $html = $this->format_ai_markdown_output($output, ['filter' => false, 'newlines' => false]);
+
+        // Restore math blocks. The placeholders survived the Markdown + format_text pipeline
+        // because they contain no special Markdown/HTML characters.
+        // We also check for the HTML-encoded variant in case format_text encoded the null bytes.
+        foreach ($mathblocks as $placeholder => $mathcontent) {
+            $html = str_replace($placeholder, $mathcontent, $html);
+            $html = str_replace(htmlspecialchars($placeholder), $mathcontent, $html);
+        }
+
+        return $html;
     }
 
     /**
