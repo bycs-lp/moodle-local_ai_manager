@@ -31,6 +31,25 @@ use local_ai_manager\local\userinfo;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class purpose extends base_purpose {
+    /**
+     * Returns the raw unmodified output from the AI tool.
+     *
+     * The ITT output is consumed by various plugins (e.g. assignfeedback_aif,
+     * qbank_questiongen) for different purposes: some forward it to another LLM,
+     * some display it in the frontend. Only the consuming plugin knows whether
+     * the output should be escaped, sanitized or displayed as-is.
+     * Therefore the ITT purpose must not apply any transformation (no Markdown
+     * to HTML conversion, no escaping, no tag stripping) and delegates the
+     * responsibility for output handling to the consuming plugin.
+     *
+     * @param string $output the output/result from the API of the AI tool
+     * @return string the unmodified output
+     */
+    #[\Override]
+    public function format_output(string $output): string {
+        return $output;
+    }
+
     #[\Override]
     public function get_additional_purpose_options(): array {
         global $USER;
