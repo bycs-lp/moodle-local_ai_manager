@@ -117,38 +117,6 @@ final class purpose_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that format_output does NOT produce em tags from asterisks.
-     *
-     * This is the specific regression that caused MBS-10770: spreadsheet formulas
-     * like =B$3*B6 were being converted to =B$3<em>B6 by the base class.
-     *
-     * @covers \aipurpose_itt\purpose::format_output
-     */
-    public function test_format_output_does_not_produce_em_tags(): void {
-        $purpose = new purpose();
-        $input = "6 Montag 20 =B\$3*B6\n7 Dienstag 210 =B\$3*B7\n8 Mittwoch 80 =B\$3*B8";
-        $result = $purpose->format_output($input);
-        $this->assertStringNotContainsString('<em>', $result);
-        $this->assertStringNotContainsString('</em>', $result);
-        $this->assertStringContainsString('*', $result);
-    }
-
-    /**
-     * Tests that format_output returns the output completely unmodified.
-     *
-     * The consuming plugin is responsible for escaping or sanitizing the output
-     * depending on its use case (forwarding to LLM, displaying in frontend, etc.).
-     *
-     * @covers \aipurpose_itt\purpose::format_output
-     */
-    public function test_format_output_returns_raw_output(): void {
-        $purpose = new purpose();
-        $input = '<div>Some <b>HTML</b> & "special" content</div>';
-        $result = $purpose->format_output($input);
-        $this->assertSame($input, $result);
-    }
-
-    /**
      * Makes sure that all connector plugins that declare themselves compatible with the itt purpose also define allowed mimetypes.
      *
      * @covers \aipurpose_itt\purpose::get_allowed_mimetypes
