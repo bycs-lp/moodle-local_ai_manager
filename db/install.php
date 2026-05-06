@@ -31,6 +31,6 @@
 function xmldb_local_ai_manager_install() {
     global $CFG;
     require_once($CFG->dirroot . '/local/ai_manager/db/upgradelib.php');
-    local_ai_manager_import_models_from_json();
+    \local_ai_manager\local\utils::import_models_from_json();
     return true;
 }

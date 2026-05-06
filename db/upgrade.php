@@ -370,9 +370,17 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
         $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
         $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('name', XMLDB_INDEX_UNIQUE, ['name']);
 
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);
+        }
+
+        // Add the unique index on name if the table already exists but the index does not.
+        $table = new xmldb_table('local_ai_manager_model');
+        $index = new xmldb_index('name', XMLDB_INDEX_UNIQUE, ['name']);
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
         }
 
         // Step 2: Create the local_ai_manager_model_purpose table.
