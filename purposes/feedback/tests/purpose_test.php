@@ -32,7 +32,6 @@ use advanced_testcase;
  * @covers     \aipurpose_feedback\purpose
  */
 final class purpose_test extends advanced_testcase {
-
     /**
      * Data provider with real-world MathJax formulas from AI feedback responses.
      *

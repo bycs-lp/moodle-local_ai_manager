@@ -46,11 +46,6 @@ class purpose extends base_purpose {
     }
 
     // No override of format_output() needed.
-    // The parent's format_output() handles:
-    //   1. MathJax/LaTeX protection (placeholder extraction before Markdown parsing)
-    //   2. Markdown-to-HTML conversion via markdown_to_html()
-    //   3. XSS sanitization via format_text()
-    //
-    // The previous clean_text() call destroyed LaTeX backslashes (\frac -> frac,
-    // \vec -> vec, \( -> () and did not convert Markdown to HTML.
+    // The parent handles MathJax/LaTeX protection, Markdown-to-HTML conversion and XSS sanitization.
+    // The previous clean_text() call destroyed LaTeX backslashes and did not convert Markdown to HTML.
 }

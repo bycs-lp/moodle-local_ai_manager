@@ -180,16 +180,18 @@ class base_purpose {
         // Solution: Extract all math blocks before Markdown conversion, replace them with
         // inert placeholders, convert the remaining Markdown to HTML, then restore the
         // original math blocks verbatim. This way the Markdown parser never sees any LaTeX.
-        //
-        // We use null-byte delimited placeholders because null bytes cannot appear in valid
-        // AI output or user input, guaranteeing zero collision risk.
         $mathblocks = [];
         $counter = 0;
 
         // Helper to register a math block and return its placeholder.
+        // We use HTML comments as placeholders because they survive both
+        // markdown_to_html() (Markdown passes HTML through) and format_text()
+        // (HTMLPurifier preserves comments in non-strict mode, and even if
+        // stripped, we fall back to a plain-text marker for the replacement).
         $protect = function (string $fullmatch) use (&$mathblocks, &$counter): string {
-            $placeholder = "\x00MATHBLOCK_{$counter}\x00";
-            $mathblocks[$placeholder] = $fullmatch;
+            $id = 'AIMATH' . $counter . 'AIMATH';
+            $placeholder = '<!--' . $id . '-->';
+            $mathblocks[$id] = $fullmatch;
             $counter++;
             return $placeholder;
         };
@@ -218,12 +220,11 @@ class base_purpose {
         // Convert the (now math-free) Markdown to sanitized HTML.
         $html = $this->format_ai_markdown_output($output, ['filter' => false, 'newlines' => false]);
 
-        // Restore math blocks. The placeholders survived the Markdown + format_text pipeline
-        // because they contain no special Markdown/HTML characters.
-        // We also check for the HTML-encoded variant in case format_text encoded the null bytes.
-        foreach ($mathblocks as $placeholder => $mathcontent) {
-            $html = str_replace($placeholder, $mathcontent, $html);
-            $html = str_replace(htmlspecialchars($placeholder), $mathcontent, $html);
+        // Restore math blocks. Try the HTML comment form first (survives most pipelines),
+        // then fall back to the bare marker in case HTMLPurifier stripped the comment tags.
+        foreach ($mathblocks as $id => $mathcontent) {
+            $html = str_replace('<!--' . $id . '-->', $mathcontent, $html);
+            $html = str_replace($id, $mathcontent, $html);
         }
 
         return $html;
