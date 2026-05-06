@@ -174,24 +174,21 @@ class base_purpose {
         //
         // Problem: markdown_to_html() uses PHP Markdown Extra which interprets backslashes
         // as escape characters. So \( becomes (, \frac becomes frac, \vec becomes vec, etc.
-        // The old approach of only doubling delimiter backslashes (\( -> \\() was incomplete
-        // because it did not protect LaTeX commands inside math blocks (\frac, \Delta, \vec, ...).
         //
         // Solution: Extract all math blocks before Markdown conversion, replace them with
-        // inert placeholders, convert the remaining Markdown to HTML, then restore the
-        // original math blocks verbatim. This way the Markdown parser never sees any LaTeX.
+        // inert placeholders, run markdown_to_html(), restore math blocks, then sanitize.
+        // The restoration must happen BEFORE format_text/HTMLPurifier because HTMLPurifier
+        // strips anything it does not recognize (null bytes, HTML comments, custom markers).
+        // The restored LaTeX strings (\(, \[, $$) are plain text that HTMLPurifier leaves alone.
         $mathblocks = [];
         $counter = 0;
 
         // Helper to register a math block and return its placeholder.
-        // We use HTML comments as placeholders because they survive both
-        // markdown_to_html() (Markdown passes HTML through) and format_text()
-        // (HTMLPurifier preserves comments in non-strict mode, and even if
-        // stripped, we fall back to a plain-text marker for the replacement).
+        // We use a simple uppercase marker that cannot appear in normal text or Markdown output
+        // and contains no characters that Markdown or HTML would interpret specially.
         $protect = function (string $fullmatch) use (&$mathblocks, &$counter): string {
-            $id = 'AIMATH' . $counter . 'AIMATH';
-            $placeholder = '<!--' . $id . '-->';
-            $mathblocks[$id] = $fullmatch;
+            $placeholder = 'AIMATHJAXPLACEHOLDER' . $counter . 'END';
+            $mathblocks[$placeholder] = $fullmatch;
             $counter++;
             return $placeholder;
         };
@@ -217,17 +214,24 @@ class base_purpose {
             $output
         );
 
-        // Convert the (now math-free) Markdown to sanitized HTML.
-        $html = $this->format_ai_markdown_output($output, ['filter' => false, 'newlines' => false]);
+        // Step 1: Convert Markdown to HTML (placeholders survive as plain text).
+        $markdown = $output;
+        // Reuse the same normalization that format_ai_markdown_output does for code blocks.
+        $markdown = preg_replace('/(?<!\n)\n(\s*[\*\-]\s)/', "\n\n$1", $markdown);
+        $markdown = preg_replace('/(?<!\n)\n(\s*\x60{3}\w)/', "\n\n$1", $markdown);
+        $html = markdown_to_html($markdown);
 
-        // Restore math blocks. Try the HTML comment form first (survives most pipelines),
-        // then fall back to the bare marker in case HTMLPurifier stripped the comment tags.
-        foreach ($mathblocks as $id => $mathcontent) {
-            $html = str_replace('<!--' . $id . '-->', $mathcontent, $html);
-            $html = str_replace($id, $mathcontent, $html);
+        // Step 2: Restore math blocks BEFORE format_text/HTMLPurifier runs.
+        // At this point the HTML contains the plain-text placeholders inside <p> tags etc.
+        // We replace them with the original LaTeX which is just text with backslashes —
+        // HTMLPurifier treats these as harmless text content and leaves them intact.
+        foreach ($mathblocks as $placeholder => $mathcontent) {
+            $html = str_replace($placeholder, $mathcontent, $html);
         }
 
-        return $html;
+        // Step 3: Sanitize with format_text (XSS protection). LaTeX backslashes survive
+        // because HTMLPurifier only strips/modifies HTML tags and attributes, not text content.
+        return format_text($html, FORMAT_HTML, ['filter' => false, 'newlines' => false]);
     }
 
     /**
