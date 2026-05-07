@@ -27,7 +27,7 @@ class utils {
     /**
      * Imports model definitions from the db/models.json file into the database.
      *
-     * Populates the local_ai_manager_model and local_ai_manager_model_purpose tables.
+     * Populates the local_ai_manager_model and local_ai_manager_model_connector tables.
      * Existing models are updated (deprecated flag), new models are inserted.
      */
     public static function import_models_from_json(): void {
@@ -78,7 +78,7 @@ class utils {
             if (!empty($modeldata['connectors'])) {
                 foreach ($modeldata['connectors'] as $connector) {
                     if (
-                        !$DB->record_exists('local_ai_manager_model_purpose', [
+                        !$DB->record_exists('local_ai_manager_model_connector', [
                         'modelid' => $modelid,
                         'connector' => $connector,
                         ])
@@ -88,7 +88,7 @@ class utils {
                         $purposerecord->connector = $connector;
                         $purposerecord->timecreated = $now;
                         $purposerecord->timemodified = $now;
-                        $DB->insert_record('local_ai_manager_model_purpose', $purposerecord);
+                        $DB->insert_record('local_ai_manager_model_connector', $purposerecord);
                     }
                 }
             }

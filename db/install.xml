@@ -128,7 +128,7 @@
         <INDEX NAME="name" UNIQUE="true" FIELDS="name"/>
       </INDEXES>
     </TABLE>
-    <TABLE NAME="local_ai_manager_model_purpose" COMMENT="Table mapping models to connectors">
+    <TABLE NAME="local_ai_manager_model_connector" COMMENT="Table mapping models to connectors">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="modelid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Foreign key to local_ai_manager_model.id"/>

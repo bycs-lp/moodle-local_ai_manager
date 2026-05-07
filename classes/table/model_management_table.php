@@ -91,7 +91,7 @@ class model_management_table extends table_sql implements dynamic {
         $concat = $DB->sql_group_concat('mp.connector', ', ');
         $fields = "m.id, m.name, m.displayname, m.mimetypes, m.vision, m.imggen, m.tts, m.stt, m.deprecated, "
             . $concat . " AS connectors";
-        $from = '{local_ai_manager_model} m LEFT JOIN {local_ai_manager_model_purpose} mp ON mp.modelid = m.id';
+        $from = '{local_ai_manager_model} m LEFT JOIN {local_ai_manager_model_connector} mp ON mp.modelid = m.id';
         $where = '1 = 1';
         $params = [];
 
@@ -123,7 +123,7 @@ class model_management_table extends table_sql implements dynamic {
             $connectorvalues = $connectorfilter->get_filter_values();
             if (!empty($connectorvalues)) {
                 [$insql, $inparams] = $DB->get_in_or_equal($connectorvalues, SQL_PARAMS_NAMED, 'conn');
-                $filtersql .= ' AND m.id IN (SELECT modelid FROM {local_ai_manager_model_purpose} WHERE connector ' .
+                $filtersql .= ' AND m.id IN (SELECT modelid FROM {local_ai_manager_model_connector} WHERE connector ' .
                     $insql . ')';
                 $filterparams = array_merge($filterparams, $inparams);
             }
@@ -147,7 +147,7 @@ class model_management_table extends table_sql implements dynamic {
         // Custom count SQL needed because of GROUP BY.
         $this->set_count_sql(
             "SELECT COUNT(*) FROM (SELECT m.id FROM {local_ai_manager_model} m"
-            . " LEFT JOIN {local_ai_manager_model_purpose} mp ON mp.modelid = m.id"
+            . " LEFT JOIN {local_ai_manager_model_connector} mp ON mp.modelid = m.id"
             . " WHERE " . $where . $filtersql . $groupby . ") AS subquery",
             array_merge($params, $filterparams)
         );

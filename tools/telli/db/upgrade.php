@@ -97,13 +97,13 @@ function xmldb_aitool_telli_upgrade($oldversion) {
                 }
 
                 // Assign the telli connector to this model if not already assigned.
-                if (!$DB->record_exists('local_ai_manager_model_purpose', ['modelid' => $modelid, 'connector' => 'telli'])) {
+                if (!$DB->record_exists('local_ai_manager_model_connector', ['modelid' => $modelid, 'connector' => 'telli'])) {
                     $purposerecord = new stdClass();
                     $purposerecord->modelid = $modelid;
                     $purposerecord->connector = 'telli';
                     $purposerecord->timecreated = $now;
                     $purposerecord->timemodified = $now;
-                    $DB->insert_record('local_ai_manager_model_purpose', $purposerecord);
+                    $DB->insert_record('local_ai_manager_model_connector', $purposerecord);
                 }
             }
 

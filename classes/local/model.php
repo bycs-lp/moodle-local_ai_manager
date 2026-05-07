@@ -139,7 +139,7 @@ class model {
             throw new \moodle_exception('exception_modelnotfound', 'local_ai_manager', '', '');
         }
 
-        $DB->delete_records('local_ai_manager_model_purpose', ['modelid' => $this->id]);
+        $DB->delete_records('local_ai_manager_model_connector', ['modelid' => $this->id]);
         $DB->delete_records('local_ai_manager_model', ['id' => $this->id]);
         $this->record = null;
         $this->id = 0;
@@ -340,7 +340,7 @@ class model {
         if (empty($this->id)) {
             return [];
         }
-        return $DB->get_fieldset('local_ai_manager_model_purpose', 'connector', ['modelid' => $this->id]);
+        return $DB->get_fieldset('local_ai_manager_model_connector', 'connector', ['modelid' => $this->id]);
     }
 
     /**
@@ -357,7 +357,7 @@ class model {
             throw new \coding_exception('Cannot add connector to a model that has not been stored yet.');
         }
 
-        if ($DB->record_exists('local_ai_manager_model_purpose', ['modelid' => $this->id, 'connector' => $connector])) {
+        if ($DB->record_exists('local_ai_manager_model_connector', ['modelid' => $this->id, 'connector' => $connector])) {
             return;
         }
 
@@ -369,7 +369,7 @@ class model {
         $record->connector = $connector;
         $record->timecreated = $now;
         $record->timemodified = $now;
-        $DB->insert_record('local_ai_manager_model_purpose', $record);
+        $DB->insert_record('local_ai_manager_model_connector', $record);
     }
 
     /**
@@ -385,7 +385,7 @@ class model {
         if (empty($this->id)) {
             return;
         }
-        $DB->delete_records('local_ai_manager_model_purpose', ['modelid' => $this->id, 'connector' => $connector]);
+        $DB->delete_records('local_ai_manager_model_connector', ['modelid' => $this->id, 'connector' => $connector]);
     }
 
     /**
@@ -417,7 +417,7 @@ class model {
         if (!is_null($connector)) {
             $sql = "SELECT m.id
                       FROM {local_ai_manager_model} m
-                      JOIN {local_ai_manager_model_purpose} mp ON mp.modelid = m.id
+                      JOIN {local_ai_manager_model_connector} mp ON mp.modelid = m.id
                      WHERE mp.connector = :connector";
             $params = ['connector' => $connector];
             if (!$includedeprecated) {

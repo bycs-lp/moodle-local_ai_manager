@@ -383,8 +383,8 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
             $dbman->add_index($table, $index);
         }
 
-        // Step 2: Create the local_ai_manager_model_purpose table.
-        $table = new xmldb_table('local_ai_manager_model_purpose');
+        // Step 2: Create the local_ai_manager_model_connector table.
+        $table = new xmldb_table('local_ai_manager_model_connector');
         $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
         $table->add_field('modelid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
         $table->add_field('connector', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL, null, null);

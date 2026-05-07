@@ -688,7 +688,7 @@ class ai_manager_utils {
 
         $sql = "SELECT m.id
                   FROM {local_ai_manager_model} m
-                  JOIN {local_ai_manager_model_purpose} mp ON mp.modelid = m.id
+                  JOIN {local_ai_manager_model_connector} mp ON mp.modelid = m.id
                  WHERE mp.connector = :connector
               ORDER BY m.name ASC";
 

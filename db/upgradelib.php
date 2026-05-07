@@ -110,7 +110,7 @@ function local_ai_manager_migrate_instance_model_to_id(): void {
                 $purposerecord->connector = $record->connector;
                 $purposerecord->timecreated = $now;
                 $purposerecord->timemodified = $now;
-                $DB->insert_record('local_ai_manager_model_purpose', $purposerecord);
+                $DB->insert_record('local_ai_manager_model_connector', $purposerecord);
             }
         }
 
