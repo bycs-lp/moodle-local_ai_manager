@@ -189,10 +189,10 @@ class model_edit_form extends dynamic_form {
             $data['displayname'] = $modelobj->get_displayname() ?? '';
             $data['description'] = $modelobj->get_description() ?? '';
             $data['mimetypes'] = implode("\n", array_map('trim', explode(',', $modelobj->get_mimetypes() ?? '')));
-            $data['vision'] = (int) $modelobj->get_vision();
-            $data['imggen'] = (int) $modelobj->get_imggen();
-            $data['tts'] = (int) $modelobj->get_tts();
-            $data['stt'] = (int) $modelobj->get_stt();
+            $data['vision'] = (int) $modelobj->supports_vision();
+            $data['imggen'] = (int) $modelobj->supports_imggen();
+            $data['tts'] = (int) $modelobj->supports_tts();
+            $data['stt'] = (int) $modelobj->supports_stt();
             $data['supports_temperature'] = (int) $modelobj->supports_temperature();
             $data['temperature_min'] = $modelobj->get_min_temperature() ?? 0.0;
             $data['temperature_max'] = $modelobj->get_max_temperature() ?? 1.0;

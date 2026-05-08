@@ -31,7 +31,6 @@ namespace local_ai_manager\local;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class legacy_models_fixture {
-
     /**
      * Returns the legacy hardcoded models for the chatgpt connector, grouped by purpose.
      *
@@ -236,7 +235,7 @@ class legacy_models_fixture {
             'dall-e-3',
             'stabilityai/stable-diffusion-xl-base-1.0',
             'black-forest-labs/FLUX.1-schnell',
-            'imagen-4.0-generate-001'
+            'imagen-4.0-generate-001',
         ];
         sort($models);
         sort($visionmodels);
@@ -252,7 +251,4 @@ class legacy_models_fixture {
             'agent' => $models,
         ];
     }
-
 }
-
-

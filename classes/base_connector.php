@@ -84,13 +84,13 @@ abstract class base_connector {
         foreach ($models as $model) {
             $name = $model->get_name();
             $allmodels[] = $name;
-            if ($model->get_vision()) {
+            if ($model->supports_vision()) {
                 $visionmodels[] = $name;
             }
-            if ($model->get_imggen()) {
+            if ($model->supports_imggen()) {
                 $imggenmodels[] = $name;
             }
-            if ($model->get_tts()) {
+            if ($model->supports_tts()) {
                 $ttsmodels[] = $name;
             }
         }

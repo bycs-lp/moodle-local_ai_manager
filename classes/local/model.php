@@ -249,7 +249,7 @@ class model {
      *
      * @return bool true if vision is supported
      */
-    public function get_vision(): bool {
+    public function supports_vision(): bool {
         return (bool) $this->vision;
     }
 
@@ -267,7 +267,7 @@ class model {
      *
      * @return bool true if image generation is supported
      */
-    public function get_imggen(): bool {
+    public function supports_imggen(): bool {
         return (bool) $this->imggen;
     }
 
@@ -285,7 +285,7 @@ class model {
      *
      * @return bool true if TTS is supported
      */
-    public function get_tts(): bool {
+    public function supports_tts(): bool {
         return (bool) $this->tts;
     }
 
@@ -303,7 +303,7 @@ class model {
      *
      * @return bool true if STT is supported
      */
-    public function get_stt(): bool {
+    public function supports_stt(): bool {
         return (bool) $this->stt;
     }
 

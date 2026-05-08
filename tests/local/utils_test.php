@@ -70,13 +70,13 @@ final class utils_test extends \advanced_testcase {
                     // Verify purpose-specific capabilities.
                     switch ($purpose) {
                         case 'itt':
-                            $this->assertTrue($modelobj->get_vision());
+                            $this->assertTrue($modelobj->supports_vision());
                             break;
                         case 'imggen':
-                            $this->assertTrue($modelobj->get_imggen());
+                            $this->assertTrue($modelobj->supports_imggen());
                             break;
                         case 'tts':
-                            $this->assertTrue($modelobj->get_tts(), $modelobj->get_name());
+                            $this->assertTrue($modelobj->supports_tts(), $modelobj->get_name());
                             break;
                     }
                 }
@@ -91,4 +91,3 @@ final class utils_test extends \advanced_testcase {
         $this->assertEquals($connectorcount, $DB->count_records('local_ai_manager_model_connector'));
     }
 }
-
