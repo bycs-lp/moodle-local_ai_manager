@@ -174,6 +174,17 @@ class connector extends base_connector {
     }
 
     #[\Override]
+    public function get_selectable_model_ids(): array {
+        $selectableids = parent::get_selectable_model_ids();
+        $disabledmodels = get_config('aitool_telli', 'disabledmodels');
+        if (empty($disabledmodels)) {
+            return $selectableids;
+        }
+        $disabledids = array_map('intval', explode(',', $disabledmodels));
+        return array_values(array_diff($selectableids, $disabledids));
+    }
+
+    #[\Override]
     public function allowed_mimetypes(): array {
         return $this->wrappedconnector->allowed_mimetypes();
     }

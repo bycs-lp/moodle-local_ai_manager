@@ -80,6 +80,9 @@ function xmldb_aitool_telli_upgrade($oldversion) {
             $clock = \core\di::get(\core\clock::class);
             $now = $clock->time();
 
+            // Collect the model IDs that were explicitly enabled in the old setting.
+            $enabledmodelids = [];
+
             foreach (explode("\n", $availablemodels) as $line) {
                 $line = trim($line);
                 if ($line === '') {
@@ -96,6 +99,8 @@ function xmldb_aitool_telli_upgrade($oldversion) {
                     continue;
                 }
 
+                $enabledmodelids[] = (int) $modelid;
+
                 // Assign the telli connector to this model if not already assigned.
                 if (!$DB->record_exists('local_ai_manager_model_connector', ['modelid' => $modelid, 'connector' => 'telli'])) {
                     $purposerecord = new stdClass();
@@ -105,6 +110,19 @@ function xmldb_aitool_telli_upgrade($oldversion) {
                     $purposerecord->timemodified = $now;
                     $DB->insert_record('local_ai_manager_model_connector', $purposerecord);
                 }
+            }
+
+            // Migrate to disabledmodels: all telli-connected models that were NOT in availablemodels become disabled.
+            $alltellimodelids = $DB->get_fieldset_sql(
+                "SELECT m.id
+                   FROM {local_ai_manager_model} m
+                   JOIN {local_ai_manager_model_connector} mc ON mc.modelid = m.id
+                  WHERE mc.connector = :connector",
+                ['connector' => 'telli']
+            );
+            $disabledids = array_diff(array_map('intval', $alltellimodelids), $enabledmodelids);
+            if (!empty($disabledids)) {
+                set_config('disabledmodels', implode(',', $disabledids), 'aitool_telli');
             }
 
             // Remove the old setting.

@@ -47,6 +47,28 @@ if ($hassiteconfig) {
     );
 
 
+    // Build the list of models linked to the telli connector for the multiselect.
+    $disabledmodelchoices = [];
+    try {
+        $tellimodels = \local_ai_manager\local\model::get_all_models('telli');
+        foreach ($tellimodels as $model) {
+            $disabledmodelchoices[$model->get_id()] = $model->get_name();
+        }
+    } catch (\Exception $e) {
+        // During install or if the table does not exist yet, we just show an empty list.
+        $disabledmodelchoices = [];
+    }
+
+    $settings->add(
+        new admin_setting_configmultiselect(
+            'aitool_telli/disabledmodels',
+            new lang_string('disabledmodelssetting', 'aitool_telli'),
+            new lang_string('disabledmodelssettingdesc', 'aitool_telli'),
+            [],
+            $disabledmodelchoices
+        )
+    );
+
     $settings->add(
         new admin_setting_configduration(
             'aitool_telli/retentionperiod',
