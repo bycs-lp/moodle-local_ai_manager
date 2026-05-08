@@ -178,14 +178,14 @@ class aitool_option_temperature {
         $errors = [];
         if (!empty($data['temperaturecustom'])) {
             $value = floatval($data['temperaturecustom']);
-            $min = 0.0;
-            $max = 1.0;
-            if (isset($modelobj) && $modelobj->record_exists()) {
-                $min = $modelobj->get_min_temperature() ?? 0.0;
-                $max = $modelobj->get_max_temperature() ?? 1.0;
-            }
+            $min = $modelobj->get_min_temperature();
+            $max = $modelobj->get_max_temperature();
             if ($value < $min || $value > $max) {
-                $errors['temperaturecustom'] = get_string('formvalidation_editinstance_temperaturerange', 'local_ai_manager');
+                $errors['temperaturecustom'] = get_string(
+                    'formvalidation_editinstance_temperaturerange',
+                    'local_ai_manager',
+                    ['min' => $min, 'max' => $max]
+                );
             }
         }
         return $errors;
