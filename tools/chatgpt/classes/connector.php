@@ -35,22 +35,6 @@ class connector extends \local_ai_manager\base_connector {
     /** @var string Default OpenAI Chat Completions endpoint. */
     public const DEFAULT_OPENAI_COMPLETIONS_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 
-    /**
-     * Returns the list of model names that do not support the temperature parameter.
-     *
-     * These are reasoning models which use reasoning_effort instead of temperature.
-     *
-     * @return array list of model name strings
-     */
-    public function get_no_temperature_models(): array {
-        return [
-            'o1', 'o1-mini', 'o1-preview', 'o1-pro', 'o3', 'o3-mini', 'o3-pro', 'o4-mini',
-            'gpt-5.5', 'gpt-5.5-pro',
-            'gpt-5.4', 'gpt-5.4-pro', 'gpt-5.4-mini', 'gpt-5.4-nano',
-            'gpt-5', 'gpt-5-pro', 'gpt-5-mini', 'gpt-5-nano',
-        ];
-    }
-
     #[\Override]
     public function get_unit(): unit {
         return unit::TOKEN;
@@ -124,9 +108,8 @@ class connector extends \local_ai_manager\base_connector {
         $parameters = [
             'messages' => $messages,
         ];
-        // Reasoning models do not support the temperature parameter.
-        $modelname = $this->instance->get_model_name();
-        if (!in_array($modelname, $this->get_no_temperature_models())) {
+        // Only send temperature if the model supports it (reasoning models do not).
+        if ($this->instance->get_model_object()->supports_temperature()) {
             $parameters['temperature'] = $this->instance->get_temperature();
         }
         if (!$this->instance->azure_enabled()) {

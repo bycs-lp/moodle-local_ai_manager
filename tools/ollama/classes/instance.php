@@ -32,7 +32,7 @@ class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
         $mform->hideIf('endpointdescription', 'connector', 'eq', 'ollama');
-        aitool_option_temperature::extend_form_definition($mform);
+        aitool_option_temperature::extend_form_definition($mform, $this->selectablemodelsobjects);
     }
 
     #[\Override]
@@ -48,7 +48,7 @@ class instance extends base_instance {
     #[\Override]
     protected function extend_validation(array $data, array $files): array {
         $errors = [];
-        aitool_option_temperature::validate_temperature($data);
+        $errors = array_merge($errors, aitool_option_temperature::validate_temperature($data));
         if (empty($data['endpoint'])) {
             $errors['endpoint'] = get_string('formvalidation_noendpoint', 'aitool_ollama');
         }

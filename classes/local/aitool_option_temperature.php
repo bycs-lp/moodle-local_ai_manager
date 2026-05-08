@@ -30,9 +30,12 @@ class aitool_option_temperature {
     /**
      * Extends the form definition of the edit instance form by adding the temperature option.
      *
+     * Temperature fields are automatically hidden for models that do not support the temperature parameter.
+     *
      * @param \MoodleQuickForm $mform the mform object
+     * @param model[] $selectablemodels array of model objects that are selectable in the form
      */
-    public static function extend_form_definition(\MoodleQuickForm $mform, array $modelswithouttemperature = []): void {
+    public static function extend_form_definition(\MoodleQuickForm $mform, array $selectablemodels = []): void {
         $radioarray = [];
         $radioarray[] = $mform->createElement(
             'radio',
@@ -69,23 +72,38 @@ class aitool_option_temperature {
         $mform->addElement('float', 'temperaturecustom', get_string('temperature_custom_value', 'local_ai_manager'));
         $mform->disabledIf('temperaturecustom', 'temperatureusecustom');
         $mform->disabledIf('temperatureprechoicearray', 'temperatureusecustom', 'checked');
-        foreach ($modelswithouttemperature as $modelwithouttemperature) {
-            $mform->hideIf('temperatureprechoicearray', 'model', 'eq', $modelwithouttemperature);
-            $mform->hideIf('temperatureusecustom', 'model', 'eq', $modelwithouttemperature);
-            $mform->hideIf('temperaturecustom', 'model', 'eq', $modelwithouttemperature);
+
+        // Hide temperature fields for models that do not support the temperature parameter.
+        foreach ($selectablemodels as $modelobj) {
+            if (!$modelobj->supports_temperature()) {
+                $modelid = $modelobj->get_id();
+                $mform->hideIf('temperatureprechoicearray', 'model', 'eq', $modelid);
+                $mform->hideIf('temperatureusecustom', 'model', 'eq', $modelid);
+                $mform->hideIf('temperaturecustom', 'model', 'eq', $modelid);
+            }
         }
     }
 
     /**
      * Adds the temperature data to the form data to be passed to the form when loading.
      *
+     * If the model does not support temperature, default form values are returned.
+     *
      * @param string $temperature the current temperature as read from the database
+     * @param model|null $modelobj the model object, if available
      * @return stdClass the object to pass to the form when loading
      */
-    public static function add_temperature_to_form_data(string $temperature): stdClass {
-        $temperature = floatval($temperature);
+    public static function add_temperature_to_form_data(string $temperature, ?model $modelobj = null): stdClass {
         $data = new stdClass();
         $data->temperatureusecustom = 0;
+        $data->temperatureprechoice = 'selection_balanced';
+
+        // If the model does not support temperature, return defaults.
+        if ($modelobj !== null && !$modelobj->supports_temperature()) {
+            return $data;
+        }
+
+        $temperature = floatval($temperature);
         switch ($temperature) {
             case 0.8:
                 $data->temperatureprechoice = 'selection_creative';
@@ -106,10 +124,20 @@ class aitool_option_temperature {
     /**
      * Extract the temperature from the form data submitted by the form.
      *
+     * Returns null if the selected model does not support the temperature parameter.
+     *
      * @param stdClass $data the form data after submission
-     * @return string the temperature value in string representation
+     * @return string|null the temperature value in string representation, or null if not supported
      */
-    public static function extract_temperature_to_store(stdClass $data): string {
+    public static function extract_temperature_to_store(stdClass $data): ?string {
+        // Check if the selected model supports temperature.
+        if (!empty($data->model)) {
+            $modelobj = new model((int) $data->model);
+            if ($modelobj->record_exists() && !$modelobj->supports_temperature()) {
+                return null;
+            }
+        }
+
         $temperature = null;
         if (empty($data->temperatureusecustom)) {
             switch ($data->temperatureprechoice) {
@@ -132,16 +160,33 @@ class aitool_option_temperature {
     /**
      * Validation function for the temperature option when form is being submitted.
      *
+     * Skips validation if the selected model does not support the temperature parameter.
+     * Validates the custom temperature value against the model's allowed range.
+     *
      * @param array $data the data being submitted by the form
      * @return array associative array ['mformelementname' => 'error string'] if there are validation errors, otherwise empty array
      */
     public static function validate_temperature(array $data): array {
+        // Skip validation if the model does not support temperature.
+        if (!empty($data['model'])) {
+            $modelobj = new model((int) $data['model']);
+            if ($modelobj->record_exists() && !$modelobj->supports_temperature()) {
+                return [];
+            }
+        }
+
         $errors = [];
-        if (
-            !empty($data['temperaturecustom'])
-            && (floatval($data['temperaturecustom']) < 0 || floatval($data['temperaturecustom']) > 1.0)
-        ) {
-            $errors['temperaturecustom'] = get_string('formvalidation_editinstance_temperaturerange', 'local_ai_manager');
+        if (!empty($data['temperaturecustom'])) {
+            $value = floatval($data['temperaturecustom']);
+            $min = 0.0;
+            $max = 1.0;
+            if (isset($modelobj) && $modelobj->record_exists()) {
+                $min = $modelobj->get_min_temperature() ?? 0.0;
+                $max = $modelobj->get_max_temperature() ?? 1.0;
+            }
+            if ($value < $min || $value > $max) {
+                $errors['temperaturecustom'] = get_string('formvalidation_editinstance_temperaturerange', 'local_ai_manager');
+            }
         }
         return $errors;
     }

@@ -8,7 +8,10 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt",
+            "telli"
+        ]
     },
     {
         "name": "gpt-5.5-pro",
@@ -19,7 +22,9 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ]
     },
     {
         "name": "gpt-5.4",
@@ -30,7 +35,9 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ]
     },
     {
         "name": "gpt-5.4-pro",
@@ -41,7 +48,9 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ]
     },
     {
         "name": "gpt-5.4-mini",
@@ -52,7 +61,9 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ]
     },
     {
         "name": "gpt-5.4-nano",
@@ -63,7 +74,9 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ]
     },
     {
         "name": "gpt-5",
@@ -74,7 +87,10 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt", "telli"]
+        "connectors": [
+            "chatgpt",
+            "telli"
+        ]
     },
     {
         "name": "gpt-5-pro",
@@ -85,7 +101,9 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ]
     },
     {
         "name": "gpt-5-mini",
@@ -96,7 +114,10 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt", "telli"]
+        "connectors": [
+            "chatgpt",
+            "telli"
+        ]
     },
     {
         "name": "gpt-5-nano",
@@ -107,7 +128,10 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt", "telli"]
+        "connectors": [
+            "chatgpt",
+            "telli"
+        ]
     },
     {
         "name": "gpt-4.1",
@@ -118,7 +142,10 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gpt-4.1-mini",
@@ -129,7 +156,10 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gpt-4.1-nano",
@@ -141,7 +171,10 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "o3",
@@ -152,7 +185,9 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ]
     },
     {
         "name": "o3-pro",
@@ -163,7 +198,9 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ]
     },
     {
         "name": "o3-mini",
@@ -175,7 +212,10 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["chatgpt", "telli"]
+        "connectors": [
+            "chatgpt",
+            "telli"
+        ]
     },
     {
         "name": "o4-mini",
@@ -187,7 +227,9 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ]
     },
     {
         "name": "gpt-4o",
@@ -199,7 +241,11 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["chatgpt", "telli"]
+        "connectors": [
+            "chatgpt",
+            "telli"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gpt-4o-mini",
@@ -210,7 +256,11 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["chatgpt", "telli"]
+        "connectors": [
+            "chatgpt",
+            "telli"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "o1",
@@ -222,7 +272,9 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ]
     },
     {
         "name": "o1-mini",
@@ -234,7 +286,9 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ]
     },
     {
         "name": "o1-pro",
@@ -246,7 +300,9 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ]
     },
     {
         "name": "gpt-4-turbo",
@@ -258,7 +314,11 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt",
+            "telli"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gpt-3.5-turbo",
@@ -270,7 +330,11 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt",
+            "telli"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "chatgpt_preconfigured_azure",
@@ -282,7 +346,10 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["chatgpt"]
+        "connectors": [
+            "chatgpt"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gpt-image-2",
@@ -293,7 +360,9 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
-        "connectors": ["dalle"]
+        "connectors": [
+            "dalle"
+        ]
     },
     {
         "name": "gpt-image-1.5",
@@ -304,7 +373,9 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
-        "connectors": ["dalle"]
+        "connectors": [
+            "dalle"
+        ]
     },
     {
         "name": "gpt-image-1",
@@ -316,7 +387,9 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["dalle"]
+        "connectors": [
+            "dalle"
+        ]
     },
     {
         "name": "dall-e-3",
@@ -328,7 +401,10 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["dalle", "telli"]
+        "connectors": [
+            "dalle",
+            "telli"
+        ]
     },
     {
         "name": "dalle_preconfigured_azure",
@@ -340,7 +416,9 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["dalle"]
+        "connectors": [
+            "dalle"
+        ]
     },
     {
         "name": "tts-1",
@@ -351,7 +429,9 @@
         "imggen": 0,
         "tts": 1,
         "stt": 0,
-        "connectors": ["openaitts"]
+        "connectors": [
+            "openaitts"
+        ]
     },
     {
         "name": "tts-1-hd",
@@ -362,7 +442,9 @@
         "imggen": 0,
         "tts": 1,
         "stt": 0,
-        "connectors": ["openaitts"]
+        "connectors": [
+            "openaitts"
+        ]
     },
     {
         "name": "gpt-4o-mini-tts",
@@ -374,7 +456,9 @@
         "tts": 1,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["openaitts"]
+        "connectors": [
+            "openaitts"
+        ]
     },
     {
         "name": "openaitts_tts-1_preconfigured_azure",
@@ -386,7 +470,9 @@
         "tts": 1,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["openaitts"]
+        "connectors": [
+            "openaitts"
+        ]
     },
     {
         "name": "openaitts_gpt-4o-mini-tts_preconfigured_azure",
@@ -398,7 +484,9 @@
         "tts": 1,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["openaitts"]
+        "connectors": [
+            "openaitts"
+        ]
     },
     {
         "name": "gemini-3.1-pro-preview",
@@ -409,7 +497,10 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gemini-3-pro-preview",
@@ -421,7 +512,10 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gemini-3-pro-image-preview",
@@ -432,7 +526,10 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gemini-3.1-flash-image-preview",
@@ -443,7 +540,10 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gemini-3-flash-preview",
@@ -454,7 +554,10 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gemini-3.1-flash-lite-preview",
@@ -465,7 +568,10 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gemini-2.5-flash",
@@ -476,7 +582,10 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gemini-2.5-flash-image",
@@ -487,7 +596,10 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gemini-2.5-flash-lite",
@@ -498,7 +610,10 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gemini-2.5-pro",
@@ -509,7 +624,10 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gemini-2.0-flash",
@@ -520,7 +638,10 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gemini-2.0-flash-lite",
@@ -531,7 +652,10 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gemini-2.0-pro",
@@ -543,7 +667,10 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gemini-1.5-flash",
@@ -555,7 +682,10 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "gemini-1.5-pro",
@@ -567,7 +697,10 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["gemini"]
+        "connectors": [
+            "gemini"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "googletts",
@@ -578,7 +711,9 @@
         "imggen": 0,
         "tts": 1,
         "stt": 0,
-        "connectors": ["googlesynthesize"]
+        "connectors": [
+            "googlesynthesize"
+        ]
     },
     {
         "name": "imagen-4.0-generate-001",
@@ -589,7 +724,10 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
-        "connectors": ["imagen", "telli"]
+        "connectors": [
+            "imagen",
+            "telli"
+        ]
     },
     {
         "name": "imagen-4.0-ultra-generate-001",
@@ -600,7 +738,9 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
-        "connectors": ["imagen"]
+        "connectors": [
+            "imagen"
+        ]
     },
     {
         "name": "imagen-4.0-fast-generate-001",
@@ -611,7 +751,9 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
-        "connectors": ["imagen"]
+        "connectors": [
+            "imagen"
+        ]
     },
     {
         "name": "imagen-3.0-generate-002",
@@ -623,413 +765,584 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
-        "connectors": ["imagen"]
+        "connectors": [
+            "imagen"
+        ]
     },
     {
         "name": "gemma",
         "displayname": "Gemma",
-        "description": "Google Gemma language model (Ollama)",
+        "description": "Google Gemma language model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "llava-llama3",
         "displayname": "LLaVA Llama 3",
-        "description": "LLaVA Llama 3 vision-language model (Ollama)",
+        "description": "LLaVA Llama 3 vision-language model",
         "mimetypes": "image/png,image/jpg,image/jpeg",
         "vision": 1,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "llava-phi3",
         "displayname": "LLaVA Phi-3",
-        "description": "LLaVA Phi-3 vision-language model (Ollama)",
+        "description": "LLaVA Phi-3 vision-language model",
         "mimetypes": "image/png,image/jpg,image/jpeg",
         "vision": 1,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "granite-3.2-vision",
         "displayname": "Granite 3.2 Vision",
-        "description": "IBM Granite 3.2 Vision model with vision support (Ollama)",
+        "description": "IBM Granite 3.2 Vision model with vision support",
         "mimetypes": "image/png,image/jpg,image/jpeg",
         "vision": 1,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "bakllava",
         "displayname": "BakLLaVA",
-        "description": "BakLLaVA vision-language model (Ollama)",
+        "description": "BakLLaVA vision-language model",
         "mimetypes": "image/png,image/jpg,image/jpeg",
         "vision": 1,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "moondream",
         "displayname": "Moondream",
-        "description": "Moondream compact vision-language model (Ollama)",
+        "description": "Moondream compact vision-language model",
         "mimetypes": "image/png,image/jpg,image/jpeg",
         "vision": 1,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "tinyllama",
         "displayname": "TinyLlama",
-        "description": "TinyLlama compact language model (Ollama)",
+        "description": "TinyLlama compact language model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "qwen",
         "displayname": "Qwen",
-        "description": "Alibaba Qwen language model (Ollama)",
+        "description": "Alibaba Qwen language model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "dolphin-mixtral",
         "displayname": "Dolphin Mixtral",
-        "description": "Dolphin Mixtral uncensored MoE model (Ollama)",
+        "description": "Dolphin Mixtral uncensored MoE model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "gemma3",
         "displayname": "Gemma 3",
-        "description": "Google Gemma 3 model with vision support (Ollama)",
+        "description": "Google Gemma 3 model with vision support",
         "mimetypes": "image/png,image/jpg,image/jpeg",
         "vision": 1,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "llama3",
         "displayname": "Llama 3",
-        "description": "Meta Llama 3 language model (Ollama)",
+        "description": "Meta Llama 3 language model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "llama3.1",
         "displayname": "Llama 3.1",
-        "description": "Meta Llama 3.1 language model (Ollama)",
+        "description": "Meta Llama 3.1 language model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "llama3.2-vision",
         "displayname": "Llama 3.2 Vision",
-        "description": "Meta Llama 3.2 Vision model with vision support (Ollama)",
+        "description": "Meta Llama 3.2 Vision model with vision support",
         "mimetypes": "image/png,image/jpg,image/jpeg",
         "vision": 1,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "llama3.3",
         "displayname": "Llama 3.3",
-        "description": "Meta Llama 3.3 language model (Ollama)",
+        "description": "Meta Llama 3.3 language model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "llama4",
         "displayname": "Llama 4",
-        "description": "Meta Llama 4 model with vision support (Ollama)",
+        "description": "Meta Llama 4 model with vision support",
         "mimetypes": "image/png,image/jpg,image/jpeg",
         "vision": 1,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "llama4-scout",
         "displayname": "Llama 4 Scout",
-        "description": "Meta Llama 4 Scout 17B active params MoE model with vision support (Ollama)",
+        "description": "Meta Llama 4 Scout 17B active params MoE model with vision support",
         "mimetypes": "image/png,image/jpg,image/jpeg",
         "vision": 1,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "llama4-maverick",
         "displayname": "Llama 4 Maverick",
-        "description": "Meta Llama 4 Maverick 17B active params MoE model with vision support (Ollama)",
+        "description": "Meta Llama 4 Maverick 17B active params MoE model with vision support",
         "mimetypes": "image/png,image/jpg,image/jpeg",
         "vision": 1,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "deepseek-r1",
         "displayname": "DeepSeek R1",
-        "description": "DeepSeek R1 reasoning model (Ollama)",
+        "description": "DeepSeek R1 reasoning model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "deepseek-v3",
         "displayname": "DeepSeek V3",
-        "description": "DeepSeek V3 MoE language model (Ollama)",
+        "description": "DeepSeek V3 MoE language model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "qwen3",
         "displayname": "Qwen 3",
-        "description": "Alibaba Qwen 3 hybrid thinking model (Ollama)",
+        "description": "Alibaba Qwen 3 hybrid thinking model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "qwen2.5",
         "displayname": "Qwen 2.5",
-        "description": "Alibaba Qwen 2.5 language model (Ollama)",
+        "description": "Alibaba Qwen 2.5 language model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "qwen2.5-coder",
         "displayname": "Qwen 2.5 Coder",
-        "description": "Alibaba Qwen 2.5 Coder model for code generation (Ollama)",
+        "description": "Alibaba Qwen 2.5 Coder model for code generation",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "qwen2.5vl",
         "displayname": "Qwen 2.5 VL",
-        "description": "Alibaba Qwen 2.5 VL vision-language model (Ollama)",
+        "description": "Alibaba Qwen 2.5 VL vision-language model",
         "mimetypes": "image/png,image/jpg,image/jpeg",
         "vision": 1,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "phi4",
         "displayname": "Phi-4",
-        "description": "Microsoft Phi-4 language model (Ollama)",
+        "description": "Microsoft Phi-4 language model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "phi4-mini",
         "displayname": "Phi-4 Mini",
-        "description": "Microsoft Phi-4 Mini compact language model (Ollama)",
+        "description": "Microsoft Phi-4 Mini compact language model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "mistral",
         "displayname": "Mistral",
-        "description": "Mistral AI language model (Ollama)",
+        "description": "Mistral AI language model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "mistral-small3.1",
         "displayname": "Mistral Small 3.1",
-        "description": "Mistral Small 3.1 model with vision support (Ollama)",
+        "description": "Mistral Small 3.1 model with vision support",
         "mimetypes": "image/png,image/jpg,image/jpeg",
         "vision": 1,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "codellama",
         "displayname": "Code Llama",
-        "description": "Meta Code Llama model for code generation (Ollama)",
+        "description": "Meta Code Llama model for code generation",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "mixtral",
         "displayname": "Mixtral",
-        "description": "Mistral AI Mixtral MoE model (Ollama)",
+        "description": "Mistral AI Mixtral MoE model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "command-r",
         "displayname": "Command R",
-        "description": "Cohere Command R language model (Ollama)",
+        "description": "Cohere Command R language model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "command-r-plus",
         "displayname": "Command R+",
-        "description": "Cohere Command R+ advanced language model (Ollama)",
+        "description": "Cohere Command R+ advanced language model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["ollama"]
+        "connectors": [
+            "ollama"
+        ],
+        "temperature": "0.0-1.0"
     },
     {
         "name": "meta-llama/Meta-Llama-3.1-405B-Instruct-FP8",
         "displayname": "Llama 3.1 405B",
-        "description": "Meta Llama 3.1 405B Instruct open model for demanding scenarios (Telli/IONOS)",
+        "description": "Meta Llama 3.1 405B Instruct open model for demanding scenarios",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["telli"]
+        "connectors": [
+            "telli"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "meta-llama/Meta-Llama-3.1-8B-Instruct",
         "displayname": "Llama 3.1 8B",
-        "description": "Meta Llama 3.1 8B Instruct efficient model for lighter tasks (Telli/IONOS)",
+        "description": "Meta Llama 3.1 8B Instruct efficient model for lighter tasks",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["telli"]
+        "connectors": [
+            "telli"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "meta-llama/Llama-3.3-70B-Instruct",
         "displayname": "Llama 3.3 70B",
-        "description": "Meta Llama 3.3 70B Instruct powerful current model (Telli/IONOS)",
+        "description": "Meta Llama 3.3 70B Instruct powerful current model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["telli"]
+        "connectors": [
+            "telli"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "mistralai/Mistral-Nemo-Instruct-2407",
         "displayname": "Mistral Nemo Instruct",
-        "description": "Mistral Nemo Instruct multilingual open source model (Telli/IONOS)",
+        "description": "Mistral Nemo Instruct multilingual open source model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
-        "connectors": ["telli"]
+        "connectors": [
+            "telli"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "stabilityai/stable-diffusion-xl-base-1.0",
         "displayname": "Stable Diffusion XL",
-        "description": "Stability AI Stable Diffusion XL image generation model (Telli/IONOS)",
+        "description": "Stability AI Stable Diffusion XL image generation model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 1,
         "tts": 0,
         "stt": 0,
-        "connectors": ["telli"]
+        "connectors": [
+            "telli"
+        ]
     },
     {
         "name": "black-forest-labs/FLUX.1-schnell",
         "displayname": "FLUX.1",
-        "description": "Black Forest Labs FLUX.1 schnell image generation model (Telli/IONOS)",
+        "description": "Black Forest Labs FLUX.1 schnell image generation model",
         "mimetypes": "",
         "vision": 0,
         "imggen": 1,
         "tts": 0,
         "stt": 0,
-        "connectors": ["telli"]
+        "connectors": [
+            "telli"
+        ]
+    },
+    {
+        "name": "BAAI/bge-m3",
+        "displayname": "BGE-M3",
+        "description": "BAAI BGE-M3 multilingual embedding model",
+        "mimetypes": "",
+        "vision": 0,
+        "imggen": 0,
+        "tts": 0,
+        "stt": 0,
+        "deprecated": 1,
+        "connectors": [
+            "telli"
+        ],
+        "temperature": "0.0-2.0"
+    },
+    {
+        "name": "meta-llama/CodeLlama-13b-Instruct-hf",
+        "displayname": "Code Llama 13B",
+        "description": "Meta Code Llama 13B Instruct code generation model",
+        "mimetypes": "",
+        "vision": 0,
+        "imggen": 0,
+        "tts": 0,
+        "stt": 0,
+        "deprecated": 1,
+        "connectors": [
+            "telli"
+        ],
+        "temperature": "0.0-2.0"
+    },
+    {
+        "name": "mistralai/Mistral-7B-Instruct-v0.3",
+        "displayname": "Mistral 7B Instruct v0.3",
+        "description": "Mistral AI 7B Instruct v0.3 compact language model",
+        "mimetypes": "",
+        "vision": 0,
+        "imggen": 0,
+        "tts": 0,
+        "stt": 0,
+        "deprecated": 1,
+        "connectors": [
+            "telli"
+        ],
+        "temperature": "0.0-2.0"
+    },
+    {
+        "name": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+        "displayname": "Mixtral 8x7B Instruct",
+        "description": "Mistral AI Mixtral 8x7B Instruct MoE model",
+        "mimetypes": "",
+        "vision": 0,
+        "imggen": 0,
+        "tts": 0,
+        "stt": 0,
+        "deprecated": 1,
+        "connectors": [
+            "telli"
+        ],
+        "temperature": "0.0-2.0"
     }
 ]

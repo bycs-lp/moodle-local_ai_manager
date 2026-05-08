@@ -77,6 +77,9 @@ class base_instance {
     /** @var ?string Fourth customfield attribute. */
     protected ?string $customfield4 = null;
 
+    /** @var local\model[] Selectable model objects, populated during form building. */
+    protected array $selectablemodelsobjects = [];
+
     /** @var ?string Fifth customfield attribute. */
     protected ?string $customfield5 = null;
 
@@ -624,11 +627,13 @@ class base_instance {
         $classname = '\\aitool_' . $connector . '\\connector';
         $connectorobject = \core\di::get($classname);
         $availablemodels = [];
+        $this->selectablemodelsobjects = [];
         $selectableids = $connectorobject->get_selectable_model_ids();
         foreach ($selectableids as $modelid) {
             $modelobject = new \local_ai_manager\local\model($modelid);
             if ($modelobject->record_exists()) {
                 $availablemodels[$modelid] = $modelobject->get_name();
+                $this->selectablemodelsobjects[] = $modelobject;
             }
         }
 

@@ -57,6 +57,9 @@ class model {
     /** @var int Whether the model supports speech-to-text. */
     private int $stt = 0;
 
+    /** @var ?string Temperature range as "min-max" (e.g. "0.0-1.0"), null if not supported. */
+    private ?string $temperature = null;
+
     /** @var int Whether the model is deprecated. */
     private int $deprecated = 0;
 
@@ -92,6 +95,7 @@ class model {
         $this->imggen = (int) $record->imggen;
         $this->tts = (int) $record->tts;
         $this->stt = (int) $record->stt;
+        $this->temperature = $record->temperature;
         $this->deprecated = (int) $record->deprecated;
     }
 
@@ -113,6 +117,7 @@ class model {
         $record->imggen = $this->imggen;
         $record->tts = $this->tts;
         $record->stt = $this->stt;
+        $record->temperature = $this->temperature;
         $record->deprecated = $this->deprecated;
         $record->timemodified = $now;
 
@@ -309,6 +314,66 @@ class model {
      */
     public function set_stt(bool $stt): void {
         $this->stt = (int) $stt;
+    }
+
+    /**
+     * Returns whether the model supports the temperature parameter.
+     *
+     * Temperature support is enabled by setting a valid temperature range via
+     * {@see set_temperature_range()}. To disable temperature support, call
+     * {@see set_temperature_range()} with null values or never set it at all.
+     *
+     * @return bool true if temperature is supported
+     */
+    public function supports_temperature(): bool {
+        return $this->temperature !== null;
+    }
+
+    /**
+     * Returns the minimum temperature value, or null if temperature is not supported.
+     *
+     * @return ?float the minimum temperature, or null
+     */
+    public function get_min_temperature(): ?float {
+        if ($this->temperature === null) {
+            return null;
+        }
+        $parts = explode('-', $this->temperature, 2);
+        return (float) $parts[0];
+    }
+
+    /**
+     * Returns the maximum temperature value, or null if temperature is not supported.
+     *
+     * @return ?float the maximum temperature, or null
+     */
+    public function get_max_temperature(): ?float {
+        if ($this->temperature === null) {
+            return null;
+        }
+        $parts = explode('-', $this->temperature, 2);
+        return (float) ($parts[1] ?? $parts[0]);
+    }
+
+    /**
+     * Sets the allowed temperature range for this model.
+     *
+     * Pass null for both parameters to disable temperature support.
+     * min and max may be equal (e.g. both 0.0) for models that require a fixed temperature value.
+     *
+     * @param ?float $min the minimum temperature, or null to disable temperature support
+     * @param ?float $max the maximum temperature, or null to disable temperature support
+     * @throws \coding_exception if min > max
+     */
+    public function set_temperature_range(?float $min, ?float $max): void {
+        if ($min === null || $max === null) {
+            $this->temperature = null;
+            return;
+        }
+        if ($min > $max) {
+            throw new \coding_exception('Minimum temperature must not exceed maximum temperature.');
+        }
+        $this->temperature = $min . '-' . $max;
     }
 
     /**

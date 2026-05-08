@@ -82,7 +82,7 @@ class instance extends base_instance {
         $mform->insertElementBefore($endpointdescriptionvertexai, 'endpointdescription');
         $mform->hideIf('endpointdescription_vertexai', 'googlebackend', 'neq', self::GOOGLE_BACKEND_VERTEXAI);
 
-        aitool_option_temperature::extend_form_definition($mform);
+        aitool_option_temperature::extend_form_definition($mform, $this->selectablemodelsobjects);
     }
 
     #[\Override]

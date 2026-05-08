@@ -72,6 +72,29 @@ class model_edit_form extends dynamic_form {
         $mform->addElement('advcheckbox', 'stt', get_string('model_stt', 'local_ai_manager'));
         $mform->setType('stt', PARAM_BOOL);
 
+        $mform->addElement(
+            'advcheckbox',
+            'supports_temperature',
+            get_string('model_supports_temperature', 'local_ai_manager')
+        );
+        $mform->setType('supports_temperature', PARAM_BOOL);
+
+        $mform->addElement(
+            'float',
+            'temperature_min',
+            get_string('model_temperature_min', 'local_ai_manager')
+        );
+        $mform->setDefault('temperature_min', 0.0);
+        $mform->hideIf('temperature_min', 'supports_temperature');
+
+        $mform->addElement(
+            'float',
+            'temperature_max',
+            get_string('model_temperature_max', 'local_ai_manager')
+        );
+        $mform->setDefault('temperature_max', 1.0);
+        $mform->hideIf('temperature_max', 'supports_temperature');
+
         $mform->addElement('selectyesno', 'deprecated', get_string('model_deprecated', 'local_ai_manager'));
 
         $availableconnectors = array_keys(\core_plugin_manager::instance()->get_installed_plugins('aitool'));
@@ -124,6 +147,13 @@ class model_edit_form extends dynamic_form {
         $modelobj->set_imggen((bool) $data->imggen);
         $modelobj->set_tts((bool) $data->tts);
         $modelobj->set_stt((bool) $data->stt);
+        if (!empty($data->supports_temperature)) {
+            $min = floatval($data->temperature_min ?? 0.0);
+            $max = floatval($data->temperature_max ?? 1.0);
+            $modelobj->set_temperature_range($min, $max);
+        } else {
+            $modelobj->set_temperature_range(null, null);
+        }
         $modelobj->set_deprecated((bool) $data->deprecated);
         $modelobj->store();
 
@@ -163,6 +193,9 @@ class model_edit_form extends dynamic_form {
             $data['imggen'] = (int) $modelobj->get_imggen();
             $data['tts'] = (int) $modelobj->get_tts();
             $data['stt'] = (int) $modelobj->get_stt();
+            $data['supports_temperature'] = (int) $modelobj->supports_temperature();
+            $data['temperature_min'] = $modelobj->get_min_temperature() ?? 0.0;
+            $data['temperature_max'] = $modelobj->get_max_temperature() ?? 1.0;
             $data['deprecated'] = (int) $modelobj->is_deprecated();
             $data['connectors'] = $modelobj->get_connectors();
         }
@@ -188,6 +221,21 @@ class model_edit_form extends dynamic_form {
             $existing = $DB->get_record('local_ai_manager_model', ['name' => trim($data['name'])]);
             if ($existing && (int) $existing->id !== (int) ($data['modelid'] ?? 0)) {
                 $errors['name'] = get_string('model_name_exists', 'local_ai_manager');
+            }
+        }
+
+        // Validate temperature range if temperature support is enabled.
+        if (!empty($data['supports_temperature'])) {
+            $min = floatval($data['temperature_min'] ?? 0);
+            $max = floatval($data['temperature_max'] ?? 0);
+            if ($min < 0) {
+                $errors['temperature_min'] = get_string('model_temperature_min_negative', 'local_ai_manager');
+            }
+            if ($max < 0) {
+                $errors['temperature_max'] = get_string('model_temperature_max_negative', 'local_ai_manager');
+            }
+            if ($min >= $max) {
+                $errors['temperature_max'] = get_string('model_temperature_max_must_exceed_min', 'local_ai_manager');
             }
         }
 

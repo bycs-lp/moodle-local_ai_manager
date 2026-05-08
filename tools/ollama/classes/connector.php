@@ -92,10 +92,14 @@ class connector extends \local_ai_manager\base_connector {
             'messages' => $messages,
             'stream' => false,
             'keep_alive' => '60m',
-            'options' => [
-                'temperature' => $this->instance->get_temperature(),
-            ],
         ];
+        // Only include temperature if the model supports it.
+        $modelobj = $this->instance->get_model_object();
+        if ($modelobj !== null && $modelobj->supports_temperature()) {
+            $data['options'] = [
+                'temperature' => $this->instance->get_temperature(),
+            ];
+        }
         return $data;
     }
 }

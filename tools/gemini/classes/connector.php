@@ -122,12 +122,17 @@ class connector extends \local_ai_manager\base_connector {
                 ],
             ];
         }
-        return [
+        $params = [
             'contents' => $messages,
-            'generationConfig' => [
-                'temperature' => $this->instance->get_temperature(),
-            ],
         ];
+        // Only include temperature if the model supports it.
+        $modelobj = $this->instance->get_model_object();
+        if ($modelobj !== null && $modelobj->supports_temperature()) {
+            $params['generationConfig'] = [
+                'temperature' => $this->instance->get_temperature(),
+            ];
+        }
+        return $params;
     }
 
     #[\Override]
