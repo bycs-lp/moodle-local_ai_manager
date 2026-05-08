@@ -211,6 +211,7 @@ $string['model_supports_temperature'] = 'Supports temperature parameter';
 $string['model_temperature_max'] = 'Maximum temperature';
 $string['model_temperature_max_must_exceed_min'] = 'Maximum temperature must be greater than minimum temperature.';
 $string['model_temperature_max_negative'] = 'Maximum temperature must not be negative.';
+$string['model_temperature_range'] = 'Temperature range';
 $string['model_temperature_min'] = 'Minimum temperature';
 $string['model_temperature_min_negative'] = 'Minimum temperature must not be negative.';
 $string['model_tts'] = 'Text-to-speech';

@@ -50,17 +50,19 @@ class model_management_table extends table_sql implements dynamic {
         $this->define_baseurl(new moodle_url('/local/ai_manager/manage_models.php'));
 
         $columns = [
-            'name', 'displayname', 'mimetypes', 'vision', 'imggen', 'tts', 'stt',
-            'connectors', 'deprecated', 'actions',
+            'name', 'displayname', 'description', 'mimetypes', 'vision', 'imggen', 'tts', 'stt',
+            'temperature', 'connectors', 'deprecated', 'actions',
         ];
         $headers = [
             get_string('model_name', 'local_ai_manager'),
             get_string('model_displayname', 'local_ai_manager'),
+            get_string('description'),
             get_string('model_mimetypes', 'local_ai_manager'),
             get_string('model_vision', 'local_ai_manager'),
             get_string('model_imggen', 'local_ai_manager'),
             get_string('model_tts', 'local_ai_manager'),
             get_string('model_stt', 'local_ai_manager'),
+            get_string('model_temperature_range', 'local_ai_manager'),
             get_string('model_connectors', 'local_ai_manager'),
             get_string('model_deprecated', 'local_ai_manager'),
             get_string('actions'),
@@ -72,7 +74,7 @@ class model_management_table extends table_sql implements dynamic {
         $this->no_sorting('mimetypes');
         $this->no_sorting('connectors');
         $this->no_sorting('actions');
-        $this->collapsible(false);
+        $this->collapsible(true);
         $this->sortable(true, 'name');
 
         $filterset = new model_management_table_filterset();
@@ -89,7 +91,7 @@ class model_management_table extends table_sql implements dynamic {
         global $DB;
 
         $concat = $DB->sql_group_concat('mp.connector', ', ');
-        $fields = "m.id, m.name, m.displayname, m.mimetypes, m.vision, m.imggen, m.tts, m.stt, m.deprecated, "
+        $fields = "m.id, m.name, m.displayname, m.description, m.mimetypes, m.vision, m.imggen, m.tts, m.stt, m.temperature, m.deprecated, "
             . $concat . " AS connectors";
         $from = '{local_ai_manager_model} m LEFT JOIN {local_ai_manager_model_connector} mp ON mp.modelid = m.id';
         $where = '1 = 1';
@@ -140,7 +142,7 @@ class model_management_table extends table_sql implements dynamic {
             }
         }
 
-        $groupby = ' GROUP BY m.id, m.name, m.displayname, m.mimetypes, m.vision, m.imggen, m.tts, m.stt, m.deprecated';
+        $groupby = ' GROUP BY m.id, m.name, m.displayname, m.description, m.mimetypes, m.vision, m.imggen, m.tts, m.stt, m.temperature, m.deprecated';
 
         $this->set_sql($fields, $from, $where . $filtersql . $groupby, array_merge($params, $filterparams));
 
@@ -151,6 +153,16 @@ class model_management_table extends table_sql implements dynamic {
             . " WHERE " . $where . $filtersql . $groupby . ") AS subquery",
             array_merge($params, $filterparams)
         );
+    }
+
+    /**
+     * Render the description column.
+     *
+     * @param stdClass $row The current row data
+     * @return string The escaped description text
+     */
+    public function col_description(stdClass $row): string {
+        return s($row->description ?? '');
     }
 
     /**
@@ -219,6 +231,24 @@ class model_management_table extends table_sql implements dynamic {
      */
     public function col_stt(stdClass $row): string {
         return $this->render_boolean_icon(!empty($row->stt));
+    }
+
+    /**
+     * Render the temperature column.
+     *
+     * Shows the temperature range if supported, or a cross icon if not.
+     *
+     * @param stdClass $row The current row data
+     * @return string The temperature range or cross icon
+     */
+    public function col_temperature(stdClass $row): string {
+        if ($row->temperature === null || $row->temperature === '') {
+            return '<i class="fa fa-times text-muted" aria-label="' . get_string('no') . '"></i>';
+        }
+        $parts = explode('-', $row->temperature, 2);
+        $min = number_format((float) $parts[0], 1);
+        $max = number_format((float) ($parts[1] ?? $parts[0]), 1);
+        return s($min . ' – ' . $max);
     }
 
     /**

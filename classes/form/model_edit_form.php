@@ -84,7 +84,7 @@ class model_edit_form extends dynamic_form {
             'temperature_min',
             get_string('model_temperature_min', 'local_ai_manager')
         );
-        $mform->setDefault('temperature_min', 0.0);
+        $mform->setDefault('temperature_min', '0.0');
         $mform->hideIf('temperature_min', 'supports_temperature');
 
         $mform->addElement(
@@ -92,7 +92,7 @@ class model_edit_form extends dynamic_form {
             'temperature_max',
             get_string('model_temperature_max', 'local_ai_manager')
         );
-        $mform->setDefault('temperature_max', 1.0);
+        $mform->setDefault('temperature_max', '1.0');
         $mform->hideIf('temperature_max', 'supports_temperature');
 
         $mform->addElement('selectyesno', 'deprecated', get_string('model_deprecated', 'local_ai_manager'));
@@ -148,8 +148,8 @@ class model_edit_form extends dynamic_form {
         $modelobj->set_tts((bool) $data->tts);
         $modelobj->set_stt((bool) $data->stt);
         if (!empty($data->supports_temperature)) {
-            $min = floatval($data->temperature_min ?? 0.0);
-            $max = floatval($data->temperature_max ?? 1.0);
+            $min = round(floatval($data->temperature_min ?? 0.0), 1);
+            $max = round(floatval($data->temperature_max ?? 1.0), 1);
             $modelobj->set_temperature_range($min, $max);
         } else {
             $modelobj->set_temperature_range(null, null);
@@ -194,8 +194,8 @@ class model_edit_form extends dynamic_form {
             $data['tts'] = (int) $modelobj->supports_tts();
             $data['stt'] = (int) $modelobj->supports_stt();
             $data['supports_temperature'] = (int) $modelobj->supports_temperature();
-            $data['temperature_min'] = $modelobj->get_min_temperature() ?? 0.0;
-            $data['temperature_max'] = $modelobj->get_max_temperature() ?? 1.0;
+            $data['temperature_min'] = number_format($modelobj->get_min_temperature() ?? 0.0, 1);
+            $data['temperature_max'] = number_format($modelobj->get_max_temperature() ?? 1.0, 1);
             $data['deprecated'] = (int) $modelobj->is_deprecated();
             $data['connectors'] = $modelobj->get_connectors();
         }

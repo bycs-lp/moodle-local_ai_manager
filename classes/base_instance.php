@@ -643,8 +643,7 @@ class base_instance {
         if (!empty($currentmodelid) && !isset($availablemodels[$currentmodelid])) {
             $currentmodelobject = new \local_ai_manager\local\model($currentmodelid);
             if ($currentmodelobject->record_exists()) {
-                $availablemodels[$currentmodelid] = $currentmodelobject->get_name()
-                    . ' (' . get_string('deprecated_model', 'local_ai_manager') . ')';
+                $availablemodels[$currentmodelid] = $currentmodelobject->get_name();
             }
         }
 
