@@ -30,9 +30,12 @@ class aitool_option_temperature {
     /**
      * Extends the form definition of the edit instance form by adding the temperature option.
      *
+     * Temperature fields are automatically hidden for models that do not support the temperature parameter.
+     *
      * @param \MoodleQuickForm $mform the mform object
+     * @param model[] $selectablemodels array of model objects that are selectable in the form
      */
-    public static function extend_form_definition(\MoodleQuickForm $mform, array $modelswithouttemperature = []): void {
+    public static function extend_form_definition(\MoodleQuickForm $mform, array $selectablemodels = []): void {
         $radioarray = [];
         $radioarray[] = $mform->createElement(
             'radio',
@@ -69,36 +72,64 @@ class aitool_option_temperature {
         $mform->addElement('float', 'temperaturecustom', get_string('temperature_custom_value', 'local_ai_manager'));
         $mform->disabledIf('temperaturecustom', 'temperatureusecustom');
         $mform->disabledIf('temperatureprechoicearray', 'temperatureusecustom', 'checked');
-        foreach ($modelswithouttemperature as $modelwithouttemperature) {
-            $mform->hideIf('temperatureprechoicearray', 'model', 'eq', $modelwithouttemperature);
-            $mform->hideIf('temperatureusecustom', 'model', 'eq', $modelwithouttemperature);
-            $mform->hideIf('temperaturecustom', 'model', 'eq', $modelwithouttemperature);
+
+        // Hide temperature fields for models that do not support the temperature parameter.
+        foreach ($selectablemodels as $modelobj) {
+            if (!$modelobj->supports_temperature()) {
+                $modelid = $modelobj->get_id();
+                $mform->hideIf('temperatureprechoicearray', 'model', 'eq', $modelid);
+                $mform->hideIf('temperatureusecustom', 'model', 'eq', $modelid);
+                $mform->hideIf('temperaturecustom', 'model', 'eq', $modelid);
+            }
         }
     }
 
     /**
      * Adds the temperature data to the form data to be passed to the form when loading.
      *
+     * If the model does not support temperature, default form values are returned.
+     * The prechoice values are dynamically calculated based on the model's temperature range.
+     *
      * @param string $temperature the current temperature as read from the database
+     * @param model|null $modelobj the model object, if available
      * @return stdClass the object to pass to the form when loading
      */
-    public static function add_temperature_to_form_data(string $temperature): stdClass {
-        $temperature = floatval($temperature);
+    public static function add_temperature_to_form_data(string $temperature, ?model $modelobj = null): stdClass {
         $data = new stdClass();
+
+        // If no model is given or the model does not support temperature, return empty object.
+        if ($modelobj === null || !$modelobj->supports_temperature()) {
+            return $data;
+        }
+
         $data->temperatureusecustom = 0;
-        switch ($temperature) {
-            case 0.8:
-                $data->temperatureprechoice = 'selection_creative';
-                break;
-            case 0.5:
-                $data->temperatureprechoice = 'selection_balanced';
-                break;
-            case 0.2:
-                $data->temperatureprechoice = 'selection_precise';
-                break;
-            default:
-                $data->temperatureusecustom = 1;
-                $data->temperaturecustom = $temperature;
+        $data->temperatureprechoice = 'selection_balanced';
+
+        $min = 0.0;
+        $max = 1.0;
+        if ($modelobj->record_exists()) {
+            $min = $modelobj->get_min_temperature();
+            $max = $modelobj->get_max_temperature();
+        }
+        $range = $max - $min;
+
+        // Calculate the expected prechoice values based on the model's range.
+        $creativetemp = round($min + 0.8 * $range, 1);
+        $balancedtemp = round($min + 0.5 * $range, 1);
+        $precisetemp = round($min + 0.2 * $range, 1);
+
+        $temperature = floatval($temperature);
+        // Use a small epsilon for float comparison.
+        $epsilon = 0.0001;
+        if (abs($temperature - $creativetemp) < $epsilon) {
+            $data->temperatureprechoice = 'selection_creative';
+        } else if (abs($temperature - $balancedtemp) < $epsilon) {
+            $data->temperatureprechoice = 'selection_balanced';
+        } else if (abs($temperature - $precisetemp) < $epsilon) {
+            $data->temperatureprechoice = 'selection_precise';
+        } else {
+            $data->temperatureusecustom = 1;
+            $data->temperaturecustom = $temperature;
         }
         return $data;
     }
@@ -106,21 +137,41 @@ class aitool_option_temperature {
     /**
      * Extract the temperature from the form data submitted by the form.
      *
+     * Returns null if the selected model does not support the temperature parameter.
+     * The prechoice values (creative, balanced, precise) are dynamically calculated
+     * based on the model's temperature range.
+     *
      * @param stdClass $data the form data after submission
-     * @return string the temperature value in string representation
+     * @return string|null the temperature value in string representation, or null if not supported
      */
-    public static function extract_temperature_to_store(stdClass $data): string {
+    public static function extract_temperature_to_store(stdClass $data): ?string {
+        $modelobj = null;
+        // Check if the selected model supports temperature.
+        if (!empty($data->model)) {
+            $modelobj = new model((int) $data->model);
+            if ($modelobj->record_exists() && !$modelobj->supports_temperature()) {
+                return null;
+            }
+        }
+
         $temperature = null;
         if (empty($data->temperatureusecustom)) {
+            $min = 0.0;
+            $max = 1.0;
+            if ($modelobj !== null && $modelobj->record_exists()) {
+                $min = $modelobj->get_min_temperature();
+                $max = $modelobj->get_max_temperature();
+            }
+            $range = $max - $min;
             switch ($data->temperatureprechoice) {
                 case 'selection_creative':
-                    $temperature = 0.8;
+                    $temperature = number_format($min + 0.8 * $range, 1);
                     break;
                 case 'selection_balanced':
-                    $temperature = 0.5;
+                    $temperature = number_format($min + 0.5 * $range, 1);
                     break;
                 case 'selection_precise':
-                    $temperature = 0.2;
+                    $temperature = number_format($min + 0.2 * $range, 1);
                     break;
             }
         } else {
@@ -132,16 +183,33 @@ class aitool_option_temperature {
     /**
      * Validation function for the temperature option when form is being submitted.
      *
+     * Skips validation if the selected model does not support the temperature parameter.
+     * Validates the custom temperature value against the model's allowed range.
+     *
      * @param array $data the data being submitted by the form
      * @return array associative array ['mformelementname' => 'error string'] if there are validation errors, otherwise empty array
      */
     public static function validate_temperature(array $data): array {
+        // Skip validation if the model does not support temperature.
+        if (!empty($data['model'])) {
+            $modelobj = new model((int) $data['model']);
+            if ($modelobj->record_exists() && !$modelobj->supports_temperature()) {
+                return [];
+            }
+        }
+
         $errors = [];
-        if (
-            !empty($data['temperaturecustom'])
-            && (floatval($data['temperaturecustom']) < 0 || floatval($data['temperaturecustom']) > 1.0)
-        ) {
-            $errors['temperaturecustom'] = get_string('formvalidation_editinstance_temperaturerange', 'local_ai_manager');
+        if (!empty($data['temperaturecustom'])) {
+            $value = floatval($data['temperaturecustom']);
+            $min = $modelobj->get_min_temperature();
+            $max = $modelobj->get_max_temperature();
+            if ($value < $min || $value > $max) {
+                $errors['temperaturecustom'] = get_string(
+                    'formvalidation_editinstance_temperaturerange',
+                    'local_ai_manager',
+                    ['min' => number_format($min, 1), 'max' => number_format($max, 1)]
+                );
+            }
         }
         return $errors;
     }

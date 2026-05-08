@@ -32,13 +32,13 @@ class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
         $mform->hideIf('endpointdescription', 'connector', 'eq', 'ollama');
-        aitool_option_temperature::extend_form_definition($mform);
+        aitool_option_temperature::extend_form_definition($mform, $this->selectablemodelsobjects);
     }
 
     #[\Override]
     protected function get_extended_formdata(): stdClass {
         $data = new stdClass();
-        $temperaturedata = aitool_option_temperature::add_temperature_to_form_data($this->get_temperature());
+        $temperaturedata = aitool_option_temperature::add_temperature_to_form_data($this->get_temperature(), $this->get_model_object());
         foreach ($temperaturedata as $key => $value) {
             $data->{$key} = $value;
         }
@@ -48,7 +48,7 @@ class instance extends base_instance {
     #[\Override]
     protected function extend_validation(array $data, array $files): array {
         $errors = [];
-        aitool_option_temperature::validate_temperature($data);
+        $errors = array_merge($errors, aitool_option_temperature::validate_temperature($data));
         if (empty($data['endpoint'])) {
             $errors['endpoint'] = get_string('formvalidation_noendpoint', 'aitool_ollama');
         }

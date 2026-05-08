@@ -32,7 +32,7 @@ use stdClass;
 class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
-        aitool_option_temperature::extend_form_definition($mform, ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini']);
+        aitool_option_temperature::extend_form_definition($mform, $this->selectablemodelsobjects);
         aitool_option_azure::extend_form_definition($mform);
         $endpointdescription = get_string('endpointhint', 'aitool_chatgpt')
             . '<br>' . get_string('endpointdefault', 'local_ai_manager', connector::DEFAULT_OPENAI_COMPLETIONS_ENDPOINT);
@@ -61,7 +61,7 @@ class instance extends base_instance {
     protected function get_extended_formdata(): stdClass {
         $data = new stdClass();
         $temperature = floatval($this->get_customfield1());
-        $temperaturedata = aitool_option_temperature::add_temperature_to_form_data($temperature);
+        $temperaturedata = aitool_option_temperature::add_temperature_to_form_data($temperature, $this->get_model_object());
         foreach ($temperaturedata as $key => $value) {
             $data->{$key} = $value;
         }
@@ -77,9 +77,6 @@ class instance extends base_instance {
         $this->set_customfield1($temperature);
 
         [$enabled] = aitool_option_azure::extract_azure_data_to_store($data);
-        if ($enabled) {
-            $this->set_model(aitool_option_azure::get_azure_model_name($this->get_connector()));
-        }
         $this->set_customfield2($enabled);
     }
 
