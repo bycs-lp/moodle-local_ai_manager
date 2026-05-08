@@ -77,7 +77,7 @@ class model_edit_form extends dynamic_form {
         $availableconnectors = array_keys(\core_plugin_manager::instance()->get_installed_plugins('aitool'));
         $connectoroptions = [];
         foreach ($availableconnectors as $connector) {
-            $connectoroptions[$connector] = $connector;
+            $connectoroptions[$connector] = get_string('pluginname', 'aitool_' . $connector);
         }
         $mform->addElement(
             'autocomplete',
