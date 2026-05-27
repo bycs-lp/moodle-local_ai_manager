@@ -238,10 +238,13 @@ class purpose extends base_purpose {
                 $outputrecord['formelements'][$key]['id'] = strip_tags($formelement['id']);
             }
             // Format explanation with Markdown.
+            // We use format_ai_markdown_output() (same as for newValue) to properly escape
+            // raw HTML tags in the AI output before Markdown conversion.
+            // Using format_text() with FORMAT_MARKDOWN directly would mangle raw HTML tags
+            // like <pre> that the AI mentions in explanations.
             if (isset($formelement['explanation'])) {
-                $outputrecord['formelements'][$key]['explanation'] = format_text(
+                $outputrecord['formelements'][$key]['explanation'] = $this->format_ai_markdown_output(
                     $formelement['explanation'],
-                    FORMAT_MARKDOWN,
                     ['filter' => false]
                 );
             }
@@ -259,7 +262,12 @@ class purpose extends base_purpose {
         $outputrecord['chatoutput'] = $this->validate_chatoutput($outputrecord['chatoutput']);
         foreach ($outputrecord['chatoutput'] as $key => $outputobject) {
             $normalizedtext = $this->normalize_chatoutput_newlines($outputobject['text']);
-            $outputrecord['chatoutput'][$key]['text'] = format_text($normalizedtext, FORMAT_MARKDOWN, ['filter' => false]);
+            // Use format_ai_markdown_output() instead of format_text() directly so that
+            // MathJax escaping and HTML tag escaping are applied consistently.
+            $outputrecord['chatoutput'][$key]['text'] = $this->format_ai_markdown_output(
+                $normalizedtext,
+                ['filter' => false]
+            );
         }
 
         return json_encode($outputrecord);
