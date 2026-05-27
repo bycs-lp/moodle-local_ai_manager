@@ -47,7 +47,13 @@ class instance extends base_instance {
         }
         $connectorfactory = \core\di::get(connector_factory::class);
         $connectorinstance = $connectorfactory->get_connector_by_connectorname($this->connector);
-        aitool_option_temperature::extend_form_definition($mform, $connectorinstance->get_models_by_purpose()['imggen']);
+        aitool_option_temperature::extend_form_definition(
+            $mform,
+            array_merge(
+                $connectorinstance->get_models_by_purpose()['imggen'],
+                ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini', 'gpt-5.5']
+            )
+        );
     }
 
     #[\Override]
