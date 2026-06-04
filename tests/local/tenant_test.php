@@ -32,12 +32,23 @@ final class tenant_test extends \advanced_testcase {
      * @covers \local_ai_manager\local\tenant::__construct
      */
     public function test_tenant_name_validation($name, $valid): void {
-        if ($valid) {
-            $tenant = new \local_ai_manager\local\tenant($name);
-            $this->assertSame($name, $tenant->get_identifier());
-        } else {
+        $this->resetAfterTest();
+        global $DB;
+
+        if (!$valid) {
             $this->expectException(\invalid_parameter_exception::class);
             new \local_ai_manager\local\tenant($name);
+        } else {
+            $tenant = new \local_ai_manager\local\tenant($name);
+            $this->assertSame($name, $tenant->get_identifier());
+
+            $DB->insert_record('local_ai_manager_config', (object) [
+                'tenant' => $tenant->get_identifier(),
+                'configkey' => 'tenantenabled',
+                'configvalue' => '1',
+            ]);
+            $record = $DB->get_record('local_ai_manager_config', ['tenant' => $tenant->get_identifier()]);
+            $this->assertSame($name, $record->tenant);
         }
     }
 
@@ -119,6 +130,46 @@ final class tenant_test extends \advanced_testcase {
             'identifier_with_trailing_whitespace' => [
                 'name' => 'Whitespace School ',
                 'valid' => false,
+            ],
+            'identifier_french_compound' => [
+                'name' => 'Île-de-France',
+                'valid' => true,
+            ],
+            'identifier_spanish_tilde' => [
+                'name' => 'España',
+                'valid' => true,
+            ],
+            'identifier_german_eszett' => [
+                'name' => 'Straße 42',
+                'valid' => true,
+            ],
+            'identifier_cjk' => [
+                'name' => '北京大学',
+                'valid' => false,
+            ],
+            'identifier_arabic' => [
+                'name' => 'مرحبا',
+                'valid' => false,
+            ],
+            'identifier_cyrillic' => [
+                'name' => 'Москва',
+                'valid' => false,
+            ],
+            'identifier_greek' => [
+                'name' => 'Αθήνα',
+                'valid' => false,
+            ],
+            'identifier_emoji_mixed' => [
+                'name' => 'Schule 🏫',
+                'valid' => false,
+            ],
+            'identifier_vietnamese' => [
+                'name' => 'Hà Nội',
+                'valid' => true,
+            ],
+            'identifier_ipa' => [
+                'name' => 'ɐɹʇ',
+                'valid' => true,
             ],
         ];
     }
