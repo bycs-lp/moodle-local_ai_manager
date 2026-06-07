@@ -32,7 +32,7 @@ use stdClass;
 class instance extends base_instance {
     #[\Override]
     protected function extend_form_definition(\MoodleQuickForm $mform): void {
-        aitool_option_temperature::extend_form_definition($mform, ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini']);
+        aitool_option_temperature::extend_form_definition($mform, ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini', 'gpt-5.5']);
         aitool_option_azure::extend_form_definition($mform);
         $endpointdescription = get_string('endpointhint', 'aitool_chatgpt')
             . '<br>' . get_string('endpointdefault', 'local_ai_manager', connector::DEFAULT_OPENAI_COMPLETIONS_ENDPOINT);
