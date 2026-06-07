@@ -198,11 +198,11 @@ class base_purpose {
             $mathcounter++;
             return $placeholder;
         };
-        // \[ ... \] display math (must come before \( to avoid partial overlap).
+        // Protect display math delimited by escaped square brackets first to avoid partial overlap.
         $markdown = preg_replace_callback('/\\\\\[(.+?)\\\\\]/s', fn(array $m) => $protectmath($m[0]), $markdown);
-        // $$ ... $$ display math.
+        // Protect display math delimited by double dollar signs.
         $markdown = preg_replace_callback('/\$\$(.+?)\$\$/s', fn(array $m) => $protectmath($m[0]), $markdown);
-        // \( ... \) inline math.
+        // Protect inline math delimited by escaped parentheses.
         $markdown = preg_replace_callback('/\\\\\((.+?)\\\\\)/s', fn(array $m) => $protectmath($m[0]), $markdown);
 
         // Convert HTML code blocks (<pre><code>) from LLM output to markdown fenced code blocks.

@@ -145,14 +145,24 @@ final class purpose_test extends advanced_testcase {
 
     /**
      * Test that dangerous HTML in AI feedback is still sanitized.
+     *
+     * The parent format_ai_markdown_output() escapes raw HTML tags outside code blocks
+     * as literal text (e.g. <script> becomes &lt;script&gt;) rather than removing them.
+     * This is safe because the browser will not execute escaped tags. The escaped tag's
+     * inner text content (like the literal word "alert") may still appear visibly, but
+     * never as executable HTML.
      */
     public function test_xss_sanitized_with_math(): void {
         $purpose = new purpose();
         $input = 'Feedback: <script>alert("xss")</script> und \( x^2 \)';
         $output = $purpose->format_output($input);
 
+        // The <script> tag must be escaped, not rendered as an HTML tag.
         $this->assertStringNotContainsString('<script>', $output);
-        $this->assertStringNotContainsString('alert(', $output);
+        $this->assertStringNotContainsString('<script ', $output);
+        $this->assertStringContainsString('&lt;script&gt;', $output);
+        $this->assertStringContainsString('&lt;/script&gt;', $output);
+        // The math content must survive intact.
         $this->assertStringContainsString('\( x^2 \)', $output);
     }
 
