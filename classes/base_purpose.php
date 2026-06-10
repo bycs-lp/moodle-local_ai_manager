@@ -16,6 +16,7 @@
 
 namespace local_ai_manager;
 
+use coding_exception;
 use core_plugin_manager;
 use local_ai_manager\local\userinfo;
 
@@ -28,13 +29,20 @@ use local_ai_manager\local\userinfo;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class base_purpose {
-    /** @var string Constant for defining that a purpose option is an array */
+    /** @var string Constant for defining that a purpose option is an array. */
     const PARAM_ARRAY = 'array';
+
+    /** @var string Prefix used for opaque MathJax placeholders during the pipeline. */
+    private const MATHJAX_PLACEHOLDER_PREFIX = 'AIMATHJAXPLACEHOLDER';
+
+    /** @var string Suffix used for opaque MathJax placeholders during the pipeline. */
+    private const MATHJAX_PLACEHOLDER_SUFFIX = 'END';
 
     /**
      * Returns a localized description of the purpose.
      *
      * @return string the localized string describing the purpose and what it's supposed to be used for
+     * @throws coding_exception when no purposedescription lang string exists for this purpose.
      */
     public function get_description(): string {
         return get_string('purposedescription', 'aipurpose_' . $this->get_plugin_name());
@@ -42,16 +50,6 @@ class base_purpose {
 
     /**
      * Helper function that returns an array with purposes.
-     *
-     * The returned array has all installed purposes as keys and an empty array as value so that single purpose keys can be
-     * overridden by the purpose subplugins to define which purposes they want to support.
-     *
-     * The array has the form:
-     * [
-     *     'chat' => [],
-     *     'feedback' => [],
-     *     ... all other installed purposes ...
-     * ]
      *
      * @return array the array with names of all installed purposes as keys and empty arrays as values
      */
@@ -84,10 +82,6 @@ class base_purpose {
     /**
      * Function that can be used by subclasses to manipulate the options being sent in a request.
      *
-     * Subclasses can override this function and manipulate the options being sent in a request to the
-     * needs of the specific purpose. The default is to just use all options. The options are being sanitized before
-     * by using {@see self::get_available_purpose_options}.
-     *
      * @param array $options the options being sent in the request
      * @return array the manipulated options
      */
@@ -109,10 +103,10 @@ class base_purpose {
      *
      * @param string $purpose the purpose name
      * @param int $role the local_ai_manager internal role to retrieve the config key for
-     * @return string the config key for storing the config setting for accessing the config via the config manager
+     * @return string the config key
+     * @throws coding_exception if the role cannot be resolved to a known role string.
      */
     public static function get_purpose_tool_config_key(string $purpose, int $role): string {
-        // Currently, userinfo::ROLE_EXTENDED and userinfo::ROLE_UNLIMITED are handled equally.
         if ($role === userinfo::ROLE_UNLIMITED) {
             $role = userinfo::ROLE_EXTENDED;
         }
@@ -132,7 +126,7 @@ class base_purpose {
      * Get the options defined by this purpose.
      *
      * @return array associative array defining the options
-     * @throws \coding_exception in case that a subclass tries to define an option which is already being defined in the
+     * @throws coding_exception in case that a subclass tries to define an option which is already being defined in the
      *  parent class
      */
     final public function get_available_purpose_options(): array {
@@ -142,8 +136,8 @@ class base_purpose {
         $additionalpurposeoptions = $this->get_additional_purpose_options();
         foreach (array_keys($additionalpurposeoptions) as $purposeoption) {
             if (in_array($purposeoption, $options)) {
-                throw new \coding_exception('You must not define options in the purpose subclass which are being used in the '
-                . 'base class.');
+                throw new coding_exception('You must not define options in the purpose subclass which are being used in the '
+                    . 'base class.');
             }
         }
         return $options + $additionalpurposeoptions;
@@ -151,8 +145,6 @@ class base_purpose {
 
     /**
      * Function to define purpose options.
-     *
-     * Should be overwritten of subclasses if they want to add options.
      *
      * @return array the options array
      */
@@ -163,127 +155,284 @@ class base_purpose {
     /**
      * Most AI tools will return Markdown code, so we use this as default.
      *
-     * Can be overwritten by purposes which return special content, for example single strings which should not be wrapped
-     * or cleaned.
-     *
      * @param string $output the output/result from the API of the AI tool
      * @return string the formatted output
+     * @throws coding_exception if format_text() fails to resolve a context, which should not happen in this code path.
      */
     public function format_output(string $output): string {
         return $this->format_ai_markdown_output($output, ['filter' => false, 'newlines' => false]);
     }
 
     /**
-     * Converts markdown text to sanitized HTML.
+     * Converts LLM-emitted Markdown (and possibly mixed HTML) into safely sanitized HTML.
      *
-     * First converts markdown to HTML using Moodle's core markdown_to_html() function,
-     * then sanitizes the result with format_text() to prevent XSS from raw HTML
-     * that the LLM might return.
+     * This is a six-stage pipeline. The stages are pure and well-defined, so each one
+     * can be unit-tested in isolation. The order and the contract between stages is
+     * critical to security AND correctness; do not reorder them without re-reading the
+     * docblocks.
+     *
+     *   Stage 1: Protect MathJax/LaTeX blocks behind opaque placeholders.
+     *            Rationale: PHP Markdown Extra interprets the backslash as an escape
+     *            character and would mangle inline math, display math, and macros like
+     *            "frac". We save them, run the pipeline on placeholder strings, and
+     *            restore them in stage 5.
+     *
+     *   Stage 2: Convert LLM-emitted raw "pre code" HTML blocks into Markdown fenced
+     *            code blocks. Some models still emit HTML for code; we want them to
+     *            take the same pipeline path as native Markdown fences.
+     *
+     *   Stage 3: Normalize Markdown structure (lists, fenced-code openings) so that
+     *            PHP Markdown Extra parses them correctly. The regexes are
+     *            intentionally conservative — see {@see self::normalize_markdown_structure()}
+     *            for the exact contract.
+     *
+     *   Stage 4: Neutralize every raw HTML tag that appears OUTSIDE code/blockquote
+     *            regions. We extract those regions behind null-byte placeholders,
+     *            run htmlspecialchars on what is left, and restore the regions.
+     *            After this stage no executable HTML can survive in prose context.
+     *
+     *   Stage 5: Run markdown_to_html() (uses MarkdownExtra), then restore the
+     *            MathJax placeholders saved in stage 1, then wrap stray LaTeX
+     *            environment patterns outside "pre" blocks in mathjax_ignore spans.
+     *
+     *   Stage 6: Run format_text() with noclean=true so HTMLPurifier does NOT
+     *            re-process the already-safe Markdown HTML output. HTMLPurifier
+     *            would otherwise:
+     *              - strip class="language-*" from generated code tags (breaks
+     *                syntax highlight CSS hooks),
+     *              - re-decode HTML entities inside pre/code blocks (caused the
+     *                heading regression observed in MBS-10767).
+     *            Skipping HTMLPurifier is safe because every untrusted token has
+     *            already been neutralized in stage 4 OR is inside a MarkdownExtra
+     *            code block where entities are emitted as encoded text.
      *
      * @param string $markdown The markdown text to convert.
-     * @param array $options Additional options to pass to format_text().
+     * @param array $options Additional options to pass to format_text(). The
+     *      noclean flag is always overridden to true by this method; any caller-
+     *      supplied value is intentionally ignored for the security reason above.
      * @return string The sanitized HTML output.
+     * @throws coding_exception if Moodle's format_text() rejects the input. Should
+     *      never occur in this code path because input is always FORMAT_HTML.
      */
     public function format_ai_markdown_output(string $markdown, array $options = []): string {
-        // Convert HTML code blocks (<pre><code>) from LLM output to markdown fenced code blocks.
-        // Some LLMs return raw HTML code blocks instead of markdown syntax. We convert them
-        // to markdown fenced code blocks so they are properly handled by the existing pipeline.
-        $markdown = preg_replace_callback(
-            '/<pre>\s*<code(?:\s+class="language-(\w+)")?\s*>([\s\S]*?)<\/code>\s*<\/pre>/i',
-            function ($matches) {
-                $lang = $matches[1] ?? '';
-                // Decode any HTML entities in the code content since it will be
-                // re-encoded by MarkdownExtra when converting back to HTML.
-                $code = html_entity_decode($matches[2], ENT_QUOTES | ENT_HTML401, 'UTF-8');
-                return "\n\n\x60\x60\x60" . $lang . "\n" . $code . "\n\x60\x60\x60\n\n";
-            },
-            $markdown
-        );
+        // Stage 1: save MathJax blocks behind placeholders so MarkdownExtra cannot mangle them.
+        $mathblocks = [];
+        $markdown = self::protect_math_blocks($markdown, $mathblocks);
 
-        // Ensure blank lines around fenced code blocks inside list items.
-        // PHP Markdown Extra only correctly parses fenced code blocks (including language identifiers)
-        // inside "loose" list items (separated by blank lines). Without blank lines,
-        // fenced code blocks are either rendered without <pre> or completely broken.
-        // We normalize by:
-        // 1. Adding a blank line before every list item marker (* or -) to make all list items "loose".
-        $markdown = preg_replace('/(?<!\n)\n(\s*[\*\-]\s)/', "\n\n$1", $markdown);
-        // 2. Adding a blank line before fenced code block openings with language identifiers
-        // (e.g. html) that directly follow a non-empty line. Code blocks without language
-        // identifiers work correctly without this fix.
-        $markdown = preg_replace('/(?<!\n)\n(\s*\x60{3}\w)/', "\n\n$1", $markdown);
+        // Stage 2: turn LLM-emitted raw pre/code HTML into Markdown fenced code blocks.
+        $markdown = self::html_code_blocks_to_markdown_fences($markdown);
 
-        // Escape raw HTML tags outside code blocks so they are displayed as literal text
-        // instead of being silently removed by format_text() sanitization.
-        // Strategy: Extract code regions first, escape the remaining text with s(), then restore code regions.
+        // Stage 3: normalize Markdown structure so PHP Markdown Extra parses lists and fences correctly.
+        $markdown = self::normalize_markdown_structure($markdown);
 
-        // Step 1: Extract fenced code blocks, inline code and blockquote markers,
-        // replacing them with placeholders.
-        $placeholders = [];
-        $counter = 0;
-        // Generate a unique placeholder prefix that does not appear in the markdown text.
-        // The prefix starts with a null byte (\x00) which never occurs in normal text or LLM output,
-        // making collisions extremely unlikely. If a collision is detected, 'X' is appended
-        // repeatedly until the prefix is unique.
-        $placeholderprefix = self::generate_placeholder_prefix($markdown);
-        // Fenced code blocks (triple backticks or triple tildes) and inline code.
-        $codepattern = '/(\x60{3,}[\s\S]*?\x60{3,}|~{3,}[\s\S]*?~{3,}|\x60[^\x60\n]+\x60)/';
-        $markdown = preg_replace_callback($codepattern, function ($m) use (&$placeholders, &$counter, $placeholderprefix) {
-            $key = $placeholderprefix . $counter++ . "\x00";
-            $placeholders[$key] = $m[0];
-            return $key;
-        }, $markdown);
-        // Blockquote markers (> at start of line, possibly nested).
-        $markdown = preg_replace_callback('/^(\s*>)+/m', function ($m) use (&$placeholders, &$counter, $placeholderprefix) {
-            $key = $placeholderprefix . $counter++ . "\x00";
-            $placeholders[$key] = $m[0];
-            return $key;
-        }, $markdown);
+        // Stage 4: neutralize raw HTML outside code/blockquote regions (XSS prevention).
+        $markdown = self::neutralize_raw_html_outside_code($markdown);
 
-        // Step 2: Escape all HTML in the remaining (non-code) text.
-        // We use htmlspecialchars with double_encode=false to avoid double-escaping
-        // existing HTML entities (e.g. &amp; or &lt;) that the LLM might return.
-        // Moodle's s() function cannot be used here because it always double-encodes.
-        $markdown = htmlspecialchars($markdown, ENT_QUOTES | ENT_HTML401 | ENT_SUBSTITUTE, 'UTF-8', false);
-
-        // Step 3: Restore code regions and blockquote markers from placeholders.
-        $markdown = str_replace(array_keys($placeholders), array_values($placeholders), $markdown);
-
-        // Use Moodle's core markdown_to_html() function.
-        // It uses MarkdownExtra which already escapes HTML inside code blocks by default.
+        // Stage 5: Markdown to HTML, restore MathJax blocks, then guard MathJax environments.
         $html = markdown_to_html($markdown);
-
-        // Escape MathJax \begin{...}/\end{...} environment patterns outside <pre> blocks.
-        // MathJax's client-side processing picks up these patterns anywhere in the page DOM
-        // and tries to render them as math environments. This is undesirable when the LLM
-        // returns LaTeX code (like \begin{document}) outside of fenced code blocks.
+        $html = self::restore_math_blocks($html, $mathblocks);
         $html = self::escape_mathjax_environments($html);
 
-        // Apply Moodle output function for both sanitizing and other Moodle specific formatting.
-        // Previously converted markdown-generated structure is being preserved.
-        // This prevents XSS from raw HTML that the LLM might return.
+        // Stage 6: final pass through Moodle's format_text() WITHOUT HTMLPurifier.
+        //
+        // We override noclean unconditionally, even if the caller passed noclean=false,
+        // because the security model of this pipeline relies on stage 4 having already
+        // escaped every untrusted token. Running HTMLPurifier on top is at best a no-op
+        // and at worst actively destructive (it strips class="language-*" from
+        // generated code tags and re-decodes entities inside pre/code).
+        $options['noclean'] = true;
         return format_text($html, FORMAT_HTML, $options);
     }
 
     /**
-     * Escapes MathJax \begin{...} and \end{...} patterns outside pre blocks in HTML.
+     * Stage 1 of {@see self::format_ai_markdown_output()}.
      *
-     * MathJax's client-side processing picks up \begin{...}...\end{...} patterns
-     * anywhere in the page DOM and tries to render them as math environments.
-     * This is undesirable when the LLM returns LaTeX structural commands
-     * (like \begin{document}) outside of code blocks, as they get incorrectly
-     * rendered as (broken) math.
+     * Replaces every MathJax block in the given text with an opaque placeholder so
+     * that subsequent Markdown processing cannot interpret the backslashes inside
+     * them as escape sequences. Supported delimiters: inline math, display math
+     * with square brackets, and display math with double dollar signs.
      *
-     * This method wraps such patterns in a span element with the
-     * mathjax_ignore class that tells MathJax v3 to ignore them.
-     * Content inside pre blocks is not modified, since MathJax already
-     * skips pre elements by default.
+     * Visibility is protected (not private) so individual stages can be exercised
+     * directly via a test-only subclass in unit tests without resorting to reflection.
+     *
+     * @param string $text The raw text potentially containing MathJax blocks.
+     * @param array<string,string> $mathblocks Out parameter: placeholder to original-content map.
+     * @return string The text with all MathJax blocks replaced by placeholders.
+     */
+    protected static function protect_math_blocks(string $text, array &$mathblocks): string {
+        $counter = 0;
+        $protect = static function (array $m) use (&$mathblocks, &$counter): string {
+            $placeholder = self::MATHJAX_PLACEHOLDER_PREFIX . $counter . self::MATHJAX_PLACEHOLDER_SUFFIX;
+            $mathblocks[$placeholder] = $m[0];
+            $counter++;
+            return $placeholder;
+        };
+
+        // Display math with square brackets is protected first because both display
+        // and inline math start with a backslash, and a partial match against the
+        // inline pattern would shadow the display variant.
+        $text = preg_replace_callback('/\\\\\[(.+?)\\\\\]/s', $protect, $text);
+        // Display math delimited by double dollar signs.
+        $text = preg_replace_callback('/\$\$(.+?)\$\$/s', $protect, $text);
+        // Inline math delimited by escaped parentheses.
+        return preg_replace_callback('/\\\\\((.+?)\\\\\)/s', $protect, $text);
+    }
+
+    /**
+     * Restores the MathJax blocks that were saved by {@see self::protect_math_blocks()}.
+     *
+     * Called AFTER markdown_to_html() so the math content reaches the browser exactly
+     * as the LLM emitted it. HTMLPurifier does not run at this stage (see
+     * {@see self::format_ai_markdown_output()}), so backslashes in the math are safe.
+     *
+     * @param string $html The HTML output of markdown_to_html().
+     * @param array<string,string> $mathblocks Placeholder to original-content map.
+     * @return string The HTML with all placeholders replaced by the original math.
+     */
+    protected static function restore_math_blocks(string $html, array $mathblocks): string {
+        if (empty($mathblocks)) {
+            return $html;
+        }
+        return str_replace(array_keys($mathblocks), array_values($mathblocks), $html);
+    }
+
+    /**
+     * Stage 2 of {@see self::format_ai_markdown_output()}.
+     *
+     * Some LLMs emit raw pre/code HTML for code blocks instead of native Markdown
+     * fences. Convert them to fences so the rest of the pipeline can treat them
+     * uniformly. HTML entities inside the original code body are decoded once
+     * because MarkdownExtra will re-encode them.
+     *
+     * @param string $markdown The Markdown input.
+     * @return string The Markdown with HTML code blocks converted to fenced blocks.
+     */
+    protected static function html_code_blocks_to_markdown_fences(string $markdown): string {
+        $fence = str_repeat(chr(96), 3);
+        return preg_replace_callback(
+            '/<pre>\s*<code(?:\s+class="language-(\w+)")?\s*>([\s\S]*?)<\/code>\s*<\/pre>/i',
+            static function (array $matches) use ($fence): string {
+                $lang = $matches[1] ?? '';
+                $code = html_entity_decode($matches[2], ENT_QUOTES | ENT_HTML401, 'UTF-8');
+                return "\n\n" . $fence . $lang . "\n" . $code . "\n" . $fence . "\n\n";
+            },
+            $markdown
+        );
+    }
+
+    /**
+     * Stage 3 of {@see self::format_ai_markdown_output()}.
+     *
+     * Inserts blank lines in two narrow situations to make PHP Markdown Extra parse
+     * the LLM's tight Markdown correctly without changing visual structure:
+     *
+     *   (a) The FIRST item of a tight list (asterisk or hyphen marker) is preceded
+     *       by a blank line so MarkdownExtra treats the list as loose. This makes
+     *       fenced code blocks INSIDE list items get recognized. We never touch
+     *       subsequent list items (so the list stays one coherent ul), and we
+     *       never match emphasis markers like asterisk-bold-asterisk because the
+     *       regex requires whitespace AND a non-whitespace character after the
+     *       marker.
+     *
+     *   (b) A fenced code-block opening with a language identifier that directly
+     *       follows a non-empty line gets a blank line inserted before it. Without
+     *       this, MarkdownExtra treats the opening fence as continuation of the
+     *       previous paragraph or list item, leading to the regression where
+     *       hash-include inside the code block was parsed as a Markdown h1 heading.
+     *
+     * Both regexes use a positive lookbehind for a non-whitespace character so
+     * they only trigger when the previous character is actual content (not
+     * whitespace and not a newline). This prevents matches at the very start of
+     * the buffer and inside already-loose structures, which is what we want.
+     *
+     * @param string $markdown The Markdown input.
+     * @return string The structurally normalized Markdown.
+     */
+    protected static function normalize_markdown_structure(string $markdown): string {
+        // Stage 3a: loose-ify the FIRST item of a tight list, never the middle items.
+        $markdown = preg_replace(
+            '/(?<=\S)\n([ \t]*)([*-])(\s+\S)/',
+            "\n\n$1$2$3",
+            $markdown
+        );
+        // Stage 3b: loose-ify fenced code-block opening with language id following prose.
+        $fenceopen = chr(96) . chr(96) . chr(96);
+        return preg_replace(
+            '/(?<=\S)\n([ \t]*' . preg_quote($fenceopen, '/') . '\w)/',
+            "\n\n$1",
+            $markdown
+        );
+    }
+
+    /**
+     * Stage 4 of {@see self::format_ai_markdown_output()}.
+     *
+     * Removes the possibility of any raw HTML tag from the LLM reaching the browser
+     * as executable HTML, while keeping code regions and blockquote markers intact.
+     *
+     * Algorithm:
+     *   1. Extract every fenced code block, inline code span and blockquote line
+     *      prefix and replace each with a unique null-byte-anchored placeholder.
+     *      Null bytes are forbidden in JSON, so they cannot occur in any LLM output
+     *      and collisions are impossible.
+     *   2. Run htmlspecialchars on the remaining (prose) text. double_encode=false
+     *      avoids double-escaping entities the LLM emitted correctly (for example
+     *      an ampersand entity). Moodle's s() cannot be used here because it always
+     *      double-encodes.
+     *   3. Restore the placeholders.
+     *
+     * After this stage, no live HTML tag exists outside MarkdownExtra-managed code
+     * regions, where MarkdownExtra itself encodes everything safely.
+     *
+     * @param string $markdown The Markdown input.
+     * @return string The Markdown with raw HTML outside code regions HTML-escaped.
+     */
+    protected static function neutralize_raw_html_outside_code(string $markdown): string {
+        $placeholders = [];
+        $counter = 0;
+        $placeholderprefix = self::generate_placeholder_prefix($markdown);
+
+        $store = static function (array $m) use (&$placeholders, &$counter, $placeholderprefix): string {
+            $key = $placeholderprefix . $counter++ . "\x00";
+            $placeholders[$key] = $m[0];
+            return $key;
+        };
+
+        // Fenced code blocks (triple-backtick or triple-tilde) and inline code spans.
+        $codepattern = '/(' . chr(96) . '{3,}[\s\S]*?' . chr(96) . '{3,}|~{3,}[\s\S]*?~{3,}|'
+            . chr(96) . '[^' . chr(96) . '\n]+' . chr(96) . ')/';
+        $markdown = preg_replace_callback($codepattern, $store, $markdown);
+        // Blockquote line-prefix markers (one or more closing-angle brackets at line start,
+        // possibly indented).
+        $markdown = preg_replace_callback('/^(\s*>)+/m', $store, $markdown);
+
+        // Escape everything that is now NOT a placeholder.
+        $markdown = htmlspecialchars(
+            $markdown,
+            ENT_QUOTES | ENT_HTML401 | ENT_SUBSTITUTE,
+            'UTF-8',
+            false
+        );
+
+        // Restore the placeholders.
+        return str_replace(array_keys($placeholders), array_values($placeholders), $markdown);
+    }
+
+    /**
+     * Escapes MathJax begin/end environment patterns outside pre blocks in HTML.
+     *
+     * MathJax v3 picks these patterns up anywhere in the page DOM and tries to
+     * render them as math environments. When the LLM emits LaTeX source code in
+     * prose context (for example a tutorial about LaTeX containing
+     * begin-document), MathJax would incorrectly interpret that as displayable
+     * math. We wrap such patterns in a mathjax_ignore span so MathJax leaves
+     * them alone. Content inside pre is not modified because MathJax already
+     * skips pre by default.
      *
      * @param string $html The HTML to process.
-     * @return string The HTML with MathJax environment patterns escaped outside pre blocks.
+     * @return string The HTML with begin/end environment markers outside pre wrapped.
      */
     public static function escape_mathjax_environments(string $html): string {
-        // Split on <pre>...</pre> to avoid modifying content inside code blocks.
-        // MathJax already ignores content inside <pre> elements by default.
         $parts = preg_split(
             '/(<pre[\s>][\s\S]*?<\/pre>)/i',
             $html,
@@ -292,28 +441,24 @@ class base_purpose {
         );
 
         for ($i = 0, $count = count($parts); $i < $count; $i++) {
-            // Even indices are outside <pre> blocks, odd indices are matched <pre> blocks.
+            // Even indices are outside pre blocks; odd indices are matched pre blocks.
             if ($i % 2 === 0) {
-                // Wrap \begin{...} and \end{...} patterns in MathJax ignore spans.
                 $parts[$i] = preg_replace(
-                    '/\\\\(begin|end)\\{[^}]*\\}/',
+                    '/\\\\(begin|end)\{[^}]*}/',
                     '<span class="mathjax_ignore">$0</span>',
                     $parts[$i]
                 );
             }
         }
-
         return implode('', $parts);
     }
 
     /**
      * Generates a unique placeholder prefix string that does not occur in the given text.
      *
-     * This is used to safely replace and restore code regions and blockquote markers
-     * during HTML escaping without collisions with existing text content.
-     * The prefix starts with a null byte (\x00) which never occurs in normal text or
-     * LLM output, making collisions extremely unlikely. If a collision is still detected,
-     * 'X' is appended deterministically until the prefix is unique.
+     * The default prefix starts with a NULL byte which never occurs in normal LLM
+     * output (JSON forbids it). If a collision is detected anyway, an X is appended
+     * deterministically until the prefix is unique.
      *
      * @param string $text The text to check for collisions.
      * @return string A placeholder prefix guaranteed not to appear in the text.
@@ -330,11 +475,12 @@ class base_purpose {
      * Formats the given prompt text based on the provided sanitized options.
      *
      * @param string $prompttext The prompt text to be formatted.
-     * @param request_options $requestoptions The request options objects.
-     *
+     * @param request_options $requestoptions The request options object. Reserved
+     *      for use by subclasses; the base implementation does not consume it.
      * @return string The formatted prompt text as string.
      */
     public function format_prompt_text(string $prompttext, request_options $requestoptions): string {
+        unset($requestoptions);
         return $prompttext;
     }
 }

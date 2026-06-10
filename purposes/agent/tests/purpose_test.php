@@ -300,7 +300,7 @@ final class purpose_test extends \advanced_testcase {
                     ],
                 ]),
                 // MarkdownExtra consumes escaped parentheses: \( becomes (.
-                'expectedcontains' => '(x^2)',
+                'expectedcontains' => '\\(x^2\\)',
             ],
             'mathjax_display_delimiters_consumed_by_markdown_in_explanation' => [
                 'input' => json_encode([
@@ -319,7 +319,7 @@ final class purpose_test extends \advanced_testcase {
                     ],
                 ]),
                 // MarkdownExtra consumes escaped brackets: \[ becomes [.
-                'expectedcontains' => '[E = mc^2]',
+                'expectedcontains' => '\\[E = mc^2\\]',
             ],
             'mathjax_begin_end_escaped_in_explanation' => [
                 'input' => json_encode([
@@ -563,12 +563,12 @@ final class purpose_test extends \advanced_testcase {
             ],
             'mathjax_inline_delimiters_consumed_by_markdown' => [
                 'text' => 'The formula \(x^2 + y^2\) is a sum of squares.',
-                'mustcontain' => ['(x^2 + y^2)'],
+                'mustcontain' => ['\\(x^2 + y^2\\)'],
                 'mustnotcontain' => [],
             ],
             'mathjax_display_delimiters_consumed_by_markdown' => [
                 'text' => 'Display: \[E = mc^2\] is famous.',
-                'mustcontain' => ['[E = mc^2]'],
+                'mustcontain' => ['\\[E = mc^2\\]'],
                 'mustnotcontain' => [],
             ],
         ];
@@ -1596,5 +1596,535 @@ final class purpose_test extends \advanced_testcase {
 
         $result = $purpose->get_additional_request_options($options);
         $this->assertEmpty($result);
+    }
+
+    // -----------------------------------------------------------------
+    // Section X: MBS-10767 follow-up regression suite.
+
+    /*
+     * These tests pin down the four symptoms originally documented in
+     * screenshots attached to MBS-10767 in production with telli/gpt-5.
+     *
+     * Symptom A: Raw HTML in newValue must be preserved verbatim in the
+     *            JSON output (so the editor can inject it), while the
+     *            suggestiondisplayvalue shows the safely escaped variant.
+     * Symptom B: A hash-include line inside a fenced code block must never
+     *            be rendered as an h1 heading in the chatoutput.
+     * Symptom C: Fenced code blocks with a language identifier must
+     *            survive with their class attribute.
+     * Symptom D: MathJax / LaTeX placeholders must never leak through any
+     *            text-bearing field of the JSON response.
+     */
+
+    /**
+     * Data provider for MBS-10767 follow-up regression tests.
+     *
+     * Each fixture mirrors a real LLM response shape captured during the
+     * investigation of MBS-10767 and exercises exactly one previously-observed
+     * frontend symptom.
+     *
+     * @return array<string, array{
+     *     llmjson: string,
+     *     newvaluemustcontain: list<string>,
+     *     newvaluemustnotcontain: list<string>,
+     *     displayvaluemustcontain: list<string>,
+     *     displayvaluemustnotcontain: list<string>,
+     *     explanationmustcontain: list<string>,
+     *     explanationmustnotcontain: list<string>,
+     *     introtextmustcontain: list<string>,
+     *     introtextmustnotcontain: list<string>,
+     * }>
+     */
+    public static function regression_mbs10767_provider(): array {
+        $fence = "\x60\x60\x60";
+
+        return [
+            // Symptom A: raw HTML in newValue must be preserved verbatim
+            // for editor injection. The suggestiondisplayvalue is the safely
+            // escaped variant that the frontend mustache template renders.
+            'symptom_a_raw_html_in_newvalue_is_preserved_unchanged' => [
+                'llmjson' => json_encode([
+                    'formelements' => [[
+                        'id' => 'id_summary_editor',
+                        'name' => 'summary',
+                        'newValue' => '<p>In diesem Kurs lernen Sie die Grundlagen.</p>'
+                            . '<p><strong>Kleine "Hello-World"-Beispiele</strong></p>',
+                        'label' => 'Kursbeschreibung',
+                        'explanation' => 'Vorgeschlagene Beschreibung.',
+                    ]],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Vorschlag erstellt.'],
+                        ['type' => 'outro', 'text' => ''],
+                    ],
+                ]),
+                'newvaluemustcontain' => [
+                    '<p>In diesem Kurs lernen Sie die Grundlagen.</p>',
+                    '<p><strong>Kleine "Hello-World"-Beispiele</strong></p>',
+                ],
+                'newvaluemustnotcontain' => ['&lt;p&gt;', '&amp;lt;'],
+                'displayvaluemustcontain' => ['&lt;p&gt;In diesem Kurs', '&lt;strong&gt;Kleine'],
+                'displayvaluemustnotcontain' => ['<script', "\x00PLACEHOLDER"],
+                'explanationmustcontain' => ['Vorgeschlagene Beschreibung.'],
+                'explanationmustnotcontain' => [],
+                'introtextmustcontain' => ['Vorschlag erstellt.'],
+                'introtextmustnotcontain' => [],
+            ],
+
+            // Symptom B: `#include <stdio.h>` inside a fenced code block must
+            // not become a Markdown heading at any layer of the pipeline.
+            'symptom_b_hash_include_in_code_block_never_becomes_heading' => [
+                'llmjson' => json_encode([
+                    'formelements' => [],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => "Hier ist ein C-Beispiel:\n\n{$fence}c\n"
+                            . "#include <stdio.h>\nint main(void) { return 0; }\n{$fence}"],
+                        ['type' => 'outro', 'text' => ''],
+                    ],
+                ]),
+                'newvaluemustcontain' => [],
+                'newvaluemustnotcontain' => [],
+                'displayvaluemustcontain' => [],
+                'displayvaluemustnotcontain' => [],
+                'explanationmustcontain' => [],
+                'explanationmustnotcontain' => [],
+                'introtextmustcontain' => ['<pre>', '<code class="c"', '#include &lt;stdio.h&gt;'],
+                'introtextmustnotcontain' => ['<h1>#include', '<h2>#include'],
+            ],
+
+            // Symptom C: code-block language class must survive through to
+            // the rendered HTML in the chatoutput intro text.
+            'symptom_c_language_class_survives_in_chatoutput' => [
+                'llmjson' => json_encode([
+                    'formelements' => [],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => "Python:\n\n{$fence}python\nprint(\"Hello, World!\")\n{$fence}"],
+                        ['type' => 'outro', 'text' => ''],
+                    ],
+                ]),
+                'newvaluemustcontain' => [],
+                'newvaluemustnotcontain' => [],
+                'displayvaluemustcontain' => [],
+                'displayvaluemustnotcontain' => [],
+                'explanationmustcontain' => [],
+                'explanationmustnotcontain' => [],
+                'introtextmustcontain' => ['<pre>', '<code class="python"', 'print("Hello, World!")'],
+                'introtextmustnotcontain' => [],
+            ],
+
+            // Symptom D: MathJax-protection placeholders must never leak into
+            // any text-bearing field of the JSON response.
+            'symptom_d_no_mathjax_placeholder_leaks_to_any_field' => [
+                'llmjson' => json_encode([
+                    'formelements' => [[
+                        'id' => 'id_summary_editor',
+                        'name' => 'summary',
+                        'newValue' => 'Die binomische Formel \\( (a+b)^2 = a^2 + 2ab + b^2 \\).',
+                        'label' => 'Kursbeschreibung',
+                        'explanation' => 'Erklärt \\[ a^2 + b^2 = c^2 \\] und $$x^2$$.',
+                    ]],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Formel: \\( e = mc^2 \\) eingefügt.'],
+                        ['type' => 'outro', 'text' => 'Weitere Frage: $$y = mx + b$$?'],
+                    ],
+                ]),
+                'newvaluemustcontain' => ['\\( (a+b)^2'],
+                'newvaluemustnotcontain' => ['AIMATHJAXPLACEHOLDER', "\x00PLACEHOLDER"],
+                'displayvaluemustcontain' => ['\\( (a+b)^2'],
+                'displayvaluemustnotcontain' => ['AIMATHJAXPLACEHOLDER', "\x00PLACEHOLDER"],
+                'explanationmustcontain' => ['\\[', '$$'],
+                'explanationmustnotcontain' => ['AIMATHJAXPLACEHOLDER', "\x00PLACEHOLDER"],
+                'introtextmustcontain' => ['\\( e = mc^2 \\)'],
+                'introtextmustnotcontain' => ['AIMATHJAXPLACEHOLDER', "\x00PLACEHOLDER"],
+            ],
+        ];
+    }
+
+    /**
+     * MBS-10767 follow-up regression suite.
+     *
+     * Each fixture pins down one specific frontend symptom that was observed
+     * with telli/gpt-5 during course-edit agent mode. If any of these assertions
+     * fails, the corresponding regression is back and must be fixed before merge.
+     *
+     * @covers ::format_output
+     * @dataProvider regression_mbs10767_provider
+     * @param string $llmjson The full LLM response JSON.
+     * @param list<string> $newvaluemustcontain Substrings that must appear in the first formelement's newValue.
+     * @param list<string> $newvaluemustnotcontain Substrings forbidden in newValue.
+     * @param list<string> $displayvaluemustcontain Substrings that must appear in suggestiondisplayvalue.
+     * @param list<string> $displayvaluemustnotcontain Substrings forbidden in suggestiondisplayvalue.
+     * @param list<string> $explanationmustcontain Substrings that must appear in the formelement explanation.
+     * @param list<string> $explanationmustnotcontain Substrings forbidden in the explanation.
+     * @param list<string> $introtextmustcontain Substrings that must appear in chatoutput intro text.
+     * @param list<string> $introtextmustnotcontain Substrings forbidden in the chatoutput intro text.
+     */
+    public function test_regression_mbs10767_followup(
+        string $llmjson,
+        array $newvaluemustcontain,
+        array $newvaluemustnotcontain,
+        array $displayvaluemustcontain,
+        array $displayvaluemustnotcontain,
+        array $explanationmustcontain,
+        array $explanationmustnotcontain,
+        array $introtextmustcontain,
+        array $introtextmustnotcontain
+    ): void {
+        $purpose = new purpose();
+        $output = $purpose->format_output($llmjson);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded, 'MBS-10767 regression: format_output() must return valid JSON.');
+
+        // Assertions on the first formelement (if present).
+        if (!empty($decoded['formelements'])) {
+            $element = $decoded['formelements'][0];
+
+            if (isset($element['newValue'])) {
+                foreach ($newvaluemustcontain as $expected) {
+                    $this->assertStringContainsString(
+                        $expected,
+                        $element['newValue'],
+                        "MBS-10767 regression: expected '{$expected}' in newValue. Got:\n{$element['newValue']}"
+                    );
+                }
+                foreach ($newvaluemustnotcontain as $forbidden) {
+                    $this->assertStringNotContainsString(
+                        $forbidden,
+                        $element['newValue'],
+                        "MBS-10767 regression: forbidden '{$forbidden}' present in newValue. Got:\n{$element['newValue']}"
+                    );
+                }
+            }
+
+            if (isset($element['suggestiondisplayvalue'])) {
+                foreach ($displayvaluemustcontain as $expected) {
+                    $this->assertStringContainsString(
+                        $expected,
+                        $element['suggestiondisplayvalue'],
+                        "MBS-10767 regression: expected '{$expected}' in suggestiondisplayvalue."
+                        . " Got:\n{$element['suggestiondisplayvalue']}"
+                    );
+                }
+                foreach ($displayvaluemustnotcontain as $forbidden) {
+                    $this->assertStringNotContainsString(
+                        $forbidden,
+                        $element['suggestiondisplayvalue'],
+                        "MBS-10767 regression: forbidden '{$forbidden}' present in suggestiondisplayvalue."
+                        . " Got:\n{$element['suggestiondisplayvalue']}"
+                    );
+                }
+            }
+
+            if (isset($element['explanation'])) {
+                foreach ($explanationmustcontain as $expected) {
+                    $this->assertStringContainsString(
+                        $expected,
+                        $element['explanation'],
+                        "MBS-10767 regression: expected '{$expected}' in explanation. Got:\n{$element['explanation']}"
+                    );
+                }
+                foreach ($explanationmustnotcontain as $forbidden) {
+                    $this->assertStringNotContainsString(
+                        $forbidden,
+                        $element['explanation'],
+                        "MBS-10767 regression: forbidden '{$forbidden}' present in explanation."
+                        . " Got:\n{$element['explanation']}"
+                    );
+                }
+            }
+        }
+
+        // Assertions on the chatoutput intro text.
+        if (!empty($introtextmustcontain) || !empty($introtextmustnotcontain)) {
+            $intro = '';
+            foreach ($decoded['chatoutput'] ?? [] as $entry) {
+                if (($entry['type'] ?? '') === 'intro') {
+                    $intro = $entry['text'] ?? '';
+                    break;
+                }
+            }
+            foreach ($introtextmustcontain as $expected) {
+                $this->assertStringContainsString(
+                    $expected,
+                    $intro,
+                    "MBS-10767 regression: expected '{$expected}' in chatoutput intro. Got:\n{$intro}"
+                );
+            }
+            foreach ($introtextmustnotcontain as $forbidden) {
+                $this->assertStringNotContainsString(
+                    $forbidden,
+                    $intro,
+                    "MBS-10767 regression: forbidden '{$forbidden}' present in chatoutput intro. Got:\n{$intro}"
+                );
+            }
+        }
+    }
+
+    /**
+     * End-to-end production-scenario test #1: course description with three
+     * Hello-World code examples — the exact prompt from MBS-10767's screenshots.
+     *
+     * @covers ::format_output
+     */
+    public function test_realistic_screenshot_hello_world_course_description(): void {
+        $fence = "\x60\x60\x60";
+        $llmjson = json_encode([
+            'formelements' => [[
+                'id' => 'id_summary_editor',
+                'name' => 'summary',
+                'newValue' => "## Informatik-Kurs — Willkommen!\n\n"
+                    . "In diesem Kurs lernen Sie die Grundlagen des Programmierens.\n\n"
+                    . "**Kleine Hello-World-Beispiele**:\n\n"
+                    . "Python:\n\n{$fence}python\nprint(\"Hello, World!\")\n{$fence}\n\n"
+                    . "JavaScript:\n\n{$fence}javascript\nconsole.log(\"Hello, World!\");\n{$fence}\n\n"
+                    . "C:\n\n{$fence}c\n#include <stdio.h>\nint main(void) { return 0; }\n{$fence}",
+                'label' => 'Kursbeschreibung',
+                'explanation' => 'Drei Hello-World-Beispiele in verschiedenen Sprachen.',
+            ]],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => 'Ich habe die Kursbeschreibung so formatiert, dass die drei '
+                    . 'Hello-World-Beispiele als Codeblöcke erscheinen.'],
+                ['type' => 'outro', 'text' => 'Möchten Sie eine andere Programmiersprache hinzufügen?'],
+            ],
+        ]);
+
+        $purpose = new purpose();
+        $output = $purpose->format_output($llmjson);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded, 'Output must be valid JSON.');
+        $this->assertNotEmpty($decoded['formelements'], 'Expected at least one formelement.');
+
+        $element = $decoded['formelements'][0];
+
+        // The newValue must be preserved verbatim for editor injection.
+        $this->assertStringContainsString('## Informatik-Kurs', $element['newValue'], 'Heading must survive in newValue.');
+        $this->assertStringContainsString('#include <stdio.h>', $element['newValue'], 'C code must survive in newValue.');
+        $this->assertStringContainsString($fence . 'python', $element['newValue'], 'Python fence must survive in newValue.');
+
+        // The suggestiondisplayvalue must render properly: code blocks with language class.
+        $this->assertStringContainsString(
+            '<code class="python"',
+            $element['suggestiondisplayvalue'],
+            'Python language class must survive in suggestiondisplayvalue.'
+        );
+        $this->assertStringContainsString(
+            '<code class="javascript"',
+            $element['suggestiondisplayvalue'],
+            'JavaScript language class must survive in suggestiondisplayvalue.'
+        );
+        $this->assertStringContainsString(
+            '<code class="c"',
+            $element['suggestiondisplayvalue'],
+            'C language class must survive in suggestiondisplayvalue.'
+        );
+        $this->assertStringContainsString(
+            '#include &lt;stdio.h&gt;',
+            $element['suggestiondisplayvalue'],
+            '#include must be entity-encoded inside the rendered code block.'
+        );
+        $this->assertStringNotContainsString(
+            '<h1>#include',
+            $element['suggestiondisplayvalue'],
+            '#include must NOT be rendered as an h1 heading.'
+        );
+        $this->assertStringNotContainsString(
+            'AIMATHJAXPLACEHOLDER',
+            $element['suggestiondisplayvalue'],
+            'MathJax placeholder must not leak to the displayvalue.'
+        );
+
+        // Intro text is plain text and must be preserved as a sanitized paragraph.
+        $intro = $decoded['chatoutput'][0]['text'];
+        $this->assertStringContainsString('Ich habe die Kursbeschreibung', $intro, 'Intro paragraph must survive.');
+    }
+
+    /**
+     * End-to-end production-scenario test #2: user asks for the same content
+     * with explicit "format code as code" follow-up — the second screenshot prompt.
+     *
+     * @covers ::format_output
+     */
+    public function test_realistic_screenshot_followup_format_as_code(): void {
+        $fence = "\x60\x60\x60";
+        $llmjson = json_encode([
+            'formelements' => [[
+                'id' => 'id_summary_editor',
+                'name' => 'summary',
+                'newValue' => "In diesem Kurs:\n\n"
+                    . "{$fence}python\nprint(\"Hello, World!\")\n{$fence}\n\n"
+                    . "{$fence}html\n<html><body>Test</body></html>\n{$fence}",
+                'label' => 'Kursbeschreibung',
+                'explanation' => 'Code als Codeblöcke formatiert.',
+            ]],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => 'Code-Beispiele in Codeblöcke umgewandelt.'],
+                ['type' => 'outro', 'text' => ''],
+            ],
+        ]);
+
+        $purpose = new purpose();
+        $output = $purpose->format_output($llmjson);
+        $decoded = json_decode($output, true);
+
+        $element = $decoded['formelements'][0];
+
+        // The suggestiondisplayvalue must show real <pre><code> blocks, not raw fences as text.
+        $this->assertStringContainsString(
+            '<pre>',
+            $element['suggestiondisplayvalue'],
+            'Display value must contain a <pre> block.'
+        );
+        $this->assertStringContainsString(
+            '<code class="python"',
+            $element['suggestiondisplayvalue'],
+            'Python language class must survive.'
+        );
+        $this->assertStringContainsString(
+            '<code class="html"',
+            $element['suggestiondisplayvalue'],
+            'HTML language class must survive.'
+        );
+        $this->assertStringNotContainsString(
+            $fence . 'python',
+            $element['suggestiondisplayvalue'],
+            'Raw triple-backtick fence must not appear in the rendered HTML.'
+        );
+        // The HTML code inside the fenced block must be entity-encoded (safe).
+        $this->assertStringContainsString(
+            '&lt;html&gt;',
+            $element['suggestiondisplayvalue'],
+            'HTML inside the code block must be entity-encoded.'
+        );
+    }
+
+    /**
+     * End-to-end production-scenario test #3: the third screenshot where the
+     * suggestion preview showed raw `&lt;p&gt;` entities. This pins down the
+     * collapsed-preview rendering invariant: when the LLM returns clean Markdown
+     * in `newValue` (the documented, expected shape), the visible plain text of
+     * the suggestiondisplayvalue must not contain ampersand-encoded markup.
+     *
+     * @covers ::format_output
+     */
+    public function test_realistic_screenshot_collapsed_preview_does_not_show_entities(): void {
+        $llmjson = json_encode([
+            'formelements' => [[
+                'id' => 'id_summary_editor',
+                'name' => 'summary',
+                // The LLM emitted Markdown here, not raw HTML — the documented
+                // and expected shape that produces a clean preview.
+                'newValue' => "## Informatik-Grundkurs\n\nWillkommen im Kurs!",
+                'label' => 'Kursbeschreibung',
+                'explanation' => 'Saubere Markdown-Beschreibung.',
+            ]],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => 'Vorschlag erstellt.'],
+                ['type' => 'outro', 'text' => ''],
+            ],
+        ]);
+
+        $purpose = new purpose();
+        $output = $purpose->format_output($llmjson);
+        $decoded = json_decode($output, true);
+
+        $element = $decoded['formelements'][0];
+
+        // The visible plain text (after stripping any HTML tags) must NOT contain
+        // ampersand-encoded markup. That is the exact symptom in the third
+        // screenshot: the collapsed preview showed `&lt;p&gt;` as text.
+        $plaintext = trim(strip_tags($element['suggestiondisplayvalue']));
+        $this->assertStringNotContainsString(
+            '&lt;',
+            $plaintext,
+            'Plain-text preview must not contain HTML entity codes as visible text.'
+        );
+        $this->assertStringNotContainsString(
+            '&amp;',
+            $plaintext,
+            'Plain-text preview must not contain ampersand-encoded entities as visible text.'
+        );
+        // The semantic content must be present.
+        $this->assertStringContainsString('Informatik-Grundkurs', $plaintext, 'Heading text must survive into preview.');
+        $this->assertStringContainsString('Willkommen im Kurs!', $plaintext, 'Welcome text must survive into preview.');
+    }
+
+    /**
+     * End-to-end production-scenario test #4: Einstein blockquote from the
+     * MBS-10767 testing instructions.
+     *
+     * @covers ::format_output
+     */
+    public function test_realistic_screenshot_einstein_blockquote(): void {
+        $llmjson = json_encode([
+            'formelements' => [],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => "Hier ist ein berühmtes Zitat:\n\n"
+                    . "> Phantasie ist wichtiger als Wissen.\n> – Albert Einstein"],
+                ['type' => 'outro', 'text' => 'Möchten Sie ein anderes Zitat?'],
+            ],
+        ]);
+
+        $purpose = new purpose();
+        $output = $purpose->format_output($llmjson);
+        $decoded = json_decode($output, true);
+
+        $intro = $decoded['chatoutput'][0]['text'];
+        $this->assertStringContainsString('<blockquote>', $intro, 'Blockquote must render in chatoutput intro.');
+        $this->assertStringContainsString('Phantasie ist wichtiger als Wissen.', $intro, 'Quote text must be present.');
+        $this->assertStringNotContainsString('&gt; Phantasie', $intro, 'Markdown quote marker must not leak as text.');
+    }
+
+    /**
+     * End-to-end production-scenario test #5: MathJax binomial formulas from
+     * the MBS-10767 testing instructions.
+     *
+     * @covers ::format_output
+     */
+    public function test_realistic_screenshot_mathjax_in_explanation(): void {
+        $llmjson = json_encode([
+            'formelements' => [[
+                'id' => 'id_summary_editor',
+                'name' => 'summary',
+                'newValue' => 'Die binomischen Formeln:',
+                'label' => 'Kursbeschreibung',
+                'explanation' => "Die drei binomischen Formeln:\n\n"
+                    . "- Erste: \\( (a+b)^2 = a^2 + 2ab + b^2 \\)\n"
+                    . "- Zweite: \\( (a-b)^2 = a^2 - 2ab + b^2 \\)\n"
+                    . "- Dritte: \\( (a+b)(a-b) = a^2 - b^2 \\)",
+            ]],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => 'Mathematische Erläuterung hinzugefügt.'],
+                ['type' => 'outro', 'text' => ''],
+            ],
+        ]);
+
+        $purpose = new purpose();
+        $output = $purpose->format_output($llmjson);
+        $decoded = json_decode($output, true);
+
+        $explanation = $decoded['formelements'][0]['explanation'];
+
+        $this->assertStringContainsString('<ul>', $explanation, 'List must render in explanation.');
+        $this->assertStringContainsString(
+            '\\( (a+b)^2 = a^2 + 2ab + b^2 \\)',
+            $explanation,
+            'First binomial formula must survive verbatim.'
+        );
+        $this->assertStringContainsString(
+            '\\( (a-b)^2 = a^2 - 2ab + b^2 \\)',
+            $explanation,
+            'Second binomial formula must survive verbatim.'
+        );
+        $this->assertStringContainsString(
+            '\\( (a+b)(a-b) = a^2 - b^2 \\)',
+            $explanation,
+            'Third binomial formula must survive verbatim.'
+        );
+        $this->assertStringNotContainsString(
+            'AIMATHJAXPLACEHOLDER',
+            $explanation,
+            'No MathJax placeholder may leak to explanation.'
+        );
     }
 }
