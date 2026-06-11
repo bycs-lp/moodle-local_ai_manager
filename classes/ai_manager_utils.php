@@ -543,6 +543,22 @@ class ai_manager_utils {
             }
 
             $purposeinstance = $factory->get_purpose_by_purpose_string($purpose);
+
+            // Provide an additional hook for further limiting access.
+            // This must run before the configuration checks below, so that plugins like block_ai_control
+            // can hide purposes even if they are not configured (which would otherwise result in 'disabled'
+            // status and skip this hook entirely).
+            $restrictionhook = new additional_user_restriction($userinfo, $context, $purposeinstance);
+            \core\di::get(\core\hook\manager::class)->dispatch($restrictionhook);
+            if (!$restrictionhook->is_allowed()) {
+                $purposes[] = [
+                    'purpose' => $purpose,
+                    'available' => self::AVAILABILITY_HIDDEN,
+                    'errormessage' => $restrictionhook->get_message(),
+                ];
+                continue;
+            }
+
             $userusage = new userusage($purposeinstance, $user->id);
             if (empty($purposeconfig[$purpose])) {
                 $purposes[] = [
@@ -590,18 +606,6 @@ class ai_manager_utils {
                         'local_ai_manager',
                         get_string('pluginname', 'aipurpose_' . $purpose)
                     ),
-                ];
-                continue;
-            }
-
-            // Provide an additional hook for further limiting access.
-            $restrictionhook = new additional_user_restriction($userinfo, $context, $purposeinstance);
-            \core\di::get(\core\hook\manager::class)->dispatch($restrictionhook);
-            if (!$restrictionhook->is_allowed()) {
-                $purposes[] = [
-                    'purpose' => $purpose,
-                    'available' => self::AVAILABILITY_HIDDEN,
-                    'errormessage' => $restrictionhook->get_message(),
                 ];
                 continue;
             }
