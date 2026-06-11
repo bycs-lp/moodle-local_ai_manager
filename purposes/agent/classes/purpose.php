@@ -315,6 +315,13 @@ class purpose extends base_purpose {
      * Supports AI responses that contain either real newlines or literal "\\n" sequences.
      * Existing consecutive line breaks are kept unchanged.
      *
+     * IMPORTANT: Doubling is applied ONLY to prose regions OUTSIDE fenced code blocks.
+     * Newlines inside ```...``` (or ~~~...~~~) fences are part of the user's source code
+     * and must be preserved verbatim. Without this guard, doubling every line break inside
+     * a multi-line code block causes MarkdownExtra to render visible blank lines between
+     * every line of code (regression observed in MBS-10767 follow-up: the screenshot
+     * showed each line of a C++/Python Hello-World example separated by an empty line).
+     *
      * @param string $text Raw chat text from AI response.
      * @return string Normalized text for Markdown processing.
      */
@@ -324,14 +331,36 @@ class purpose extends base_purpose {
             $text = str_replace('\\n', "\n", $text);
         }
 
-        // Double only isolated single newlines so Markdown renders lists and paragraphs correctly.
-        // Using \n instead of \R avoids variable-length lookbehind issues in older PCRE versions.
-        $normalized = preg_replace('/(?<!\n)\n(?!\n)/', "\n\n", $text);
-        if ($normalized === null) {
+        // Split the buffer into alternating prose and fenced-code segments and double
+        // isolated newlines only in the prose segments. The capturing group keeps the
+        // fence segments in the output array at odd indices; even indices are prose.
+        // The pattern recognises triple-backtick and triple-tilde fences. Inline code
+        // spans (single backticks) are intentionally not protected here because they
+        // cannot legally contain newlines anyway.
+        $segments = preg_split(
+            '/(' . chr(96) . '{3,}[\s\S]*?' . chr(96) . '{3,}|~{3,}[\s\S]*?~{3,})/',
+            $text,
+            -1,
+            PREG_SPLIT_DELIM_CAPTURE
+        );
+        if ($segments === false) {
             return $text;
         }
 
-        return $normalized;
+        for ($i = 0, $count = count($segments); $i < $count; $i++) {
+            // Even indices are prose; odd indices are fenced code blocks (passed through verbatim).
+            if ($i % 2 !== 0) {
+                continue;
+            }
+            // Double only isolated single newlines so Markdown renders lists and paragraphs correctly.
+            // Using \n instead of \R avoids variable-length lookbehind issues in older PCRE versions.
+            $doubled = preg_replace('/(?<!\n)\n(?!\n)/', "\n\n", $segments[$i]);
+            if ($doubled !== null) {
+                $segments[$i] = $doubled;
+            }
+        }
+
+        return implode('', $segments);
     }
 
     /**

@@ -2127,4 +2127,55 @@ final class purpose_test extends \advanced_testcase {
             'No MathJax placeholder may leak to explanation.'
         );
     }
+
+    /**
+     * MBS-10767 follow-up regression: when the LLM emits multi-line code inside a
+     * fenced ```cpp / ```python / ```javascript block in the chatoutput intro or
+     * outro, the line breaks INSIDE the fence must survive verbatim. Without the
+     * fence-aware guard in {@see purpose::normalize_chatoutput_newlines()} every
+     * isolated newline is doubled, causing the rendered <pre><code> to show a
+     * visible blank line between every line of code (Philipp's screenshot
+     * "newline.png").
+     *
+     * @covers ::format_output
+     */
+    public function test_no_blank_lines_between_code_lines_in_chatoutput_codeblock(): void {
+        $fence = "\x60\x60\x60";
+        $llmjson = json_encode([
+            'formelements' => [],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => "C++:\n{$fence}cpp\n#include <iostream>\nint main() {\n"
+                    . "  std::cout << \"Hello, World!\" << std::endl;\n  return 0;\n}\n{$fence}"],
+                ['type' => 'outro', 'text' => ''],
+            ],
+        ]);
+
+        $purpose = new purpose();
+        $output = $purpose->format_output($llmjson);
+        $decoded = json_decode($output, true);
+
+        $intro = $decoded['chatoutput'][0]['text'];
+
+        // The code block must render.
+        $this->assertStringContainsString('<pre>', $intro, '<pre> must render.');
+        $this->assertStringContainsString('<code class="cpp"', $intro, 'cpp language class must survive.');
+
+        // Extract the rendered <code> body to inspect newline behaviour.
+        $matched = preg_match('#<code(?:\s+class="[^"]*")?>([\s\S]*?)</code>#', $intro, $m);
+        $this->assertSame(1, $matched, "Expected exactly one <code> element in intro. Got:\n{$intro}");
+        $body = $m[1];
+
+        // No double newlines allowed between consecutive lines of code.
+        $this->assertStringNotContainsString(
+            "\n\n",
+            $body,
+            "Rendered code body must not contain double newlines. Got:\n{$body}"
+        );
+
+        // All code lines must be present as adjacent lines.
+        $this->assertStringContainsString('#include &lt;iostream&gt;', $body, 'include line must survive.');
+        $this->assertStringContainsString('int main()', $body, 'main() line must survive.');
+        $this->assertStringContainsString('return 0;', $body, 'return line must survive.');
+        $this->assertStringContainsString('}', $body, 'closing brace must survive.');
+    }
 }
