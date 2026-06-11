@@ -42,6 +42,7 @@ final class tenant_test extends \advanced_testcase {
             $tenant = new \local_ai_manager\local\tenant($name);
             $this->assertSame($name, $tenant->get_identifier());
 
+            // Make sure the allowed Unicode characters in tenants work with Moodles DB API by running a test query.
             $DB->insert_record('local_ai_manager_config', (object) [
                 'tenant' => $tenant->get_identifier(),
                 'configkey' => 'tenantenabled',

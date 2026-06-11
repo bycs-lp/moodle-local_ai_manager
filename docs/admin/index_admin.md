@@ -26,6 +26,9 @@ The flow for every AI system interaction is:
 
 The most important difference to the moodle core_ai subsystem probably is the tenant mode. The whole system is designed to be tenant-aware, meaning nearly each single configuration is different in each tenant. To which tenant a user belongs is being determined by a database field in the user table. There is an admin setting *local_ai_manager/tenantcolumn* that currently allows the site admin to define if the field "institution" (default) or "department" should be used to determine to which tenant a user belongs.
 
+Tenant identifiers may only contain alphanumeric Latin characters (including diacritics like German umlauts), blank spaces (not at the end or start), hyphens and underscores. An environment check is implemented before every plugin upgrade to check the validity of currently used identifiers and can be run anytime from the admin settings page (*local_ai_manager/validtenantcolumnidentifiers*).
+)
+
 **CAVEAT: If a user should not be allowed to switch tenants by himself/herself the site admin has to take care that a user cannot edit the institution/department field.**
 
 Each tenant can have one or more tenant managers. Which user is a tenant manager can be controlled by the capability `local/ai_manager:manage`. Users with this capability will have access to the tenant configuration sites including user restriction management, quota config, purpose configuration as well as configuration of the connectors for the external AI systems to use, but only **for their tenant**. A user with the capability `local/ai_manager:managetenants` will be able to control **all** tenants by accessing [https://yourmoodle.com/local/ai_manager/tenant_config.php?tenant=tenantidentifier](https://yourmoodle.com/local/ai_manager/tenant_config.php?tenant=tenantidentifier) directly.

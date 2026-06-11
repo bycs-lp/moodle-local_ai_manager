@@ -90,7 +90,7 @@ class tenantcolumn_identifiers_valid extends check {
         } else {
             $shortenedlist = array_splice($invalididentifiers, 0, 10);
             $list = implode(", ", $shortenedlist);
-            $list .= " + " . (count($shortenedlist) - 10);
+            $list .= " + " . (count($invalididentifiers) - 10);
         }
         $output .= html_writer::div('Invalid identifiers: ' . html_writer::span(s($list), 'font-italic'), 'my-2');
         return $output;

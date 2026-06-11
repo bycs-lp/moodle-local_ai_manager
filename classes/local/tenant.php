@@ -51,8 +51,8 @@ class tenant {
 
         if (!self::is_valid_identifier($identifier)) {
             throw new \invalid_parameter_exception(
-                'Tenant identifiers may not have leading or trailing whitespace and can only contain alphanumeric letters, ' .
-                'hyphens, underscores or blank spaces.'
+                'Tenant identifiers may not have leading or trailing whitespace and can only contain alphanumeric ' .
+                'Latin characters, hyphens, underscores or blank spaces.'
             );
         }
 
@@ -61,6 +61,8 @@ class tenant {
 
     /**
      * Check whether the given identifier is valid.
+     * Valid identifiers consist of alphanumeric Latin characters including common diacritics (umlauts etc.),
+     * blank spaces that are not trailing or leading, hyphens and underscores.
      *
      * @param string $identifier tenant identifier
      * @return bool true if valid, false otherwise
