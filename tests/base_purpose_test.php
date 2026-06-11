@@ -1030,4 +1030,154 @@ final class base_purpose_test extends advanced_testcase {
         $output = $purpose->format_output($input);
         $this->assertStringContainsString('sehr gut', $output, 'Plain text must be preserved.');
     }
+
+    // -----------------------------------------------------------------
+    // Section 10: MBS-10767 follow-up — bare HTML documents and code-block whitespace.
+
+    /**
+     * Production regression: the LLM answered the prompt "generiere mir ein längeres
+     * html-/js-beispiel" by emitting a complete <!doctype html> document as raw text,
+     * NOT inside a code fence. Before the fix the pipeline let MarkdownExtra pass the
+     * block-level tags through verbatim while htmlspecialchars-ing everything else,
+     * producing the half-live / half-entity-encoded soup visible in the screenshot
+     * "ganzes HTML-File falsches Parsing.png".
+     *
+     * Contract pinned down: a bare HTML document MUST be rendered as ONE clean
+     * ```html fenced code block; no raw <!doctype/<html/<style/<script tag may
+     * leak through as live HTML; no partial entity encoding may appear in the
+     * visible content.
+     *
+     * @covers ::format_output
+     * @covers ::format_ai_markdown_output
+     */
+    public function test_bare_html_document_is_wrapped_into_one_clean_code_block(): void {
+        $intro = "Hier ist eine einzelne HTML-Datei, die eine längere HTML/JS-Demo zeigt. "
+            . "Speichere den Inhalt als .html und öffne ihn im Browser.\n\n";
+        $document = "<!doctype html>\n"
+            . "<html lang=\"de\">\n"
+            . "<head>\n"
+            . "  <meta charset=\"utf-8\">\n"
+            . "  <title>Demo</title>\n"
+            . "  <style>body{font:14px/1.4 system-ui;color:#0b1b2b}</style>\n"
+            . "</head>\n"
+            . "<body data-theme=\"dark\">\n"
+            . "  <header><h1>Demo</h1></header>\n"
+            . "  <main>\n"
+            . "    <textarea id=\"demo-src\" style=\"display:none;\">\n"
+            . "      <p>el.innerHTML = '<span class=\"x\">y</span>';</p>\n"
+            . "    </textarea>\n"
+            . "  </main>\n"
+            . "  <script>\n"
+            . "    document.getElementById('demo-src').textContent = 'hello';\n"
+            . "  </script>\n"
+            . "</body>\n"
+            . "</html>";
+
+        $purpose = new base_purpose();
+        $output = $purpose->format_output($intro . $document);
+
+        // Intro prose must remain visible plain text.
+        $this->assertStringContainsString(
+            'Hier ist eine einzelne HTML-Datei',
+            $output,
+            'Intro prose must survive.'
+        );
+
+        // The document must be rendered inside ONE pre/code block tagged as html.
+        $this->assertStringContainsString('<pre>', $output, 'Document must be inside a <pre> block.');
+        $this->assertStringContainsString(
+            '<code class="html"',
+            $output,
+            'Code block must carry the html language class.'
+        );
+        $this->assertSame(
+            1,
+            substr_count($output, '<pre>'),
+            'There must be exactly one <pre> block, never a fragmented sequence of multiple blocks.'
+        );
+        $this->assertSame(
+            1,
+            substr_count($output, '<code class="html"'),
+            'There must be exactly one html-tagged code element.'
+        );
+
+        // All document tokens must appear as entity-encoded TEXT, never as live tags.
+        $this->assertStringContainsString('&lt;!doctype', $output, '<!doctype must be entity-encoded.');
+        $this->assertStringContainsString('&lt;html lang=', $output, '<html> must be entity-encoded.');
+        $this->assertStringContainsString('&lt;style&gt;', $output, '<style> must be entity-encoded.');
+        $this->assertStringContainsString('&lt;script&gt;', $output, '<script> must be entity-encoded.');
+        $this->assertStringContainsString('&lt;textarea', $output, '<textarea> must be entity-encoded.');
+
+        // No live document-structuring tag may leak through.
+        $this->assertStringNotContainsString('<!doctype html>', $output, 'Live <!doctype> must not survive.');
+        $this->assertStringNotContainsString('<html lang=', $output, 'Live <html> must not survive.');
+        $this->assertStringNotContainsString('<style>body{', $output, 'Live <style> must not survive.');
+        $this->assertStringNotContainsString('<script>', $output, 'Live <script> must not survive.');
+        $this->assertStringNotContainsString('<textarea', $output, 'Live <textarea> must not survive.');
+    }
+
+    /**
+     * MarkdownExtra has a documented bug where it surrounds the <code> contents of
+     * a fenced code block with leading/trailing blank lines that the user did not
+     * write. Stage 5b restores Philipp's earlier guard against that behaviour.
+     *
+     * Contract pinned down: the first character inside <pre><code…> is the first
+     * character of the user's code; the last character is the last character of
+     * the user's code. No spurious leading/trailing newline pair may appear.
+     *
+     * @covers ::format_output
+     * @covers ::format_ai_markdown_output
+     */
+    public function test_no_spurious_blank_lines_inside_rendered_code_block(): void {
+        $fence = self::fence();
+        $input = "Demo:\n\n{$fence}python\nprint(\"hello\")\nprint(\"world\")\n{$fence}";
+        $purpose = new base_purpose();
+        $output = $purpose->format_output($input);
+
+        $this->assertStringContainsString('<pre>', $output, 'Code block must render.');
+        $this->assertStringContainsString('print("hello")', $output, 'First line must survive.');
+        $this->assertStringContainsString('print("world")', $output, 'Last line must survive.');
+
+        // Extract the rendered code body and assert it has no leading/trailing blank lines.
+        $matched = preg_match('#<code(?:\s+class="[^"]*")?>([\s\S]*?)</code>#', $output, $m);
+        $this->assertSame(1, $matched, "Expected exactly one <code> element in output. Got:\n{$output}");
+        $body = $m[1];
+        $this->assertSame(
+            ltrim($body, "\n"),
+            $body,
+            'Rendered <code> body must not start with a newline (MarkdownExtra bug guard).'
+        );
+        $this->assertSame(
+            rtrim($body, "\n"),
+            $body,
+            'Rendered <code> body must not end with a newline (MarkdownExtra bug guard).'
+        );
+    }
+
+    /**
+     * Guard test: a bare HTML *fragment* (no DOCTYPE) must continue to take the
+     * prose-escaping path — it must NOT be wrapped into a synthetic code block.
+     * This pins down Stage 2b's narrow detection criterion so future maintainers
+     * cannot accidentally make the wrapper greedier.
+     *
+     * @covers ::format_output
+     * @covers ::format_ai_markdown_output
+     */
+    public function test_bare_html_fragment_without_doctype_is_still_entity_escaped(): void {
+        $input = "Some intro.\n\n<div class=\"x\">y</div>\n\n<span>z</span>";
+        $purpose = new base_purpose();
+        $output = $purpose->format_output($input);
+
+        $this->assertStringContainsString('Some intro.', $output, 'Intro must survive.');
+        $this->assertStringContainsString('&lt;div class=', $output, 'Fragment must be entity-encoded.');
+        $this->assertStringContainsString('&lt;span&gt;', $output, 'Fragment must be entity-encoded.');
+        $this->assertStringNotContainsString('<div class="x">', $output, 'No live div must leak.');
+        $this->assertStringNotContainsString('<span>z</span>', $output, 'No live span must leak.');
+        // And it must NOT have been wrapped into a <pre>/<code> block.
+        $this->assertStringNotContainsString(
+            '<pre>',
+            $output,
+            'Plain HTML fragments must not be wrapped into a code block.'
+        );
+    }
 }

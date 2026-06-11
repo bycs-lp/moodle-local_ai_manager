@@ -181,6 +181,18 @@ class base_purpose {
      *            code blocks. Some models still emit HTML for code; we want them to
      *            take the same pipeline path as native Markdown fences.
      *
+     *   Stage 2b: Wrap any LLM-emitted bare HTML *document* (a buffer containing a
+     *             literal "<!doctype …>" declaration and a matching "</html>"
+     *             closing tag) into a synthetic ```html fenced code block.
+     *             Rationale: MarkdownExtra treats top-level block-level HTML as
+     *             pass-through, so without this stage the document's structural
+     *             tags would survive verbatim through stage 5 while their inline
+     *             attribute strings and text content would go through stage 4's
+     *             htmlspecialchars(), producing the half-live / half-entity-encoded
+     *             output observed in MBS-10767 (screenshot
+     *             "ganzes HTML-File falsches Parsing.png"). Tag-only fragments
+     *             (no DOCTYPE) continue to take the prose-escaping path.
+     *
      *   Stage 3: Normalize Markdown structure (lists, fenced-code openings) so that
      *            PHP Markdown Extra parses them correctly. The regexes are
      *            intentionally conservative — see {@see self::normalize_markdown_structure()}
@@ -194,6 +206,13 @@ class base_purpose {
      *   Stage 5: Run markdown_to_html() (uses MarkdownExtra), then restore the
      *            MathJax placeholders saved in stage 1, then wrap stray LaTeX
      *            environment patterns outside "pre" blocks in mathjax_ignore spans.
+     *
+     *   Stage 5b: Strip MarkdownExtra's spurious leading and trailing newlines
+     *             inside <pre><code>…</code></pre> blocks. MarkdownExtra emits
+     *             "<pre><code>\n…\n</code></pre>" where the leading and trailing
+     *             "\n" render as visible blank lines above and below the code
+     *             content. Originally introduced before the MBS-10767 pipeline
+     *             refactor, lost during that rewrite, restored here.
      *
      *   Stage 6: Run format_text() with noclean=true so HTMLPurifier does NOT
      *            re-process the already-safe Markdown HTML output. HTMLPurifier
@@ -222,6 +241,14 @@ class base_purpose {
         // Stage 2: turn LLM-emitted raw pre/code HTML into Markdown fenced code blocks.
         $markdown = self::html_code_blocks_to_markdown_fences($markdown);
 
+        // Stage 2b: turn LLM-emitted bare HTML *documents* (DOCTYPE + html element)
+        // into Markdown fenced code blocks. Without this step the document tags
+        // would survive verbatim through stage 5 because MarkdownExtra treats
+        // top-level block-level HTML as pass-through, producing the half-live /
+        // half-entity-encoded output observed in MBS-10767 (screenshot
+        // "ganzes HTML-File falsches Parsing.png").
+        $markdown = self::wrap_bare_html_documents_in_fences($markdown);
+
         // Stage 3: normalize Markdown structure so PHP Markdown Extra parses lists and fences correctly.
         $markdown = self::normalize_markdown_structure($markdown);
 
@@ -232,6 +259,13 @@ class base_purpose {
         $html = markdown_to_html($markdown);
         $html = self::restore_math_blocks($html, $mathblocks);
         $html = self::escape_mathjax_environments($html);
+
+        // Stage 5b: strip MarkdownExtra's spurious leading/trailing blank lines
+        // inside <pre><code> blocks. MarkdownExtra emits "<pre><code>\n…\n</code></pre>"
+        // where the leading and trailing "\n" are visible whitespace lines in the
+        // rendered chat. Originally introduced before the MBS-10767 pipeline
+        // refactor and re-introduced here after it got lost.
+        $html = self::strip_blank_lines_inside_code_blocks($html);
 
         // Stage 6: final pass through Moodle's format_text() WITHOUT HTMLPurifier.
         //
@@ -318,6 +352,77 @@ class base_purpose {
             },
             $markdown
         );
+    }
+
+    /**
+     * Stage 2b of {@see self::format_ai_markdown_output()}.
+     *
+     * Wraps any bare HTML document the LLM emitted as plain text — i.e. a buffer
+     * containing a literal {@code <!doctype …>} (or {@code <!DOCTYPE …>})
+     * declaration and a matching {@code </html>} closing tag — into a fenced
+     * Markdown code block tagged with the {@code html} language identifier.
+     *
+     * Rationale: MarkdownExtra treats top-level block-level HTML as
+     * pass-through, so without this stage the document's structural tags
+     * (head, body, style, script, …) reach the browser verbatim while their
+     * inline attribute strings and text content go through stage 4's
+     * htmlspecialchars(), producing the half-live / half-entity-encoded soup
+     * observed in MBS-10767 (screenshot "ganzes HTML-File falsches Parsing.png").
+     *
+     * The detection criterion is intentionally narrow:
+     *   - it requires the literal {@code <!doctype} (case-insensitive), which any
+     *     real complete document starts with;
+     *   - it requires a matching {@code </html>} closing tag in the same buffer;
+     *   - it does NOT touch documents that are already inside an existing
+     *     ```...``` or ~~~...~~~ fence, because those have already been handled
+     *     by stage 2 or by the original Markdown source.
+     *
+     * Anything that is "merely" a tag fragment (for example {@code <div>…</div>}
+     * in prose) continues to take the existing stage-4 prose-escaping path.
+     *
+     * The {@code <!doctype …> … </html>} pattern is matched greedily on its
+     * closing {@code </html>} on purpose: an LLM never emits two complete
+     * documents in one answer, and being greedy avoids accidentally splitting
+     * a single document when it contains an inline mention of {@code </html>}
+     * inside a script string.
+     *
+     * @param string $markdown The Markdown input.
+     * @return string The Markdown with bare HTML documents wrapped in fenced code blocks.
+     */
+    protected static function wrap_bare_html_documents_in_fences(string $markdown): string {
+        // Fast path: no DOCTYPE anywhere → nothing to do.
+        if (stripos($markdown, '<!doctype') === false) {
+            return $markdown;
+        }
+
+        $fence = str_repeat(chr(96), 3);
+
+        // Step 1: extract existing fenced code blocks behind opaque placeholders so the
+        // DOCTYPE detector cannot reach into them. We use the same null-byte-anchored
+        // placeholder scheme as stage 4 because null bytes are forbidden in JSON and
+        // therefore cannot collide with any LLM output.
+        $placeholders = [];
+        $counter = 0;
+        $placeholderprefix = self::generate_placeholder_prefix($markdown);
+        $store = static function (array $m) use (&$placeholders, &$counter, $placeholderprefix): string {
+            $key = $placeholderprefix . 'FENCE' . $counter++ . "\x00";
+            $placeholders[$key] = $m[0];
+            return $key;
+        };
+        $existingfencepattern = '/(' . chr(96) . '{3,}[\s\S]*?' . chr(96) . '{3,}|~{3,}[\s\S]*?~{3,})/';
+        $markdown = preg_replace_callback($existingfencepattern, $store, $markdown);
+
+        // Step 2: wrap every <!doctype …> … </html> block.
+        $markdown = preg_replace_callback(
+            '/<!doctype\b[^>]*>[\s\S]*<\/html\s*>/i',
+            static function (array $matches) use ($fence): string {
+                return "\n\n" . $fence . "html\n" . $matches[0] . "\n" . $fence . "\n\n";
+            },
+            $markdown
+        );
+
+        // Step 3: restore the existing fences.
+        return str_replace(array_keys($placeholders), array_values($placeholders), $markdown);
     }
 
     /**
@@ -451,6 +556,35 @@ class base_purpose {
             }
         }
         return implode('', $parts);
+    }
+
+    /**
+     * Stage 5b of {@see self::format_ai_markdown_output()}.
+     *
+     * Strips MarkdownExtra's spurious leading and trailing newlines inside
+     * {@code <pre><code>…</code></pre>} blocks. MarkdownExtra emits e.g.
+     * {@code <pre><code class="python">\nprint("hi")\n</code></pre>}, which
+     * the browser renders with a visible blank line above and below the code
+     * content. Originally introduced before the MBS-10767 pipeline refactor;
+     * lost during the rewrite into the six-stage pipeline; restored here
+     * with the original intent documented inline.
+     *
+     * Only the leading and trailing newlines of the code body are trimmed:
+     * any blank lines in the *middle* of the code are part of the user's
+     * source and must remain untouched.
+     *
+     * @param string $html HTML produced by markdown_to_html() with optional
+     *      post-processing already applied.
+     * @return string HTML with the spurious newlines stripped.
+     */
+    protected static function strip_blank_lines_inside_code_blocks(string $html): string {
+        return preg_replace_callback(
+            '#(<pre>\s*<code(?:\s+class="[^"]*")?\s*>)([\s\S]*?)(</code>\s*</pre>)#i',
+            static function (array $m): string {
+                return $m[1] . trim($m[2], "\n") . $m[3];
+            },
+            $html
+        );
     }
 
     /**
