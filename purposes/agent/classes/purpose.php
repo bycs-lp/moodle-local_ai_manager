@@ -249,12 +249,15 @@ class purpose extends base_purpose {
                 );
             }
             // Note: newValue is intentionally NOT formatted as it needs to be injected into form fields as-is.
-            // Convert Markdown to sanitized HTML for display.
+            // We assume that the newValue typically in the agent mode is not Markdown, but (for example, when suggesting
+            // editor fields) typically is already HTML.
             if (isset($formelement['newValue'])) {
-                $outputrecord['formelements'][$key]['suggestiondisplayvalue'] = $this->format_ai_markdown_output(
-                    $formelement['newValue'],
-                    ['filter' => false]
-                );
+                $outputrecord['formelements'][$key]['suggestiondisplayvalue'] =
+                    format_text(
+                        $formelement['newValue'],
+                        FORMAT_MOODLE,
+                        ['filter' => false, 'newlines' => false, 'para' => false]
+                    );
             }
         }
 
