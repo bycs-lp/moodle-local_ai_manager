@@ -1317,6 +1317,22 @@ final class purpose_test extends \advanced_testcase {
                 'displayvaluemustcontain' => ['Simple course name'],
                 'displayvaluemustnotcontain' => [],
             ],
+            'xss_in_newvalue_is_sanitized_in_displayvalue' => [
+                'formelement' => [
+                    'id' => 'id_summary_editor',
+                    'name' => 'summary_editor',
+                    'newValue' => '<p>Safe content</p><script>alert("xss")</script>',
+                    'label' => 'Summary',
+                    'explanation' => 'Content with script.',
+                ],
+                // The newValue itself is preserved verbatim for form field injection.
+                'newvaluemustcontain' => ['<script>alert("xss")</script>'],
+                'newvaluemustnotcontain' => [],
+                'hasdisplayvalue' => true,
+                // MBS-10767: suggestiondisplayvalue renders safe HTML but strips dangerous tags.
+                'displayvaluemustcontain' => ['<p>Safe content</p>'],
+                'displayvaluemustnotcontain' => ['<script>', 'alert('],
+            ],
             'course_description_with_markdown_formatting' => [
                 'formelement' => [
                     'id' => 'id_summary_editor',
@@ -1329,8 +1345,9 @@ final class purpose_test extends \advanced_testcase {
                 'newvaluemustcontain' => ['<h2>Kursübersicht</h2>', '<strong>wichtige Themen</strong>', '<ul>'],
                 'newvaluemustnotcontain' => [],
                 'hasdisplayvalue' => true,
-                'displayvaluemustcontain' => ['Kursübersicht', 'wichtige Themen'],
-                'displayvaluemustnotcontain' => [],
+                // MBS-10767: HTML in newValue must be rendered (not escaped) in suggestiondisplayvalue.
+                'displayvaluemustcontain' => ['<h2>Kursübersicht</h2>', '<strong>wichtige Themen</strong>', '<ul>', '<li>'],
+                'displayvaluemustnotcontain' => ['&lt;h2&gt;', '&lt;strong&gt;', '&lt;ul&gt;'],
             ],
         ];
     }

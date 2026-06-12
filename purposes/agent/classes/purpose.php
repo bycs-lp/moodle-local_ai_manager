@@ -249,11 +249,14 @@ class purpose extends base_purpose {
                 );
             }
             // Note: newValue is intentionally NOT formatted as it needs to be injected into form fields as-is.
-            // Convert Markdown to sanitized HTML for display.
+            // Convert Markdown to sanitized HTML for display. Here the LLM output is meant to contain
+            // renderable HTML (e.g. a course summary with <h2>, <p>, <ul>), so we pass $escaperawhtml = false
+            // to let format_text/HTMLPurifier render and sanitize the HTML instead of escaping it as text.
             if (isset($formelement['newValue'])) {
                 $outputrecord['formelements'][$key]['suggestiondisplayvalue'] = $this->format_ai_markdown_output(
                     $formelement['newValue'],
-                    ['filter' => false]
+                    ['filter' => false],
+                    false
                 );
             }
         }

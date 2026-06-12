@@ -949,4 +949,90 @@ final class base_purpose_test extends \advanced_testcase {
             $this->assertStringNotContainsString($notexpected, $output);
         }
     }
+
+    /**
+     * Data provider for format_ai_markdown_output with raw HTML rendering enabled.
+     *
+     * When $escaperawhtml is false, raw HTML tags outside code blocks must be rendered
+     * (and sanitized by HTMLPurifier) instead of being escaped as literal text.
+     *
+     * @return array test cases
+     */
+    public static function format_ai_markdown_output_render_html_provider(): array {
+        $codeblock = "\x60\x60\x60";
+
+        return [
+            'safe_html_is_rendered_not_escaped' => [
+                'input' => '<h2>Course overview</h2><p>This is <strong>important</strong>.</p>',
+                'mustcontain' => ['<h2>', '<strong>important</strong>'],
+                'mustnotcontain' => ['&lt;h2&gt;', '&lt;strong&gt;'],
+            ],
+            'html_list_is_rendered' => [
+                'input' => '<ul><li>First</li><li>Second</li></ul>',
+                'mustcontain' => ['<ul>', '<li>First</li>'],
+                'mustnotcontain' => ['&lt;ul&gt;'],
+            ],
+            'dangerous_html_still_sanitized' => [
+                'input' => '<p>Hello</p><script>alert("xss")</script>',
+                'mustcontain' => ['<p>Hello</p>'],
+                'mustnotcontain' => ['<script>', 'alert('],
+            ],
+            'event_handler_attribute_removed' => [
+                'input' => '<img src="x" onerror="evil()">',
+                'mustcontain' => [],
+                'mustnotcontain' => ['onerror='],
+            ],
+            'html_in_code_block_still_escaped' => [
+                'input' => 'Example:' . "\n\n" . $codeblock . 'html' . "\n"
+                    . '<div class="x">text</div>' . "\n" . $codeblock,
+                'mustcontain' => ['&lt;div class=', '<pre>', '<code'],
+                'mustnotcontain' => ['<div class="x">'],
+            ],
+            'mathjax_preserved_with_html_rendering' => [
+                'input' => '<p>Formula: \( v = \frac{\Delta x}{\Delta t} \)</p>',
+                'mustcontain' => ['\( v = \frac{\Delta x}{\Delta t} \)', '<p>'],
+                'mustnotcontain' => [],
+            ],
+        ];
+    }
+
+    /**
+     * Test that format_ai_markdown_output renders raw HTML when $escaperawhtml is false.
+     *
+     * @param string $input The markdown/HTML input
+     * @param array $mustcontain Strings that must be in the output
+     * @param array $mustnotcontain Strings that must not be in the output
+     * @covers \local_ai_manager\base_purpose::format_ai_markdown_output
+     * @dataProvider format_ai_markdown_output_render_html_provider
+     */
+    public function test_format_ai_markdown_output_renders_raw_html(
+        string $input,
+        array $mustcontain,
+        array $mustnotcontain
+    ): void {
+        $purpose = new base_purpose();
+        $output = $purpose->format_ai_markdown_output($input, [], false);
+
+        foreach ($mustcontain as $expected) {
+            $this->assertStringContainsString($expected, $output);
+        }
+        foreach ($mustnotcontain as $notexpected) {
+            $this->assertStringNotContainsString($notexpected, $output);
+        }
+    }
+
+    /**
+     * Test that the default behaviour ($escaperawhtml = true) still escapes raw HTML.
+     *
+     * This guards against regressions of the default escaping behaviour introduced in MBS-10767.
+     *
+     * @covers \local_ai_manager\base_purpose::format_ai_markdown_output
+     */
+    public function test_format_ai_markdown_output_escapes_html_by_default(): void {
+        $purpose = new base_purpose();
+        $output = $purpose->format_ai_markdown_output('<div>content</div>');
+
+        $this->assertStringContainsString('&lt;div&gt;', $output);
+        $this->assertStringNotContainsString('<div>content</div>', $output);
+    }
 }
