@@ -542,6 +542,16 @@ final class ai_manager_utils_test extends \advanced_testcase {
         });
         $chatpurposeconfig = ai_manager_utils::get_ai_config($user, $blockcontextid, null, ['chat'])['purposes'][0];
         $this->assertEquals($chatpurposeconfig['available'], ai_manager_utils::AVAILABILITY_HIDDEN);
+
+        // The hook must also hide the purpose if a config check would mark it as disabled,
+        // for example because the user has exceeded the quota.
+        $userusage->set_currentusage(100);
+        $userusage->store();
+        $chatpurposeconfig = ai_manager_utils::get_ai_config($user, $blockcontextid, null, ['chat'])['purposes'][0];
+        $this->assertEquals($chatpurposeconfig['available'], ai_manager_utils::AVAILABILITY_HIDDEN);
+        $userusage->set_currentusage(10);
+        $userusage->store();
+
         $hookmanager->phpunit_stop_redirections();
         $hookmanager->phpunit_redirect_hook(additional_user_restriction::class, function ($hook) {
             $hook->set_access_allowed(true);
