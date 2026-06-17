@@ -283,7 +283,7 @@ final class purpose_test extends \advanced_testcase {
                 ]),
                 'expectedcontains' => '&lt;pre&gt;',
             ],
-            'mathjax_inline_delimiters_consumed_by_markdown_in_explanation' => [
+            'mathjax_inline_delimiters_preserved_in_explanation' => [
                 'input' => json_encode([
                     'formelements' => [
                         [
@@ -299,10 +299,11 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                // MarkdownExtra consumes escaped parentheses: \( becomes (.
-                'expectedcontains' => '(x^2)',
+                // MBS-10777: MathJax inline delimiters survive the Markdown parser
+                // for client-side MathJax rendering.
+                'expectedcontains' => '\(x^2\)',
             ],
-            'mathjax_display_delimiters_consumed_by_markdown_in_explanation' => [
+            'mathjax_display_delimiters_preserved_in_explanation' => [
                 'input' => json_encode([
                     'formelements' => [
                         [
@@ -318,8 +319,9 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                // MarkdownExtra consumes escaped brackets: \[ becomes [.
-                'expectedcontains' => '[E = mc^2]',
+                // MBS-10777: MathJax display delimiters survive the Markdown parser
+                // for client-side MathJax rendering.
+                'expectedcontains' => '\[E = mc^2\]',
             ],
             'mathjax_begin_end_escaped_in_explanation' => [
                 'input' => json_encode([
@@ -561,14 +563,16 @@ final class purpose_test extends \advanced_testcase {
                 'mustcontain' => ['<strong>important</strong>'],
                 'mustnotcontain' => [],
             ],
-            'mathjax_inline_delimiters_consumed_by_markdown' => [
+            'mathjax_inline_delimiters_preserved' => [
                 'text' => 'The formula \(x^2 + y^2\) is a sum of squares.',
-                'mustcontain' => ['(x^2 + y^2)'],
+                // MBS-10777: MathJax inline delimiters survive the Markdown parser.
+                'mustcontain' => ['\(x^2 + y^2\)'],
                 'mustnotcontain' => [],
             ],
-            'mathjax_display_delimiters_consumed_by_markdown' => [
+            'mathjax_display_delimiters_preserved' => [
                 'text' => 'Display: \[E = mc^2\] is famous.',
-                'mustcontain' => ['[E = mc^2]'],
+                // MBS-10777: MathJax display delimiters survive the Markdown parser.
+                'mustcontain' => ['\[E = mc^2\]'],
                 'mustnotcontain' => [],
             ],
         ];
@@ -1313,6 +1317,22 @@ final class purpose_test extends \advanced_testcase {
                 'displayvaluemustcontain' => ['Simple course name'],
                 'displayvaluemustnotcontain' => [],
             ],
+            'xss_in_newvalue_is_sanitized_in_displayvalue' => [
+                'formelement' => [
+                    'id' => 'id_summary_editor',
+                    'name' => 'summary_editor',
+                    'newValue' => '<p>Safe content</p><script>alert("xss")</script>',
+                    'label' => 'Summary',
+                    'explanation' => 'Content with script.',
+                ],
+                // The newValue itself is preserved verbatim for form field injection.
+                'newvaluemustcontain' => ['<script>alert("xss")</script>'],
+                'newvaluemustnotcontain' => [],
+                'hasdisplayvalue' => true,
+                // MBS-10767: suggestiondisplayvalue renders safe HTML but strips dangerous tags.
+                'displayvaluemustcontain' => ['<p>Safe content</p>'],
+                'displayvaluemustnotcontain' => ['<script>', 'alert('],
+            ],
             'course_description_with_markdown_formatting' => [
                 'formelement' => [
                     'id' => 'id_summary_editor',
@@ -1325,8 +1345,9 @@ final class purpose_test extends \advanced_testcase {
                 'newvaluemustcontain' => ['<h2>Kursübersicht</h2>', '<strong>wichtige Themen</strong>', '<ul>'],
                 'newvaluemustnotcontain' => [],
                 'hasdisplayvalue' => true,
-                'displayvaluemustcontain' => ['Kursübersicht', 'wichtige Themen'],
-                'displayvaluemustnotcontain' => [],
+                // MBS-10767: HTML in newValue must be rendered (not escaped) in suggestiondisplayvalue.
+                'displayvaluemustcontain' => ['<h2>Kursübersicht</h2>', '<strong>wichtige Themen</strong>', '<ul>', '<li>'],
+                'displayvaluemustnotcontain' => ['&lt;h2&gt;', '&lt;strong&gt;', '&lt;ul&gt;'],
             ],
         ];
     }
