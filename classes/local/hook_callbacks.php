@@ -43,6 +43,12 @@ class hook_callbacks {
         if (!$accessmanager->is_tenant_manager() || !$tenant->is_tenant_allowed()) {
             return;
         }
+        // Always create the node with an explicit, stable string key ('local_ai_manager').
+        // If no key is passed, navigation_node::add_node() falls back to the current child
+        // count as the key (e.g. the numeric index 4). That numeric key is unstable because
+        // it depends on how many core nodes were added before this hook runs, which differs
+        // between the regular web request and the minimal PHPUnit bootstrap. Code that later
+        // looks the node up by key would then access a non-existing offset (MBS-10704).
         $node = navigation_node::create(
             get_string('aiadministrationlink', 'local_ai_manager'),
             new moodle_url('/local/ai_manager/tenant_config.php'),

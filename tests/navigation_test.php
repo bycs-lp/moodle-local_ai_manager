@@ -45,6 +45,9 @@ final class navigation_test extends \advanced_testcase {
     private function run_callback(): primary {
         global $PAGE;
 
+        // Avoid the active-node auto-detection touching $FULLME during node creation.
+        navigation_node::reset_all_data();
+
         $PAGE = new \moodle_page();
         $PAGE->set_url('/');
         $PAGE->set_context(\context_system::instance());
