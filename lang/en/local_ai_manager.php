@@ -135,6 +135,7 @@ $string['exception_instanceunavailable'] = 'This AI tool is not available.';
 $string['exception_invalidpurpose'] = 'Invalid purpose';
 $string['exception_notenantmanagerrights'] = 'You do not have the rights to manage the AI tools';
 $string['exception_novalidconnector'] = 'No valid AI tool type specified';
+$string['exception_purposeconnectorinvalid'] = 'The connector for the purpose {$a} is invalid';
 $string['exception_retrievingaccesstoken'] = 'An error occured while trying to retrieve the access token';
 $string['exception_retrievingcachestatus'] = 'An error occured while trying to retrieve the cache status';
 $string['exception_tenantaccessdenied'] = 'You must not access this tenant ({$a}).';
