@@ -348,11 +348,7 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026020600, 'local', 'ai_manager');
     }
 
-    if ($oldversion < 2026042000) {
-        local_ai_manager_cleanup_legacy_azure_instance_data();
 
-        upgrade_plugin_savepoint(true, 2026042000, 'local', 'ai_manager');
-    }
 
     if ($oldversion < 2026030300) {
 
@@ -382,6 +378,10 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026030300, 'local', 'ai_manager');
     }
 
+    if ($oldversion < 2026042000) {
+        local_ai_manager_cleanup_legacy_azure_instance_data();
 
+        upgrade_plugin_savepoint(true, 2026042000, 'local', 'ai_manager');
+    }
     return true;
 }
