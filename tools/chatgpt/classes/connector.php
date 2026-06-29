@@ -52,6 +52,7 @@ class connector extends \local_ai_manager\base_connector {
                 'imggen' => [],
                 'itt' => ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o3', 'o4-mini'],
                 'questiongeneration' => $chatgptmodels,
+                'embedding' =>['text-embedding-3-small', 'text-embedding-3-large'],
                 'agent' => $chatgptmodels,
         ];
         foreach ($modelsbypurpose as $purpose => $models) {
@@ -84,7 +85,6 @@ class connector extends \local_ai_manager\base_connector {
         */
         // phpcs:enable moodle.Commenting.TodoComment.MissingInfoInline
         $content = json_decode($result->getContents(), true);
-
         return prompt_response::create_from_result(
             $content['model'],
             new usage(
@@ -163,6 +163,9 @@ class connector extends \local_ai_manager\base_connector {
     public function has_customvalue2(): bool {
         return true;
     }
+
+    // protected function apply_guard_rails($content, request_options $requestoptions) {
+    // }
 
     #[\Override]
     protected function get_headers(): array {

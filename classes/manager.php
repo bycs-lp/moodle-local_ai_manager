@@ -205,8 +205,8 @@ class manager {
 
         // Give the purpose a chance to manipulate the prompt text.
         $prompttext = $this->purpose->format_prompt_text($prompttext, $requestoptions);
-
         $promptdata = $this->connector->get_prompt_data($prompttext, $requestoptions);
+        
         $starttime = microtime(true);
         try {
             $requestresult = $this->connector->make_request($promptdata, $requestoptions);
@@ -231,6 +231,7 @@ class manager {
             return $promptresponse;
         }
         $promptcompletion = $this->connector->execute_prompt_completion($requestresult->get_response(), $requestoptions);
+  
         if (!empty($promptcompletion->get_errormessage())) {
             get_ai_response_failed::create_from_prompt_response($promptdata, $promptcompletion, $duration)->trigger();
             return $promptcompletion;

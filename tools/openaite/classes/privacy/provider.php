@@ -15,23 +15,33 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Hook listener callbacks.
+ * aitool_openaite privacy provider class.
  *
- * @package    local_ai_manager
- * @copyright  2024 ISB Bayern
- * @author     Philipp Memmel
+ * @package    aitool_openaite
+ * @copyright  University of Strathclyde, 2025
+ * @author     Michael Hughes
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+namespace aitool_openaite\privacy;
 
-$callbacks = [
-        [
-                'hook' => \core\hook\navigation\primary_extend::class,
-                'callback' => \local_ai_manager\local\hook_callbacks::class . '::extend_primary_navigation',
-        ],
-        [
-                'hook' => \core\hook\output\before_footer_html_generation::class,
-                'callback' => \local_ai_manager\local\hook_callbacks::class . '::before_footer_html_generation',
-        ]
-];
+/**
+ * aitool_openaite privacy provider class.
+ *
+ * @package    aitool_openaite
+ * @copyright  University of Strathclyde, 2025
+ * @author     Michael Hughes
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class provider implements \core_privacy\local\metadata\null_provider {
+
+    /**
+     * Get the language string identifier with the component's language
+     * file to explain why this plugin stores no data.
+     *
+     * @return  string
+     */
+    public static function get_reason(): string {
+        return 'privacy:metadata';
+    }
+}
