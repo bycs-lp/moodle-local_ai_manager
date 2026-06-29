@@ -84,6 +84,26 @@ class connector extends base_connector {
     }
 
     #[\Override]
+    protected function get_endpoint_url(): string {
+        if ($this->instance->get_endpoint()) {
+            return $this->instance->get_endpoint();
+        }
+        // The service account JSON (customfield1) is required to compose the VertexAI endpoint URL.
+        // Returning an empty string here causes the request to fail with a proper error instead of
+        // sending to an incorrect endpoint.
+        if (empty($this->instance->get_customfield1())) {
+            return '';
+        }
+        $projectid = json_decode($this->instance->get_customfield1())?->project_id;
+        if (empty($projectid)) {
+            return '';
+        }
+        return 'https://europe-north1-aiplatform.googleapis.com/v1/projects/' . $projectid
+            . '/locations/europe-north1/publishers/google/models/' . $this->instance->get_model()
+            . ':predict';
+    }
+
+    #[\Override]
     public function make_request(array $data, request_options $requestoptions): request_response {
         $vertexaiauthhandler =
             new aitool_option_vertexai_authhandler($this->instance->get_id(), $this->instance->get_customfield1());

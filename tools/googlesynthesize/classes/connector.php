@@ -35,6 +35,14 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends \local_ai_manager\base_connector {
+    /** @var string Default Google Synthesize endpoint. */
+    public const DEFAULT_GOOGLE_SYNTHESIZE_ENDPOINT = 'https://texttospeech.googleapis.com/v1/text:synthesize';
+
+    #[\Override]
+    protected function get_endpoint_url(): string {
+        return $this->instance->get_endpoint() ?: self::DEFAULT_GOOGLE_SYNTHESIZE_ENDPOINT;
+    }
+
     #[\Override]
     public function get_models_by_purpose(): array {
         $modelsbypurpose = base_purpose::get_installed_purposes_array();

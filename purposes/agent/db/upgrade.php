@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Settings for aipurpose_agent.
+ * Upgrade steps for aipurpose_agent.
  *
  * @package    aipurpose_agent
  * @copyright  2026 ISB Bayern
@@ -23,17 +23,19 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die;
+/**
+ * Upgrade the aipurpose_agent plugin.
+ *
+ * @param int $oldversion The old version of the plugin.
+ * @return bool
+ */
+function xmldb_aipurpose_agent_upgrade($oldversion) {
+    if ($oldversion < 2026041600) {
+        // Overwrite the agentprompt setting with the new default value.
+        set_config('agentprompt', \aipurpose_agent\purpose::get_default_agentprompt(), 'aipurpose_agent');
 
-global $CFG;
+        upgrade_plugin_savepoint(true, 2026041600, 'aipurpose', 'agent');
+    }
 
-if ($hassiteconfig) {
-    $settings->add(
-        new admin_setting_configtextarea(
-            'aipurpose_agent/agentprompt',
-            new lang_string('agentpromptsetting', 'aipurpose_agent'),
-            new lang_string('agentpromptsettingdesc', 'aipurpose_agent'),
-            \aipurpose_agent\purpose::get_default_agentprompt()
-        )
-    );
+    return true;
 }

@@ -35,21 +35,25 @@ use stdClass;
 /**
  * Unit tests for the agent purpose.
  *
- * @package   aipurpose_agent
- * @copyright 2025 ISB Bayern
- * @author    Andreas Wagner
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    aipurpose_agent
+ * @copyright  2025 ISB Bayern
+ * @author     Andreas Wagner
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @coversDefaultClass \aipurpose_agent\purpose
  */
 final class purpose_test extends \advanced_testcase {
     /**
-     * Tests the moving of conversations from the user context ai_chat block instances to the system instance.
+     * Tests the agent purpose perform request flow.
      *
-     * @covers \aipurpose_agent\purpose
+     * @covers ::get_additional_request_options
+     * @covers ::get_additional_purpose_options
+     * @covers ::format_output
      */
-    public function test_purpose_perfom_request(): void {
+    public function test_purpose_perform_request(): void {
         global $DB, $CFG;
 
         $this->resetAfterTest();
+
         $correctaichatsystemblock = new stdClass();
         $correctaichatsystemblock->blockname = 'ai_chat';
         $correctaichatsystemblock->parentcontextid = SYSCONTEXTID;
@@ -73,7 +77,6 @@ final class purpose_test extends \advanced_testcase {
         $this->setUser($user1);
         $manager = new manager('chat');
 
-        // Is conversationid still needed?
         $conversationid = ai_manager_utils::get_next_free_itemid('block_ai_chat', $correctaichatsystemblockcontext->id);
 
         $options = file_get_contents($CFG->dirroot . '/local/ai_manager/purposes/agent/tests/fixtures/options.json');
@@ -87,20 +90,834 @@ final class purpose_test extends \advanced_testcase {
             $correctaichatsystemblockcontext->id,
             $agentoptions
         );
-        // TODO Complete test with proper assertions.
+
+        $this->assertInstanceOf(prompt_response::class, $result);
     }
 
     /**
-     * Helper function to set up all the necessary things to be able to perform a mock chat request with the local_ai_manager.
+     * Data provider for testing formelement label formatting.
      *
-     * @param stdClass $user The user, which should be set up for performing the mock chat request
+     * @return array Test cases with input JSON and expected output checks
      */
-    private function setup_ai_manager(\stdClass $user): void {
+    public static function format_output_formelement_label_provider(): array {
+        return [
+            'html_tags_stripped_from_label' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Test value',
+                            'label' => '<script>alert("xss")</script>Bold Label',
+                            'explanation' => 'Simple explanation.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectedcontains' => 'Bold Label',
+                'mustnotcontain' => '<script>',
+            ],
+            'html_in_label_removed' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => '<em>Italic Label</em>',
+                            'explanation' => 'Explanation.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectedcontains' => 'Italic Label',
+                'mustnotcontain' => '<em>',
+            ],
+            'plain_text_label' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => 'Plain Label',
+                            'explanation' => 'Explanation.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectedcontains' => 'Plain Label',
+                'mustnotcontain' => '',
+            ],
+            'markdown_in_label_not_formatted' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => '**Bold Label**',
+                            'explanation' => 'Explanation.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectedcontains' => '**Bold Label**',
+                'mustnotcontain' => '<strong>',
+            ],
+        ];
+    }
+
+    /**
+     * Test that formelement labels have HTML stripped (not formatted with Markdown).
+     *
+     * @param string $input The JSON input
+     * @param string $expectedcontains String that must be in the formatted label
+     * @param string $mustnotcontain String that must not be in the formatted label
+     *
+     * @covers ::format_output
+     * @dataProvider format_output_formelement_label_provider
+     */
+    public function test_format_output_formelement_label(string $input, string $expectedcontains, string $mustnotcontain): void {
+        $purpose = new purpose();
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded, 'Output must be valid JSON');
+        $this->assertArrayHasKey('formelements', $decoded);
+        $this->assertNotEmpty($decoded['formelements']);
+        $this->assertStringContainsString($expectedcontains, $decoded['formelements'][0]['label']);
+        if (!empty($mustnotcontain)) {
+            $this->assertStringNotContainsString($mustnotcontain, $decoded['formelements'][0]['label']);
+        }
+    }
+
+    /**
+     * Data provider for testing formelement explanation formatting.
+     *
+     * @return array Test cases with input JSON and expected output checks
+     */
+    public static function format_output_formelement_explanation_provider(): array {
+        return [
+            'italic_in_explanation' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => 'Label',
+                            'explanation' => 'This is *italic* text.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectedcontains' => '<em>italic</em>',
+            ],
+            'bold_in_explanation' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => 'Label',
+                            'explanation' => 'This is **bold** text.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectedcontains' => '<strong>bold</strong>',
+            ],
+            'link_in_explanation' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => 'Label',
+                            'explanation' => 'See [docs](https://moodle.org) for info.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectedcontains' => 'href="https://moodle.org"',
+            ],
+            'html_tags_escaped_in_explanation' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => 'Label',
+                            'explanation' => 'I used <pre> tags for code blocks.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectedcontains' => '&lt;pre&gt;',
+            ],
+            'mathjax_inline_delimiters_consumed_by_markdown_in_explanation' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => 'Label',
+                            'explanation' => 'The formula \(x^2\) is quadratic.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                // MarkdownExtra consumes escaped parentheses: \( becomes (.
+                'expectedcontains' => '(x^2)',
+            ],
+            'mathjax_display_delimiters_consumed_by_markdown_in_explanation' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => 'Label',
+                            'explanation' => 'Display math: \[E = mc^2\] here.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                // MarkdownExtra consumes escaped brackets: \[ becomes [.
+                'expectedcontains' => '[E = mc^2]',
+            ],
+            'mathjax_begin_end_escaped_in_explanation' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => 'Value',
+                            'label' => 'Label',
+                            'explanation' => 'Use \begin{equation} for numbered math.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectedcontains' => '\\begin{equation}',
+            ],
+        ];
+    }
+
+    /**
+     * Test that formelement explanations are formatted with Markdown.
+     *
+     * @param string $input The JSON input
+     * @param string $expectedcontains String that must be in the formatted explanation
+     *
+     * @covers ::format_output
+     * @dataProvider format_output_formelement_explanation_provider
+     */
+    public function test_format_output_formelement_explanation(string $input, string $expectedcontains): void {
+        $purpose = new purpose();
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded, 'Output must be valid JSON');
+        $this->assertArrayHasKey('formelements', $decoded);
+        $this->assertNotEmpty($decoded['formelements']);
+        $this->assertStringContainsString($expectedcontains, $decoded['formelements'][0]['explanation']);
+    }
+
+    /**
+     * Data provider for testing that newValue is preserved unchanged.
+     *
+     * @return array Test cases with input JSON and expected newValue
+     */
+    public static function format_output_newvalue_preserved_provider(): array {
+        return [
+            'html_tags_preserved' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_test',
+                            'name' => 'test',
+                            'newValue' => '<p style="color: red;">HTML content</p>',
+                            'label' => 'Label',
+                            'explanation' => 'Explanation.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectednewvalue' => '<p style="color: red;">HTML content</p>',
+            ],
+            'python_code_preserved' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_code',
+                            'name' => 'code',
+                            'newValue' => "def hello():\n    print('Hello')\n\n<html><body>Test</body></html>",
+                            'label' => 'Code',
+                            'explanation' => 'Python code.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectednewvalue' => "def hello():\n    print('Hello')\n\n<html><body>Test</body></html>",
+            ],
+            'script_tags_preserved' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_content',
+                            'name' => 'content',
+                            'newValue' => '<script>alert("test")</script><img onerror="evil()">',
+                            'label' => 'Content',
+                            'explanation' => 'Content field.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectednewvalue' => '<script>alert("test")</script><img onerror="evil()">',
+            ],
+            'full_html_document_preserved' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_summary',
+                            'name' => 'summary',
+                            'newValue' => '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"></head>'
+                                . '<body><h1>Title</h1></body></html>',
+                            'label' => 'Summary',
+                            'explanation' => 'Full HTML.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectednewvalue' => '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"></head>'
+                    . '<body><h1>Title</h1></body></html>',
+            ],
+            'plain_text_preserved' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_name',
+                            'name' => 'name',
+                            'newValue' => 'Simple course name',
+                            'label' => 'Name',
+                            'explanation' => 'Course name.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectednewvalue' => 'Simple course name',
+            ],
+            'multiline_text_preserved' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        [
+                            'id' => 'id_desc',
+                            'name' => 'desc',
+                            'newValue' => "Line 1\nLine 2\n\nLine 4",
+                            'label' => 'Description',
+                            'explanation' => 'Multiline.',
+                        ],
+                    ],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+                'expectednewvalue' => "Line 1\nLine 2\n\nLine 4",
+            ],
+        ];
+    }
+
+    /**
+     * Test that newValue in formelements is preserved unchanged (not formatted).
+     *
+     * The newValue must be preserved as-is because it will be injected into form fields.
+     * Any formatting/escaping happens at display time in the Mustache template.
+     *
+     * @param string $input The JSON input
+     * @param string $expectednewvalue The expected unchanged newValue
+     *
+     * @covers ::format_output
+     * @dataProvider format_output_newvalue_preserved_provider
+     */
+    public function test_format_output_newvalue_preserved(string $input, string $expectednewvalue): void {
+        $purpose = new purpose();
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded, 'Output must be valid JSON');
+        $this->assertArrayHasKey('formelements', $decoded);
+        $this->assertNotEmpty($decoded['formelements']);
+        $this->assertEquals(
+            $expectednewvalue,
+            $decoded['formelements'][0]['newValue'],
+            'newValue must be preserved exactly as provided'
+        );
+    }
+
+    /**
+     * Data provider for testing chatoutput intro and outro formatting.
+     *
+     * @return array Test cases with text and expected output checks
+     */
+    public static function format_output_chatoutput_text_provider(): array {
+        $codeblock = "\x60\x60\x60";
+
+        return [
+            'bold_and_italic' => [
+                'text' => 'Here is **bold** and *italic* text.',
+                'mustcontain' => ['<strong>bold</strong>', '<em>italic</em>'],
+                'mustnotcontain' => [],
+            ],
+            'ordered_list' => [
+                'text' => 'Steps:' . PHP_EOL . PHP_EOL . '1. First' . PHP_EOL . '2. Second' . PHP_EOL . '3. Third',
+                'mustcontain' => ['<ol>', '<li>'],
+                'mustnotcontain' => [],
+            ],
+            'unordered_list' => [
+                'text' => 'Items:' . PHP_EOL . PHP_EOL . '- Item A' . PHP_EOL . '- Item B' . PHP_EOL . '- Item C',
+                'mustcontain' => ['<ul>', '<li>'],
+                'mustnotcontain' => [],
+            ],
+            'heading' => [
+                'text' => '## Configuration Complete' . PHP_EOL . PHP_EOL . 'All done.',
+                'mustcontain' => ['<h2>'],
+                'mustnotcontain' => [],
+            ],
+            'code_block_html_escaped' => [
+                'text' => 'Example:' . PHP_EOL . PHP_EOL
+                    . $codeblock . 'python' . PHP_EOL
+                    . 'print("<html>")' . PHP_EOL
+                    . $codeblock,
+                'mustcontain' => ['<pre>', '<code', '&lt;html&gt;'],
+                'mustnotcontain' => ['<html>'],
+            ],
+            'script_tag_sanitized' => [
+                'text' => 'Hello <script>alert("xss")</script> world',
+                'mustcontain' => ['Hello', 'world', '&lt;script&gt;'],
+                'mustnotcontain' => ['<script>'],
+            ],
+            'link_formatting' => [
+                'text' => 'Visit [Moodle](https://moodle.org) for more.',
+                'mustcontain' => ['href="https://moodle.org"', '>Moodle</a>'],
+                'mustnotcontain' => [],
+            ],
+            'bold_text' => [
+                'text' => 'This is **important**.',
+                'mustcontain' => ['<strong>important</strong>'],
+                'mustnotcontain' => [],
+            ],
+            'mathjax_inline_delimiters_consumed_by_markdown' => [
+                'text' => 'The formula \(x^2 + y^2\) is a sum of squares.',
+                'mustcontain' => ['(x^2 + y^2)'],
+                'mustnotcontain' => [],
+            ],
+            'mathjax_display_delimiters_consumed_by_markdown' => [
+                'text' => 'Display: \[E = mc^2\] is famous.',
+                'mustcontain' => ['[E = mc^2]'],
+                'mustnotcontain' => [],
+            ],
+        ];
+    }
+
+    /**
+     * Test that chatoutput intro and outro text is properly formatted with Markdown.
+     *
+     * Both intro and outro are handled identically in the code, so this tests both.
+     *
+     * @param string $text The text to test
+     * @param array $mustcontain Strings that must be in the formatted output
+     * @param array $mustnotcontain Strings that must not be in the formatted output
+     *
+     * @covers ::format_output
+     * @dataProvider format_output_chatoutput_text_provider
+     */
+    public function test_format_output_chatoutput_text(string $text, array $mustcontain, array $mustnotcontain): void {
+        $purpose = new purpose();
+
+        // Test with intro.
+        $inputintro = json_encode([
+            'formelements' => [],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => $text],
+                ['type' => 'outro', 'text' => ''],
+            ],
+        ]);
+        $outputintro = $purpose->format_output($inputintro);
+        $decodedintro = json_decode($outputintro, true);
+
+        $this->assertNotNull($decodedintro, 'Output must be valid JSON');
+        $intro = '';
+        foreach ($decodedintro['chatoutput'] as $item) {
+            if ($item['type'] === 'intro') {
+                $intro = $item['text'];
+                break;
+            }
+        }
+
+        foreach ($mustcontain as $expected) {
+            $this->assertStringContainsString($expected, $intro, "Intro must contain: $expected");
+        }
+        foreach ($mustnotcontain as $notexpected) {
+            $this->assertStringNotContainsString($notexpected, $intro, "Intro must not contain: $notexpected");
+        }
+
+        // Test with outro.
+        $inputoutro = json_encode([
+            'formelements' => [],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => ''],
+                ['type' => 'outro', 'text' => $text],
+            ],
+        ]);
+        $outputoutro = $purpose->format_output($inputoutro);
+        $decodedoutro = json_decode($outputoutro, true);
+
+        $this->assertNotNull($decodedoutro, 'Output must be valid JSON');
+        $outro = '';
+        foreach ($decodedoutro['chatoutput'] as $item) {
+            if ($item['type'] === 'outro') {
+                $outro = $item['text'];
+                break;
+            }
+        }
+
+        foreach ($mustcontain as $expected) {
+            $this->assertStringContainsString($expected, $outro, "Outro must contain: $expected");
+        }
+        foreach ($mustnotcontain as $notexpected) {
+            $this->assertStringNotContainsString($notexpected, $outro, "Outro must not contain: $notexpected");
+        }
+    }
+
+    /**
+     * Data provider for invalid input handling tests.
+     *
+     * @return array Test cases with invalid inputs
+     */
+    public static function format_output_invalid_input_provider(): array {
+        return [
+            'non_json_string' => [
+                'input' => 'This is not JSON at all',
+            ],
+            'empty_string' => [
+                'input' => '',
+            ],
+            'malformed_json' => [
+                'input' => '{"formelements": [}',
+            ],
+            'plain_text_response' => [
+                'input' => 'The AI returned plain text instead of JSON.',
+            ],
+            'array_instead_of_object' => [
+                'input' => '["item1", "item2"]',
+            ],
+        ];
+    }
+
+    /**
+     * Test that format_output returns valid structure even for invalid JSON input.
+     *
+     * @param string $input The invalid input
+     *
+     * @covers ::format_output
+     * @dataProvider format_output_invalid_input_provider
+     */
+    public function test_format_output_invalid_input(string $input): void {
+        $purpose = new purpose();
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded, 'Output must be valid JSON even for invalid input');
+        $this->assertArrayHasKey('formelements', $decoded, 'Output must contain formelements key');
+        $this->assertArrayHasKey('chatoutput', $decoded, 'Output must contain chatoutput key');
+    }
+
+    /**
+     * Data provider for missing required fields tests.
+     *
+     * @return array Test cases with missing fields
+     */
+    public static function format_output_missing_fields_provider(): array {
+        return [
+            'missing_chatoutput' => [
+                'input' => json_encode([
+                    'formelements' => [
+                        ['id' => 'test', 'newValue' => 'value', 'label' => 'Test', 'explanation' => 'Explanation'],
+                    ],
+                ]),
+            ],
+            'missing_formelements' => [
+                'input' => json_encode([
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+            ],
+            'empty_json_object' => [
+                'input' => '{}',
+            ],
+            'null_formelements' => [
+                'input' => json_encode([
+                    'formelements' => null,
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Intro'],
+                        ['type' => 'outro', 'text' => 'Outro'],
+                    ],
+                ]),
+            ],
+        ];
+    }
+
+    /**
+     * Test that format_output handles missing required fields gracefully.
+     *
+     * @param string $input The JSON input with missing fields
+     *
+     * @covers ::format_output
+     * @dataProvider format_output_missing_fields_provider
+     */
+    public function test_format_output_missing_fields(string $input): void {
+        $purpose = new purpose();
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded, 'Output must be valid JSON');
+        $this->assertArrayHasKey('formelements', $decoded, 'Output must contain formelements key');
+        $this->assertArrayHasKey('chatoutput', $decoded, 'Output must contain chatoutput key');
+    }
+
+    /**
+     * Test that multiple formelements are all processed correctly.
+     *
+     * @covers ::format_output
+     */
+    public function test_format_output_multiple_formelements(): void {
+        $input = json_encode([
+            'formelements' => [
+                [
+                    'id' => 'id_first',
+                    'name' => 'first',
+                    'newValue' => '<div>First value</div>',
+                    'label' => '**First Field**',
+                    'explanation' => 'First *explanation*.',
+                ],
+                [
+                    'id' => 'id_second',
+                    'name' => 'second',
+                    'newValue' => '<script>second</script>',
+                    'label' => '__Second Field__',
+                    'explanation' => 'Second **explanation**.',
+                ],
+                [
+                    'id' => 'id_third',
+                    'name' => 'third',
+                    'newValue' => 'Plain text value',
+                    'label' => 'Third Field',
+                    'explanation' => 'Third [link](https://example.com).',
+                ],
+            ],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => 'Multiple fields.'],
+                ['type' => 'outro', 'text' => 'Done.'],
+            ],
+        ]);
+
+        $purpose = new purpose();
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded);
+        $this->assertCount(3, $decoded['formelements'], 'Should have 3 formelements');
+
+        // Verify first element - label should have markdown stripped, not formatted.
+        $this->assertStringContainsString('**First Field**', $decoded['formelements'][0]['label']);
+        $this->assertStringNotContainsString('<strong>', $decoded['formelements'][0]['label']);
+        $this->assertStringContainsString('<em>explanation</em>', $decoded['formelements'][0]['explanation']);
+        $this->assertEquals('<div>First value</div>', $decoded['formelements'][0]['newValue']);
+
+        // Verify second element.
+        $this->assertStringContainsString('__Second Field__', $decoded['formelements'][1]['label']);
+        $this->assertStringContainsString('<strong>explanation</strong>', $decoded['formelements'][1]['explanation']);
+        $this->assertEquals('<script>second</script>', $decoded['formelements'][1]['newValue']);
+
+        // Verify third element.
+        $this->assertStringContainsString('href="https://example.com"', $decoded['formelements'][2]['explanation']);
+        $this->assertEquals('Plain text value', $decoded['formelements'][2]['newValue']);
+    }
+
+    /**
+     * Test that empty formelements array is handled correctly.
+     *
+     * @covers ::format_output
+     */
+    public function test_format_output_empty_formelements(): void {
+        $input = json_encode([
+            'formelements' => [],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => 'No suggestions.'],
+                ['type' => 'outro', 'text' => 'Provide more details.'],
+            ],
+        ]);
+
+        $purpose = new purpose();
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded);
+        $this->assertArrayHasKey('formelements', $decoded);
+        $this->assertEmpty($decoded['formelements']);
+        $this->assertArrayHasKey('chatoutput', $decoded);
+        $this->assertNotEmpty($decoded['chatoutput']);
+    }
+
+    /**
+     * Test format_output with the actual fixture response file.
+     *
+     * @covers ::format_output
+     */
+    public function test_format_output_with_fixture_response(): void {
+        global $CFG;
+
+        $fixturepath = $CFG->dirroot . '/local/ai_manager/purposes/agent/tests/fixtures/response.txt';
+
+        $input = file_get_contents($fixturepath);
+        $purpose = new purpose();
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded, 'Output must be valid JSON');
+        $this->assertArrayHasKey('formelements', $decoded);
+        $this->assertArrayHasKey('chatoutput', $decoded);
+        $this->assertNotEmpty($decoded['formelements'], 'Fixture should have formelements');
+        $this->assertNotEmpty($decoded['chatoutput'], 'Fixture should have chatoutput');
+
+        // Verify structure of chatoutput.
+        $hasintro = false;
+        $hasoutro = false;
+        foreach ($decoded['chatoutput'] as $item) {
+            if ($item['type'] === 'intro') {
+                $hasintro = true;
+                $this->assertNotEmpty($item['text'], 'Intro text should not be empty');
+            }
+            if ($item['type'] === 'outro') {
+                $hasoutro = true;
+            }
+        }
+        $this->assertTrue($hasintro, 'Chatoutput must have intro');
+        $this->assertTrue($hasoutro, 'Chatoutput must have outro');
+    }
+
+    /**
+     * Test validate_chatoutput returns proper structure.
+     *
+     * @covers ::format_output
+     */
+    public function test_format_output_chatoutput_structure(): void {
+        $input = json_encode([
+            'formelements' => [],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => 'Intro text here.'],
+                ['type' => 'outro', 'text' => 'Outro text here.'],
+                ['type' => 'unknown', 'text' => 'This should be ignored.'],
+            ],
+        ]);
+
+        $purpose = new purpose();
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded);
+        $this->assertCount(2, $decoded['chatoutput'], 'Should only have intro and outro');
+
+        $types = array_column($decoded['chatoutput'], 'type');
+        $this->assertContains('intro', $types);
+        $this->assertContains('outro', $types);
+        $this->assertNotContains('unknown', $types);
+    }
+
+    /**
+     * Test that JSON with extra text around it is handled correctly.
+     *
+     * @covers ::format_output
+     */
+    public function test_format_output_json_with_surrounding_text(): void {
+        $input = 'Here is the JSON response: {"formelements": [], "chatoutput": [{"type": "intro", "text": "Test"}, '
+            . '{"type": "outro", "text": ""}]} End of response.';
+
+        $purpose = new purpose();
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded, 'Should extract JSON from surrounding text');
+        $this->assertArrayHasKey('formelements', $decoded);
+        $this->assertArrayHasKey('chatoutput', $decoded);
+    }
+
+    /**
+     * Helper function to set up AI manager for testing.
+     *
+     * @param stdClass $user The user to set up
+     */
+    private function setup_ai_manager(stdClass $user): void {
         global $DB, $CFG;
 
-        // Faking some chat conversations is going to be a bit of work, but let's do it.
         $tenant = new tenant('1234');
-        // Set the capability based on the $configuration.
         $systemcontext = context_system::instance();
         $aiuserrole = $DB->get_record('role', ['shortname' => 'aiuser']);
         if (empty($aiuserrole)) {
@@ -126,18 +943,19 @@ final class purpose_test extends \advanced_testcase {
         $userusage->set_currentusage(0);
         $userusage->store();
 
+        // Setup the AI Manager.
         $chatgptinstance = new instance();
         $chatgptinstance->set_model('gpt-4o');
         $chatgptinstance->set_connector('chatgpt');
 
-        // Fake a stream object, because we will mock the method that access it anyway.
+        // Fake a stream object, because we will mock the method that accesses it anyway.
         $streamresponse = new Stream(fopen('php://temp', 'r+'));
         $requestresponse = request_response::create_from_result($streamresponse);
 
         // Fake usage object.
         $usage = new usage(50.0, 30.0, 20.0);
-        // Fake prompt_response object.
 
+        // Fake prompt_response object.
         $responsetext = file_get_contents($CFG->dirroot . '/local/ai_manager/purposes/agent/tests/fixtures/response.txt');
 
         $promptresponse = prompt_response::create_from_result('gpt-4o', $usage, $responsetext);
@@ -156,9 +974,627 @@ final class purpose_test extends \advanced_testcase {
         \core\di::set(config_manager::class, $configmanager);
         \core\di::set(connector_factory::class, $connectorfactory);
 
+        // We enable the aitool plugin here.
         aitool::enable_plugin('agent', true);
 
         // We disable the hook here, so no other plugin is interfering.
         $this->redirectHook(\local_ai_manager\hook\additional_user_restriction::class, fn() => null);
+    }
+
+    /**
+     * Build a minimal valid LLM JSON response string.
+     *
+     * @param string $introtext The intro text for the chatoutput.
+     * @param string $outrotext The outro text for the chatoutput.
+     * @param array $formelements Optional form elements array.
+     * @return string JSON-encoded string as it would come from the LLM.
+     */
+    private function build_llm_response(string $introtext, string $outrotext = '', array $formelements = []): string {
+        return json_encode([
+            'formelements' => $formelements,
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => $introtext],
+                ['type' => 'outro', 'text' => $outrotext],
+            ],
+        ]);
+    }
+
+    /**
+     * Data provider for test_format_output.
+     *
+     * Each case provides intro text, outro text, expected substrings that MUST be present
+     * in the intro HTML, and expected substrings that MUST NOT be present.
+     *
+     * @return array array containing the different test cases
+     */
+    public static function format_output_provider(): array {
+        return [
+            'plain_text_without_newlines' => [
+                'intro' => 'Simple response without any newlines.',
+                'outro' => '',
+                'introcontains' => ['<p>Simple response without any newlines.</p>'],
+                'intronotcontains' => [],
+            ],
+            'single_newline_produces_separate_paragraphs' => [
+                'intro' => "a\nb",
+                'outro' => '',
+                'introcontains' => ['<p>a</p>', '<p>b</p>'],
+                'intronotcontains' => [],
+            ],
+            'double_newline_stays_as_paragraph_break' => [
+                'intro' => "a\n\nb",
+                'outro' => '',
+                'introcontains' => ['<p>a</p>', '<p>b</p>'],
+                'intronotcontains' => ['<p></p>'],
+            ],
+            'triple_newline_is_not_inflated_further' => [
+                'intro' => "a\n\n\nb",
+                'outro' => '',
+                'introcontains' => ['<p>a</p>', '<p>b</p>'],
+                'intronotcontains' => [],
+            ],
+            'unordered_list_with_single_newlines_renders_as_ul' => [
+                'intro' => "Suggestions:\n- Item one.\n- Item two.\n- Item three.",
+                'outro' => '',
+                'introcontains' => ['<ul>', '<li>', 'Item one.', 'Item two.', 'Item three.'],
+                'intronotcontains' => [],
+            ],
+            'unordered_list_with_double_newlines_renders_as_ul' => [
+                'intro' => "Suggestions:\n\n- Alpha.\n\n- Beta.\n\n- Gamma.",
+                'outro' => '',
+                'introcontains' => ['<ul>', '<li>', 'Alpha.', 'Beta.', 'Gamma.'],
+                'intronotcontains' => [],
+            ],
+            'numbered_items_with_paren_become_separate_paragraphs' => [
+                'intro' => "Changes:\n1) First.\n2) Second.\n3) Third.",
+                'outro' => '',
+                // PHP Markdown Extra does not support "1)" as list syntax, so each item becomes its own <p>.
+                'introcontains' => ['<p>1) First.</p>', '<p>2) Second.</p>', '<p>3) Third.</p>'],
+                'intronotcontains' => [],
+            ],
+            'ordered_list_with_dot_syntax_renders_as_ol' => [
+                'intro' => "Steps:\n1. First step.\n2. Second step.\n3. Third step.",
+                'outro' => '',
+                'introcontains' => ['<ol>', '<li>', 'First step.', 'Second step.'],
+                'intronotcontains' => [],
+            ],
+            'mixed_paragraphs_numbered_items_and_unordered_list' => [
+                'intro' => "Ich schlage vor, folgende Schritte durchzuführen:\n\n"
+                    . "1) Kurzname bereinigen.\n"
+                    . "2) Kurszusammenfassung hinzufügen.\n\n"
+                    . "Einstellungen, die bereits sinnvoll gesetzt sind:\n"
+                    . "- Course visibility: Show.\n"
+                    . "- AI Chat: aktiviert.\n\n"
+                    . "Sag mir bitte, welche Änderungen ich vornehmen soll.",
+                'outro' => '',
+                'introcontains' => [
+                    '<ul>',
+                    '<li>',
+                    'Course visibility: Show.',
+                    '<p>1) Kurzname bereinigen.</p>',
+                    '<p>2) Kurszusammenfassung hinzufügen.</p>',
+                ],
+                'intronotcontains' => [],
+            ],
+            'outro_list_is_also_normalized' => [
+                'intro' => 'Intro.',
+                'outro' => "Fragen:\n- Kursstart anpassen?\n- Gruppen verwenden?",
+                'introcontains' => ['<p>Intro.</p>'],
+                'intronotcontains' => [],
+            ],
+        ];
+    }
+
+    /**
+     * Test chatoutput rendering through format_output with various inputs.
+     *
+     * @dataProvider format_output_provider
+     * @covers \aipurpose_agent\purpose::format_output
+     * @param string $intro The intro text for the LLM response.
+     * @param string $outro The outro text for the LLM response.
+     * @param array $introcontains Substrings that must be present in the rendered intro HTML.
+     * @param array $intronotcontains Substrings that must not be present in the rendered intro HTML.
+     */
+    public function test_format_output(
+        string $intro,
+        string $outro,
+        array $introcontains,
+        array $intronotcontains,
+    ): void {
+        $purpose = new purpose();
+        $result = $purpose->format_output($this->build_llm_response($intro, $outro));
+
+        $decoded = json_decode($result, true);
+        $this->assertNotNull($decoded, 'format_output must return valid JSON');
+        $this->assertArrayHasKey('chatoutput', $decoded);
+
+        $texts = [];
+        foreach ($decoded['chatoutput'] as $entry) {
+            $texts[$entry['type']] = $entry['text'];
+        }
+
+        foreach ($introcontains as $expected) {
+            $this->assertStringContainsString($expected, $texts['intro']);
+        }
+        foreach ($intronotcontains as $notexpected) {
+            $this->assertStringNotContainsString($notexpected, $texts['intro']);
+        }
+
+        // For cases with an outro containing list markers, verify the outro HTML too.
+        if (!empty($outro) && str_contains($outro, "\n-")) {
+            $this->assertStringContainsString('<ul>', $texts['outro']);
+            $this->assertStringContainsString('<li>', $texts['outro']);
+        }
+    }
+
+    /**
+     * Test that formelements are passed through correctly alongside the chatoutput.
+     *
+     * @covers \aipurpose_agent\purpose::format_output
+     */
+    public function test_format_output_preserves_formelements(): void {
+        $this->resetAfterTest();
+
+        $formelements = [
+            [
+                'id' => 'id_name',
+                'name' => 'name',
+                'newValue' => 'My Course',
+                'explanation' => 'A descriptive name.',
+            ],
+        ];
+
+        $purpose = new purpose();
+        $result = $purpose->format_output(
+            $this->build_llm_response("Vorschläge:\n- Kursname anpassen.", '', $formelements)
+        );
+        $decoded = json_decode($result, true);
+
+        $this->assertNotEmpty($decoded['formelements']);
+        $this->assertEquals('id_name', $decoded['formelements'][0]['id']);
+        $this->assertStringContainsString('<ul>', $decoded['chatoutput'][0]['text']);
+    }
+
+    /**
+     * Data provider for error and edge-case handling in format_output.
+     *
+     * Each case provides the raw input string and the expected decoded output array.
+     *
+     * @return array
+     */
+    public static function error_output_provider(): array {
+        // The error output returned when JSON is valid does not have the correct structure.
+        $erroroutput = [
+            'formelements' => [],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => get_string('error_unusuableresponse', 'aipurpose_agent')],
+                ['type' => 'outro', 'text' => ''],
+            ],
+        ];
+
+        return [
+            'no_json_found_in_plain_text' => [
+                'input' => 'This is plain text without any JSON.',
+                'expected' => [
+                    'formelements' => [],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => "<p>This is plain text without any JSON.</p>\n"],
+                        ['type' => 'outro', 'text' => ''],
+                    ],
+                ],
+            ],
+            'invalid_json_syntax' => [
+                'input' => '{invalid json: content here}',
+                'expected' => [
+                    'formelements' => [],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => "<p>{invalid json: content here}</p>\n"],
+                        ['type' => 'outro', 'text' => ''],
+                    ],
+                ],
+            ],
+            'empty_json_object' => [
+                'input' => '{}',
+                'expected' => [
+                    'formelements' => [],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => "<p>{}</p>\n"],
+                        ['type' => 'outro', 'text' => ''],
+                    ],
+                ],
+            ],
+            'json_array_instead_of_object' => [
+                'input' => '[1, 2, 3]',
+                'expected' => [
+                    'formelements' => [],
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => "<p>[1, 2, 3]</p>\n"],
+                        ['type' => 'outro', 'text' => ''],
+                    ],
+                ],
+            ],
+            'missing_formelements_key' => [
+                'input' => json_encode([
+                    'chatoutput' => [
+                        ['type' => 'intro', 'text' => 'Hello.'],
+                        ['type' => 'outro', 'text' => ''],
+                    ],
+                ]),
+                'expected' => $erroroutput,
+            ],
+            'missing_chatoutput_key' => [
+                'input' => json_encode([
+                    'formelements' => [],
+                ]),
+                'expected' => $erroroutput,
+            ],
+            'missing_both_required_keys' => [
+                'input' => '{"somekey": "somevalue"}',
+                'expected' => $erroroutput,
+            ],
+        ];
+    }
+
+    /**
+     * Test error and edge-case handling in format_output.
+     *
+     * @dataProvider error_output_provider
+     * @covers \aipurpose_agent\purpose::format_output
+     * @param string $input The raw input string passed to format_output.
+     * @param array $expected The full expected output array.
+     */
+    public function test_format_output_error_and_edge_cases(string $input, array $expected): void {
+        $purpose = new purpose();
+        $result = $purpose->format_output($input);
+
+        $this->assertJsonStringEqualsJsonString(json_encode($expected), $result);
+    }
+
+    /**
+     * Data provider for testing suggestiondisplayvalue creation from newValue.
+     *
+     * @return array
+     */
+    public static function format_output_suggestion_display_value_provider(): array {
+        return [
+            'markdown_in_newvalue_creates_formatted_displayvalue' => [
+                'formelement' => [
+                    'id' => 'id_summary_editor',
+                    'name' => 'summary',
+                    'newValue' => "Here is a **bold** description.\n\n"
+                        . "\x60\x60\x60html\n<p>Hello</p>\n\x60\x60\x60\n",
+                    'label' => 'Course description',
+                    'explanation' => 'Formatted the description.',
+                ],
+                'newvaluemustcontain' => ['**bold**'],
+                'newvaluemustnotcontain' => [],
+                'hasdisplayvalue' => true,
+                'displayvaluemustcontain' => ['<strong>bold</strong>'],
+                'displayvaluemustnotcontain' => ['**bold**'],
+            ],
+            'empty_newvalue_still_creates_displayvalue' => [
+                'formelement' => [
+                    'id' => 'id_summary_editor',
+                    'name' => 'summary',
+                    'newValue' => '',
+                    'label' => 'Course description',
+                    'explanation' => 'No changes suggested.',
+                ],
+                'newvaluemustcontain' => [],
+                'newvaluemustnotcontain' => [],
+                'hasdisplayvalue' => true,
+                'displayvaluemustcontain' => [],
+                'displayvaluemustnotcontain' => [],
+            ],
+            'missing_newvalue_key_no_displayvalue_created' => [
+                'formelement' => [
+                    'id' => 'id_summary_editor',
+                    'name' => 'summary',
+                    'label' => 'Course description',
+                    'explanation' => 'No suggestion provided.',
+                ],
+                'newvaluemustcontain' => [],
+                'newvaluemustnotcontain' => [],
+                'hasdisplayvalue' => false,
+                'displayvaluemustcontain' => [],
+                'displayvaluemustnotcontain' => [],
+            ],
+            'plain_text_newvalue_creates_displayvalue' => [
+                'formelement' => [
+                    'id' => 'id_name',
+                    'name' => 'name',
+                    'newValue' => 'Simple course name',
+                    'label' => 'Name',
+                    'explanation' => 'Course name.',
+                ],
+                'newvaluemustcontain' => ['Simple course name'],
+                'newvaluemustnotcontain' => [],
+                'hasdisplayvalue' => true,
+                'displayvaluemustcontain' => ['Simple course name'],
+                'displayvaluemustnotcontain' => [],
+            ],
+            'course_description_with_markdown_formatting' => [
+                'formelement' => [
+                    'id' => 'id_summary_editor',
+                    'name' => 'summary_editor',
+                    'newValue' => '<h2>Kursübersicht</h2><p>Dieser Kurs behandelt <strong>wichtige Themen</strong>:</p>'
+                        . '<ul><li>Thema 1</li><li>Thema 2</li></ul>',
+                    'label' => 'Kursbeschreibung',
+                    'explanation' => 'I have **reformatted** the course description with proper headings and a list.',
+                ],
+                'newvaluemustcontain' => ['<h2>Kursübersicht</h2>', '<strong>wichtige Themen</strong>', '<ul>'],
+                'newvaluemustnotcontain' => [],
+                'hasdisplayvalue' => true,
+                'displayvaluemustcontain' => ['Kursübersicht', 'wichtige Themen'],
+                'displayvaluemustnotcontain' => [],
+            ],
+        ];
+    }
+
+    /**
+     * Test that format_output correctly creates suggestiondisplayvalue from newValue with Markdown
+     * formatting while keeping newValue as raw unformatted text for form field injection.
+     *
+     * @dataProvider format_output_suggestion_display_value_provider
+     * @covers \aipurpose_agent\purpose::format_output
+     * @param array $formelement The formelement input data.
+     * @param array $newvaluemustcontain Strings that must be in the raw newValue.
+     * @param array $newvaluemustnotcontain Strings that must not be in the raw newValue.
+     * @param bool $hasdisplayvalue Whether suggestiondisplayvalue should exist.
+     * @param array $displayvaluemustcontain Strings that must be in suggestiondisplayvalue.
+     * @param array $displayvaluemustnotcontain Strings that must not be in suggestiondisplayvalue.
+     */
+    public function test_format_output_suggestion_display_value(
+        array $formelement,
+        array $newvaluemustcontain,
+        array $newvaluemustnotcontain,
+        bool $hasdisplayvalue,
+        array $displayvaluemustcontain,
+        array $displayvaluemustnotcontain
+    ): void {
+        $purpose = new purpose();
+
+        $input = json_encode([
+            'formelements' => [$formelement],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => 'Test intro.'],
+                ['type' => 'outro', 'text' => ''],
+            ],
+        ]);
+
+        $result = $purpose->format_output($input);
+        $decoded = json_decode($result, true);
+
+        $this->assertNotNull($decoded, 'Output must be valid JSON');
+        $this->assertNotEmpty($decoded['formelements']);
+        $outputelement = $decoded['formelements'][0];
+
+        // Check newValue preservation.
+        if (array_key_exists('newValue', $formelement)) {
+            $this->assertArrayHasKey('newValue', $outputelement);
+            foreach ($newvaluemustcontain as $expected) {
+                $this->assertStringContainsString($expected, $outputelement['newValue']);
+            }
+            foreach ($newvaluemustnotcontain as $notexpected) {
+                $this->assertStringNotContainsString($notexpected, $outputelement['newValue']);
+            }
+        } else {
+            $this->assertArrayNotHasKey('newValue', $outputelement);
+        }
+
+        // Check suggestiondisplayvalue.
+        if ($hasdisplayvalue) {
+            $this->assertArrayHasKey('suggestiondisplayvalue', $outputelement);
+            foreach ($displayvaluemustcontain as $expected) {
+                $this->assertStringContainsString($expected, $outputelement['suggestiondisplayvalue']);
+            }
+            foreach ($displayvaluemustnotcontain as $notexpected) {
+                $this->assertStringNotContainsString($notexpected, $outputelement['suggestiondisplayvalue']);
+            }
+        } else {
+            $this->assertArrayNotHasKey('suggestiondisplayvalue', $outputelement);
+        }
+    }
+
+    /**
+     * Test that get_additional_request_options returns the correct message order:
+     * 1. System message (agent prompt + additional context)
+     * 2. Conversation history
+     * The user's prompttext is appended by the connector, not by the purpose.
+     *
+     * @covers ::get_additional_request_options
+     */
+    public function test_get_additional_request_options_message_order_without_history(): void {
+        $this->resetAfterTest();
+
+        set_config('agentprompt', 'You are a helpful agent for {{pageid}}. Language: {{currentlang}}. '
+            . 'Elements: {{formelementsjson}}', 'aipurpose_agent');
+
+        $purpose = new purpose();
+        $options = [
+            'agentoptions' => [
+                'formelements' => [
+                    ['id' => 'id_name', 'name' => 'name', 'label' => 'Name'],
+                ],
+                'pageid' => 'page-mod-assign-mod',
+            ],
+        ];
+
+        $result = $purpose->get_additional_request_options($options);
+
+        $this->assertArrayHasKey('conversationcontext', $result);
+        $context = $result['conversationcontext'];
+
+        // Should have exactly 1 message: system prompt.
+        $this->assertCount(1, $context);
+
+        // First message must be system.
+        $this->assertEquals('system', $context[0]['sender']);
+        $this->assertStringContainsString('page-mod-assign-mod', $context[0]['message']);
+        $this->assertStringContainsString('id_name', $context[0]['message']);
+        // Without additional context, the additional context section must not be present.
+        $this->assertStringNotContainsString('# Additional context', $context[0]['message']);
+    }
+
+    /**
+     * Test that get_additional_request_options returns the correct message order with conversation history:
+     * 1. System message (agent prompt)
+     * 2. Conversation history (user/ai pairs)
+     *
+     * @covers ::get_additional_request_options
+     */
+    public function test_get_additional_request_options_message_order_with_history(): void {
+        $this->resetAfterTest();
+
+        set_config('agentprompt', 'System prompt. Elements: {{formelementsjson}} Page: {{pageid}} '
+            . 'Lang: {{currentlang}}', 'aipurpose_agent');
+
+        $purpose = new purpose();
+        $conversationhistory = [
+            ['sender' => 'user', 'message' => 'Please fill in the form.'],
+            ['sender' => 'ai', 'message' => '{"formelements":[],"chatoutput":[{"type":"intro","text":"Done."}]}'],
+            ['sender' => 'user', 'message' => 'Now change the name.'],
+            ['sender' => 'ai', 'message' => '{"formelements":[],"chatoutput":[{"type":"intro","text":"OK."}]}'],
+        ];
+
+        $options = [
+            'agentoptions' => [
+                'formelements' => [
+                    ['id' => 'id_name', 'name' => 'name', 'label' => 'Name'],
+                ],
+                'pageid' => 'page-mod-assign-mod',
+            ],
+            'conversationcontext' => $conversationhistory,
+        ];
+
+        $result = $purpose->get_additional_request_options($options);
+        $context = $result['conversationcontext'];
+
+        // Should have 5 messages: 1 system + 4 history.
+        $this->assertCount(5, $context);
+
+        // First message must be system (agent prompt).
+        $this->assertEquals('system', $context[0]['sender']);
+        $this->assertStringContainsString('System prompt', $context[0]['message']);
+
+        // Messages 2-5 must be the conversation history in original order.
+        $this->assertEquals('user', $context[1]['sender']);
+        $this->assertEquals('Please fill in the form.', $context[1]['message']);
+        $this->assertEquals('ai', $context[2]['sender']);
+        $this->assertEquals('user', $context[3]['sender']);
+        $this->assertEquals('Now change the name.', $context[3]['message']);
+        $this->assertEquals('ai', $context[4]['sender']);
+    }
+
+    /**
+     * Test that additional context is included in the system prompt message, not as a separate user message.
+     *
+     * @covers ::get_additional_request_options
+     */
+    public function test_get_additional_request_options_additional_context_in_system_prompt(): void {
+        $this->resetAfterTest();
+
+        set_config('agentprompt', 'Agent instructions. Elements: {{formelementsjson}} Page: {{pageid}} '
+            . 'Lang: {{currentlang}}', 'aipurpose_agent');
+
+        $purpose = new purpose();
+        $conversationhistory = [
+            ['sender' => 'user', 'message' => 'First user message.'],
+            ['sender' => 'ai', 'message' => 'First AI response.'],
+        ];
+
+        $options = [
+            'agentoptions' => [
+                'formelements' => [
+                    ['id' => 'id_name', 'name' => 'name', 'label' => 'Name'],
+                ],
+                'pageid' => 'page-mod-assign-mod',
+                'additionalcontext' => 'This course is about mathematics and has 30 students.',
+            ],
+            'conversationcontext' => $conversationhistory,
+        ];
+
+        $result = $purpose->get_additional_request_options($options);
+        $context = $result['conversationcontext'];
+
+        // Should have 3 messages: 1 system (with additional context) + 2 history.
+        $this->assertCount(3, $context);
+
+        // First message must be system and must contain both agent prompt and additional context.
+        $this->assertEquals('system', $context[0]['sender']);
+        $this->assertStringContainsString('Agent instructions', $context[0]['message']);
+        // The additional context section must have the correct header.
+        $this->assertStringContainsString('# Additional context', $context[0]['message']);
+        $this->assertStringContainsString(
+            'Here is some additional context for the assignment the user prompt will give you:',
+            $context[0]['message']
+        );
+        // The actual additional context text must be present.
+        $this->assertStringContainsString('This course is about mathematics and has 30 students.', $context[0]['message']);
+
+        // No consecutive user messages — history starts after system.
+        $this->assertEquals('user', $context[1]['sender']);
+        $this->assertEquals('First user message.', $context[1]['message']);
+        $this->assertEquals('ai', $context[2]['sender']);
+    }
+
+    /**
+     * Test that no consecutive user messages exist in the conversation context.
+     * This is important because some LLMs (e.g. Gemini) do not support consecutive messages with the same role.
+     *
+     * @covers ::get_additional_request_options
+     */
+    public function test_get_additional_request_options_no_consecutive_user_messages(): void {
+        $this->resetAfterTest();
+
+        set_config('agentprompt', 'Prompt. {{formelementsjson}} {{pageid}} {{currentlang}}', 'aipurpose_agent');
+
+        $purpose = new purpose();
+        $options = [
+            'agentoptions' => [
+                'formelements' => [
+                    ['id' => 'id_test', 'name' => 'test', 'label' => 'Test'],
+                ],
+                'pageid' => 'page-test',
+                'additionalcontext' => 'Some extra context.',
+            ],
+            'conversationcontext' => [
+                ['sender' => 'user', 'message' => 'Hello.'],
+                ['sender' => 'ai', 'message' => 'Hi.'],
+            ],
+        ];
+
+        $result = $purpose->get_additional_request_options($options);
+        $context = $result['conversationcontext'];
+
+        // Verify no two consecutive messages have the same non-system sender.
+        $previoussender = null;
+        foreach ($context as $index => $message) {
+            if ($message['sender'] !== 'system' && $previoussender !== null && $previoussender !== 'system') {
+                $this->assertNotEquals(
+                    $previoussender,
+                    $message['sender'],
+                    "Consecutive messages with same sender '{$message['sender']}' at index {$index}"
+                );
+            }
+            $previoussender = $message['sender'];
+        }
+    }
+
+    /**
+     * Test that missing formelements returns empty array.
+     *
+     * @covers ::get_additional_request_options
+     */
+    public function test_get_additional_request_options_missing_formelements_returns_empty(): void {
+        $purpose = new purpose();
+        $options = [
+            'agentoptions' => [
+                'pageid' => 'page-test',
+            ],
+        ];
+
+        $result = $purpose->get_additional_request_options($options);
+        $this->assertEmpty($result);
     }
 }

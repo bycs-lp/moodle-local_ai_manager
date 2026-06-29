@@ -14,26 +14,29 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace aitool_openaitts;
+
 /**
- * Settings for aipurpose_agent.
+ * Tests for the aitool_openaitts instance.
  *
- * @package    aipurpose_agent
+ * @package    aitool_openaitts
  * @copyright  2026 ISB Bayern
- * @author     Philipp Memmel
+ * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers     \aitool_openaitts\instance
  */
+final class instance_test extends \advanced_testcase {
+    public function test_extend_validation_requires_endpoint_for_azure(): void {
+        $instance = new instance();
+        $errors = (new \ReflectionMethod(instance::class, 'extend_validation'))->invoke(
+            $instance,
+            [
+                'azure_enabled' => 1,
+                'endpoint' => '',
+            ],
+            []
+        );
 
-defined('MOODLE_INTERNAL') || die;
-
-global $CFG;
-
-if ($hassiteconfig) {
-    $settings->add(
-        new admin_setting_configtextarea(
-            'aipurpose_agent/agentprompt',
-            new lang_string('agentpromptsetting', 'aipurpose_agent'),
-            new lang_string('agentpromptsettingdesc', 'aipurpose_agent'),
-            \aipurpose_agent\purpose::get_default_agentprompt()
-        )
-    );
+        $this->assertArrayHasKey('endpoint', $errors);
+    }
 }

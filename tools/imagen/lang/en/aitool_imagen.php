@@ -24,6 +24,7 @@
  */
 
 $string['adddescription'] = 'Google Imagen is an AI model by Google that specializes in generating images from text descriptions.';
+$string['endpointhint_vertexai'] = 'Leave empty to use the auto-generated Vertex AI endpoint based on the service account and model configured below. Fill in only to use a custom endpoint.';
 $string['err_contentpolicyviolation'] = 'Your request was rejected as a result of our safety system. Your prompt probably requests something that is not allowed.';
 $string['err_predictionmissing'] = 'No image could be generated based on your prompt. Your prompt probably requests something that is not allowed.';
 $string['err_translationfailed'] = 'The translation of your prompt failed. This is required to generate an image.';

@@ -36,11 +36,14 @@ use Psr\Http\Message\StreamInterface;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class connector extends \local_ai_manager\base_connector {
+    /** @var string Default OpenAI Chat Completions endpoint. */
+    public const DEFAULT_OPENAI_COMPLETIONS_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+
     #[\Override]
     public function get_models_by_purpose(): array {
         $chatgptmodels =
                 ['gpt-3.5-turbo', 'gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'];
-        return [
+        $modelsbypurpose = [
                 'chat' => $chatgptmodels,
                 'feedback' => $chatgptmodels,
                 'singleprompt' => $chatgptmodels,
@@ -49,10 +52,17 @@ class connector extends \local_ai_manager\base_connector {
                 'imggen' => [],
                 'itt' => ['gpt-4-turbo', 'gpt-4o', 'gpt-4o-mini', 'o1', 'o3', 'o4-mini'],
                 'questiongeneration' => $chatgptmodels,
+                'embedding' =>['text-embedding-3-small', 'text-embedding-3-large'],
                 'agent' => $chatgptmodels,
         ];
         foreach ($modelsbypurpose as $purpose => $models) {
-            $modelsbypurpose[$purpose][] = aitool_option_azure::get_azure_model_name('chatgpt');
+            // We assume that the azure models support all the purposes. This is kind of a blind guess, because in case
+            // of azure we do not have any information which model lies behind the azure endpoint. So we will go for the less
+            // restrictive definition, but of course it could be that there's a model behind the azure endpoint that, for example,
+            // does not support vision (itt). In this case we let the user run into an error, but that's not avoidable right now.
+            if (!empty($models)) {
+                $modelsbypurpose[$purpose][] = aitool_option_azure::get_azure_model_name('chatgpt');
+            }
         }
         return $modelsbypurpose;
     }
@@ -75,7 +85,6 @@ class connector extends \local_ai_manager\base_connector {
         */
         // phpcs:enable moodle.Commenting.TodoComment.MissingInfoInline
         $content = json_decode($result->getContents(), true);
-
         return prompt_response::create_from_result(
             $content['model'],
             new usage(
@@ -135,7 +144,7 @@ class connector extends \local_ai_manager\base_connector {
         $parameters = [
             'messages' => $messages,
         ];
-        if (!in_array($this->get_instance()->get_model(), ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini'])) {
+        if (!in_array($this->get_instance()->get_model(), ['o1', 'o1-mini', 'o3', 'o3-mini', 'o4-mini', 'gpt-5.5'])) {
             $parameters['temperature'] = $this->instance->get_temperature();
         }
         if (!$this->instance->azure_enabled()) {
@@ -155,6 +164,9 @@ class connector extends \local_ai_manager\base_connector {
         return true;
     }
 
+    // protected function apply_guard_rails($content, request_options $requestoptions) {
+    // }
+
     #[\Override]
     protected function get_headers(): array {
         $headers = parent::get_headers();
@@ -167,6 +179,11 @@ class connector extends \local_ai_manager\base_connector {
             $headers['api-key'] = $this->get_api_key();
         }
         return $headers;
+    }
+
+    #[\Override]
+    protected function get_endpoint_url(): string {
+        return $this->instance->get_endpoint() ?: self::DEFAULT_OPENAI_COMPLETIONS_ENDPOINT;
     }
 
     #[\Override]

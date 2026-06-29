@@ -35,7 +35,6 @@ class aitool_option_vertexai {
      */
     public static function extend_form_definition(\MoodleQuickForm $mform): void {
         global $OUTPUT;
-        $mform->freeze('endpoint');
         $mform->addElement(
             'textarea',
             'serviceaccountjson',

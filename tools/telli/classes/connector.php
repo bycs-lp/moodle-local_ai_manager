@@ -129,33 +129,84 @@ class connector extends base_connector {
     #[\Override]
     protected function get_custom_error_message(int $code, ?ClientExceptionInterface $exception = null): string {
         $message = '';
+
+        // Get the response body once to avoid consuming the stream multiple times.
+        $responsebody = null;
+        if (
+            $exception !== null &&
+            method_exists($exception, 'getResponse') &&
+            ($response = $exception->getResponse()) !== null
+        ) {
+            $responsebody = json_decode($response->getBody()->getContents());
+        }
+
         switch ($code) {
             case 400:
-                if (method_exists($exception, 'getResponse') && !empty($exception->getResponse())) {
-                    $responsebody = json_decode($exception->getResponse()->getBody()->getContents());
-                    if (property_exists($responsebody, 'error')) {
-                        if (property_exists($responsebody, 'details')) {
-                            // We have no proper specific error code if the safety system rejects the prompt. So we have to
-                            // do some fishing for strings in the detailed error message. If we don't succeed a general error
-                            // message will be displayed by the manager itself.
-                            if (str_contains(mb_strtolower($responsebody->details), 'safety')) {
-                                $message = get_string('err_contentfilter', 'aitool_telli');
-                            }
-                        }
-                    }
+                // For 400 errors: Check only "error" attribute (e.g. Google Imagen content filter).
+                if (
+                    !empty($responsebody) &&
+                    property_exists($responsebody, 'error') &&
+                    is_string($responsebody->error) &&
+                    $this->is_content_filter_error($responsebody->error)
+                ) {
+                    $message = get_string('err_contentfilter', 'aitool_telli');
                 }
                 break;
             case 500:
-                // The Telli API behaves in a non-ideal way if an image cannot be generated when using imagen-4.0-generate-001.
-                // It returns with error code 500 and a badly parseable error message. To not confront the users with a general
-                // 500 internal server error message, we have to check for parts of the exception message and re-wrap the error
-                // in a way the user can understand what the problem is.
+                // The Telli API behaves in a non-ideal way if an image cannot be generated when using
+                // certain models (Google Imagen for example). It returns with error code 500 and a badly
+                // parseable error message.
+                // To not confront the users with a general 500 internal server error message, we have to check
+                // for parts of the exception message and re-wrap the error in a way the user can understand.
                 if (str_contains($exception->getMessage(), 'No image data received')) {
                     $message = get_string('err_noimagedata', 'aitool_telli');
+                    break;
+                }
+
+                // For 500 errors: Check both "error" and "details" attributes.
+                // The content filter message might be in either attribute.
+                if (!empty($responsebody)) {
+                    // First check "error" attribute.
+                    if (
+                        property_exists($responsebody, 'error') &&
+                        is_string($responsebody->error) &&
+                        $this->is_content_filter_error($responsebody->error)
+                    ) {
+                        $message = get_string('err_contentfilter', 'aitool_telli');
+                    } else if (
+                        // Then check "details" attribute.
+                        property_exists($responsebody, 'details') &&
+                        is_string($responsebody->details) &&
+                        $this->is_content_filter_error($responsebody->details)
+                    ) {
+                        $message = get_string('err_contentfilter', 'aitool_telli');
+                    }
                 }
                 break;
         }
         return $message;
+    }
+
+    /**
+     * Checks if an error message indicates a content filter rejection.
+     *
+     * Due to the wrapper nature of the Telli API, content filter messages may come in different
+     * languages (German from Telli itself, English from Azure/OpenAI backends) and formats.
+     *
+     * @param string $errormessage The error message to check.
+     * @return bool True if the error indicates content filter rejection.
+     */
+    private function is_content_filter_error(string $errormessage): bool {
+        $errormessage = mb_strtolower($errormessage);
+        // German keywords (Telli/Imagen).
+        // English keywords (Azure/OpenAI backends).
+        return str_contains($errormessage, 'unangemessen') ||
+            str_contains($errormessage, 'blockiert') ||
+            str_contains($errormessage, 'safety') ||
+            str_contains($errormessage, 'content policy') ||
+            str_contains($errormessage, 'blocked') ||
+            str_contains($errormessage, 'inappropriate') ||
+            str_contains($errormessage, 'violates');
     }
 
     #[\Override]

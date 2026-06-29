@@ -31,7 +31,8 @@ use local_ai_manager\local\userinfo;
  * @param int $oldversion Version number the plugin is being upgraded from.
  */
 function xmldb_local_ai_manager_upgrade($oldversion) {
-    global $DB;
+    global $CFG, $DB;
+    require_once($CFG->dirroot . '/local/ai_manager/db/upgradelib.php');
     $dbman = $DB->get_manager();
 
     if ($oldversion < 2024080101) {
@@ -336,7 +337,7 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025082900, 'local', 'ai_manager');
     }
 
-    if ($oldversion < 2025120401) {
+    if ($oldversion < 2026020600) {
         $table = new xmldb_table('local_ai_manager_instance');
         $field = new xmldb_field('useglobalapikey', XMLDB_TYPE_INTEGER, '1', null, null, null, null, 'apikey');
 
@@ -344,10 +345,12 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
             $dbman->add_field($table, $field);
         }
 
-        upgrade_plugin_savepoint(true, 2025120401, 'local', 'ai_manager');
+        upgrade_plugin_savepoint(true, 2026020600, 'local', 'ai_manager');
     }
 
-    if ($oldversion < 2026020100) {
+
+
+    if ($oldversion < 2026030300) {
 
         // Define table local_ai_manager_cmconfig to be created.
         $table = new xmldb_table('local_ai_manager_cmconfig');
@@ -372,8 +375,13 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         }
 
         // Ai_manager savepoint reached.
-        upgrade_plugin_savepoint(true, 2026020100, 'local', 'ai_manager');
+        upgrade_plugin_savepoint(true, 2026030300, 'local', 'ai_manager');
     }
 
+    if ($oldversion < 2026042000) {
+        local_ai_manager_cleanup_legacy_azure_instance_data();
+
+        upgrade_plugin_savepoint(true, 2026042000, 'local', 'ai_manager');
+    }
     return true;
 }
