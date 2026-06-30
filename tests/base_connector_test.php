@@ -83,4 +83,58 @@ final class base_connector_test extends \advanced_testcase {
         }
         return $purposes;
     }
+
+    /**
+     * Test that pure imggen and tts models are excluded from text purposes.
+     *
+     * @covers \local_ai_manager\base_connector::get_models_by_purpose
+     */
+    public function test_get_models_by_purpose_excludes_imggen_tts_from_text(): void {
+        $this->resetAfterTest();
+
+        /** @var \local_ai_manager_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('local_ai_manager');
+
+        // Create a text model, an imggen-only model, and a tts-only model.
+        $textrecord = $generator->create_model(['name' => 'text-model', 'vision' => 0, 'imggen' => 0, 'tts' => 0]);
+        $imggenrecord = $generator->create_model(['name' => 'imggen-model', 'vision' => 0, 'imggen' => 1, 'tts' => 0]);
+        $ttsrecord = $generator->create_model(['name' => 'tts-model', 'vision' => 0, 'imggen' => 0, 'tts' => 1]);
+        // A vision model should still be a text model.
+        $visionrecord = $generator->create_model(['name' => 'vision-model', 'vision' => 1, 'imggen' => 0, 'tts' => 0]);
+
+        // Assign all to a connector.
+        $textmodel = new \local_ai_manager\local\model((int) $textrecord->id);
+        $textmodel->add_connector('chatgpt');
+        $imggenmodel = new \local_ai_manager\local\model((int) $imggenrecord->id);
+        $imggenmodel->add_connector('chatgpt');
+        $ttsmodel = new \local_ai_manager\local\model((int) $ttsrecord->id);
+        $ttsmodel->add_connector('chatgpt');
+        $visionmodel = new \local_ai_manager\local\model((int) $visionrecord->id);
+        $visionmodel->add_connector('chatgpt');
+
+        $connectorfactory = \core\di::get(connector_factory::class);
+        $connector = $connectorfactory->get_connector_by_connectorname('chatgpt');
+        $modelsbypurpose = $connector->get_models_by_purpose();
+
+        // Text purposes (chat, feedback etc.) should contain text-model and vision-model but NOT imggen/tts.
+        $purposes = base_purpose::get_installed_purposes_array();
+        foreach (array_keys($purposes) as $purpose) {
+            if (in_array($purpose, ['imggen', 'tts', 'itt'])) {
+                continue;
+            }
+            $this->assertContains('text-model', $modelsbypurpose[$purpose],
+                "text-model should be in purpose '$purpose'");
+            $this->assertContains('vision-model', $modelsbypurpose[$purpose],
+                "vision-model should be in purpose '$purpose'");
+            $this->assertNotContains('imggen-model', $modelsbypurpose[$purpose],
+                "imggen-model should NOT be in text purpose '$purpose'");
+            $this->assertNotContains('tts-model', $modelsbypurpose[$purpose],
+                "tts-model should NOT be in text purpose '$purpose'");
+        }
+
+        // Verify specialized purposes.
+        $this->assertContains('imggen-model', $modelsbypurpose['imggen']);
+        $this->assertContains('tts-model', $modelsbypurpose['tts']);
+        $this->assertContains('vision-model', $modelsbypurpose['itt']);
+    }
 }

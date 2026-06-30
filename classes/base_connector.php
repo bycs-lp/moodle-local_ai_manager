@@ -97,7 +97,7 @@ abstract class base_connector {
 
         // Text models are all models that are not pure imggen or tts models.
         $textmodels = array_values(array_filter($allmodels, function ($name) use ($imggenmodels, $ttsmodels) {
-            return !in_array($name, $imggenmodels) || !in_array($name, $ttsmodels);
+            return !in_array($name, $imggenmodels) && !in_array($name, $ttsmodels);
         }));
 
         $purposes = base_purpose::get_installed_purposes_array();

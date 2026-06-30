@@ -234,7 +234,7 @@ class model_edit_form extends dynamic_form {
             if ($max < 0) {
                 $errors['temperature_max'] = get_string('model_temperature_max_negative', 'local_ai_manager');
             }
-            if ($min >= $max) {
+            if ($min > $max) {
                 $errors['temperature_max'] = get_string('model_temperature_max_must_exceed_min', 'local_ai_manager');
             }
         }

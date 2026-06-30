@@ -191,11 +191,9 @@ class aitool_option_temperature {
      */
     public static function validate_temperature(array $data): array {
         // Skip validation if the model does not support temperature.
-        if (!empty($data['model'])) {
-            $modelobj = new model((int) $data['model']);
-            if ($modelobj->record_exists() && !$modelobj->supports_temperature()) {
-                return [];
-            }
+        $modelobj = new model((int) $data['model']);
+        if ($modelobj->record_exists() && !$modelobj->supports_temperature()) {
+            return [];
         }
 
         $errors = [];
