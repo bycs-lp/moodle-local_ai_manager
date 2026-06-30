@@ -1,10 +1,12 @@
 {
     "subplugintypes": {
         "aitool": "tools",
-        "aipurpose": "purposes"
+        "aipurpose": "purposes",
+        "aivecstore": "vectorstores"
     },
     "plugintypes": {
         "aitool": "local/ai_manager/tools",
-        "aipurpose": "local/ai_manager/purposes"
+        "aipurpose": "local/ai_manager/purposes",
+        "aivecstore": "local/ai_manager/vectorstores"
     }
 }
