@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/ai_manager/db" VERSION="20251204" COMMENT="XMLDB file for Moodle local/ai_manager"
+<XMLDB PATH="local/ai_manager/db" VERSION="20260630" COMMENT="XMLDB file for Moodle local/ai_manager"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -144,6 +144,28 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="modelid_connector" UNIQUE="true" FIELDS="modelid, connector"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_ai_manager_vecstore" COMMENT="Table storing vector database connection instances">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="tenant" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="vecstore" TYPE="char" LENGTH="50" NOTNULL="false" SEQUENCE="false" COMMENT="The aivecstore subplugin name, e.g. qdrant or postgres"/>
+        <FIELD NAME="endpoint" TYPE="char" LENGTH="1000" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="apikey" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="useglobalapikey" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="collection" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Collection/index/table name the vectors live in"/>
+        <FIELD NAME="dimensions" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Dimensionality of the stored embedding vectors"/>
+        <FIELD NAME="distancemetric" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="One of the base_vecstore::DISTANCE_* constants"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="tenant" UNIQUE="false" FIELDS="tenant"/>
       </INDEXES>
     </TABLE>
   </TABLES>

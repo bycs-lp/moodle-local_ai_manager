@@ -84,6 +84,15 @@ if ($hassiteconfig) {
 
         $settings->add(
             new admin_setting_configcheckbox(
+                'local_ai_manager/allowinsecurevecstore',
+                new lang_string('allowinsecurevecstore', 'local_ai_manager'),
+                new lang_string('allowinsecurevecstoredesc', 'local_ai_manager'),
+                0
+            )
+        );
+
+        $settings->add(
+            new admin_setting_configcheckbox(
                 'local_ai_manager/restricttenants',
                 new lang_string('restricttenants', 'local_ai_manager'),
                 new lang_string('restricttenants', 'local_ai_manager'),

@@ -14,19 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace aivecstore_qdrant;
+
+use local_ai_manager\base_vecstore_instance;
+
 /**
- * Version file for local_ai_manager.
+ * Vector store instance class for the Qdrant backend.
  *
- * @package    local_ai_manager
- * @copyright  ISB Bayern, 2024
- * @author     Dr. Peter Mayer
+ * The connection configuration for Qdrant is fully covered by the shared fields defined in
+ * {@see base_vecstore_instance}. Backend-specific form fields can be added here by overriding the
+ * extend_* hooks if needed in the future.
+ *
+ * @package    aivecstore_qdrant
+ * @copyright  2026 Exputo Inc.
+ * @author     David Pesce <david.pesce@exputo.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->version  = 2026070100;
-$plugin->requires = 2025041400;
-$plugin->supported = [500, 502];
-$plugin->release = '3.0';
-$plugin->component = 'local_ai_manager';
-$plugin->maturity = MATURITY_STABLE;
+class instance extends base_vecstore_instance {
+}
