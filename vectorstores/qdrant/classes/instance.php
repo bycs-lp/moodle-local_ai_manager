@@ -14,17 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+namespace aivecstore_qdrant;
+
+use local_ai_manager\base_vecstore_instance;
+
 /**
- * Lang strings for aivecstore_postgres - EN.
+ * Vector store instance class for the Qdrant backend.
  *
- * @package    aivecstore_postgres
- * @copyright  2026 ISB Bayern
- * @author     Philipp Memmel
+ * The connection configuration for Qdrant is fully covered by the shared fields defined in
+ * {@see base_vecstore_instance}. Backend-specific form fields can be added here by overriding the
+ * extend_* hooks if needed in the future.
+ *
+ * @package    aivecstore_qdrant
+ * @copyright  2026 Exputo Inc.
+ * @author     David Pesce <david.pesce@exputo.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
-$string['connectionstring'] = 'Connection string';
-$string['connectionstring_help'] = 'The full PostgreSQL connection string (libpq DSN) used to reach your pgvector database, including credentials — for example postgresql://user:password@host:5432/dbname?sslmode=require. The collection name below is used as the table name.';
-$string['formvalidation_connectionstring'] = 'Please enter a PostgreSQL connection string';
-$string['pluginname'] = 'PostgreSQL (pgvector)';
-$string['privacy:metadata'] = 'The local ai_manager vector store subplugin "PostgreSQL (pgvector)" does not store any personal data in Moodle itself.';
+class instance extends base_vecstore_instance {
+}
