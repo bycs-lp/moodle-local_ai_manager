@@ -1,0 +1,122 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_ai_manager/vecstoretable
+
+    Template for the table that shows the configured vector databases of a tenant.
+
+    Example context (json):
+    {
+        "tenant": "sometenantname",
+        "hasbackends": true,
+        "addoptions": [
+            {
+                "label": "Qdrant",
+                "addurl": "https://example.com/local/ai_manager/edit_vecstore.php?vecstorename=qdrant&tenant=default"
+            }
+        ],
+        "vecstores": [
+            {
+                "name": "<a href=\"...\">my vector db</a>",
+                "backendname": "Qdrant",
+                "endpoint": "https://qdrant.example.com",
+                "collection": "moodle_rag",
+                "dimensions": 1536,
+                "distance": "Cosine",
+                "enabled": true
+            }
+        ]
+    }
+}}
+<hr>
+<div id="local_ai_manager-vecstoretable-{{uniqid}}" class="local_ai_manager-vecstoretable" data-tenant="{{tenant}}">
+    <div class="d-flex justify-content-between mb-5 align-items-center">
+        <div><h3>{{#str}} currentlyusedvecstores, local_ai_manager {{/str}}</h3></div>
+        <div>
+            {{#hasbackends}}
+                <div class="dropdown">
+                    <button class="btn btn-primary dropdown-toggle" type="button" id="local_ai_manager-vecstoreadd_button"
+                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fa fa-plus"></i> {{#str}}addvecstore, local_ai_manager{{/str}}
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="local_ai_manager-vecstoreadd_button">
+                        {{#addoptions}}
+                            <a class="dropdown-item" href="{{addurl}}">{{label}}</a>
+                        {{/addoptions}}
+                    </div>
+                </div>
+            {{/hasbackends}}
+            {{^hasbackends}}
+                <span class="text-muted">{{#str}} novecstorebackends, local_ai_manager {{/str}}</span>
+            {{/hasbackends}}
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th scope="col">{{#str}} instancename, local_ai_manager {{/str}}</th>
+                <th scope="col">{{#str}} vecstore, local_ai_manager {{/str}}</th>
+                <th scope="col">{{#str}} endpoint, local_ai_manager {{/str}}</th>
+                <th scope="col">{{#str}} collection, local_ai_manager {{/str}}</th>
+                <th scope="col">{{#str}} dimensions, local_ai_manager {{/str}}</th>
+                <th scope="col">{{#str}} distancemetric, local_ai_manager {{/str}}</th>
+                <th scope="col">{{#str}} instanceavailable, local_ai_manager {{/str}}</th>
+                <th scope="col">{{#str}} actions {{/str}}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {{#vecstores}}
+                <tr>
+                    <td>
+                        {{{name}}}
+                        {{#isprimary}}
+                            <span class="badge bg-primary text-white">{{#str}}vecstoreprimary, local_ai_manager{{/str}}</span>
+                        {{/isprimary}}
+                    </td>
+                    <td>{{backendname}}</td>
+                    <td>{{endpoint}}</td>
+                    <td>{{collection}}</td>
+                    <td>{{dimensions}}</td>
+                    <td>{{distance}}</td>
+                    <td>
+                        {{#enabled}}<span class="text-success"><i class="fa fa-check" title="{{#str}}instanceenabled, local_ai_manager{{/str}}"></i></span>{{/enabled}}
+                        {{^enabled}}<span class="text-danger"><i class="fa fa-ban" title="{{#str}}instancedisabled, local_ai_manager{{/str}}"></i></span>{{/enabled}}
+                    </td>
+                    <td>
+                        {{#setprimaryurl}}
+                            <a class="btn btn-outline-secondary btn-sm" href="{{setprimaryurl}}">
+                                {{#str}}setasprimary, local_ai_manager{{/str}}
+                            </a>
+                        {{/setprimaryurl}}
+                        {{#testurl}}
+                            <a class="btn btn-secondary btn-sm" href="{{testurl}}">
+                                <i class="fa fa-plug"></i> {{#str}}testconnection, local_ai_manager{{/str}}
+                            </a>
+                        {{/testurl}}
+                    </td>
+                </tr>
+            {{/vecstores}}
+            {{^vecstores}}
+                <tr>
+                    <td colspan="8" class="text-muted">{{#str}} novecstores, local_ai_manager {{/str}}</td>
+                </tr>
+            {{/vecstores}}
+            </tbody>
+        </table>
+    </div>
+</div>
