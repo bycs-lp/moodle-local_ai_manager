@@ -89,7 +89,7 @@ final class vecstore_test extends \advanced_testcase {
         $this->assertSame(102, $matches[0]->get_contextid());
         $this->assertNotSame('', $matches[0]->get_vector());
 
-        // get_all() returns all stored vectors.
+        // The get_all() call returns all stored vectors.
         $this->assertCount(3, $this->driver->get_all());
 
         $this->assertTrue($this->driver->delete_collection());
@@ -109,6 +109,24 @@ final class vecstore_test extends \advanced_testcase {
         $contents = array_map(static fn($match) => $match->get_content(), $matches);
         $this->assertContains('nine', $contents);
         $this->assertNotContains('seven', $contents);
+    }
+
+    /**
+     * A filter with an array of values matches any of them (IN semantics).
+     */
+    public function test_query_with_multivalue_filter(): void {
+        $this->driver->create_collection();
+        $this->driver->insert_embeddings([
+            enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'seven', 7, 0, 1),
+            enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'eight', 8, 0, 1),
+            enriched_vector::create(json_encode([0.0, 0.0, 1.0, 0.0]), 'nine', 9, 0, 1),
+        ]);
+
+        // Restrict to context ids 7 and 9 (excluding 8) via an array value = IN semantics.
+        $matches = $this->driver->query([1.0, 1.0, 1.0, 1.0], 10, ['contextid' => [7, 9]]);
+        $contextids = array_map(static fn($match) => $match->get_contextid(), $matches);
+        sort($contextids);
+        $this->assertSame([7, 9], $contextids);
     }
 
     /**

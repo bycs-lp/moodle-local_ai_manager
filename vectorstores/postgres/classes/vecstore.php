@@ -119,12 +119,34 @@ class vecstore extends base_vecstore {
             $table = pg_escape_identifier($connection, $this->get_collection());
             [$operator, $scoreexpr] = $this->distance_sql();
 
+            // Parameter $1 is reserved for the query vector; filter values are bound from $2 onwards.
+            // Keys and values are parameterized (payload->>$k) so arbitrary filter keys can't inject SQL.
             $params = [$this->vector_to_literal($vector)];
-            $where = '';
-            if (!empty($filters)) {
-                $params[] = json_encode($filters);
-                $where = 'WHERE payload @> $2::jsonb';
+            $conditions = [];
+            foreach ($filters as $key => $value) {
+                $params[] = (string) $key;
+                $keyparam = '$' . count($params);
+                if (is_array($value)) {
+                    if (empty($value)) {
+                        // An empty value set matches nothing.
+                        $conditions[] = 'FALSE';
+                        continue;
+                    }
+                    // Array value → IN semantics.
+                    $placeholders = [];
+                    foreach (array_values($value) as $item) {
+                        $params[] = (string) $item;
+                        $placeholders[] = '$' . count($params);
+                    }
+                    $conditions[] = "payload->>{$keyparam} IN (" . implode(', ', $placeholders) . ')';
+                } else {
+                    // Scalar value → exact match.
+                    $params[] = (string) $value;
+                    $valueparam = '$' . count($params);
+                    $conditions[] = "payload->>{$keyparam} = {$valueparam}";
+                }
             }
+            $where = empty($conditions) ? '' : ('WHERE ' . implode(' AND ', $conditions));
 
             $sql = "SELECT id, payload, embedding::text AS vector, {$scoreexpr} AS score FROM {$table} {$where} "
                 . "ORDER BY embedding {$operator} \$1::vector ASC LIMIT " . (int) $topk;
