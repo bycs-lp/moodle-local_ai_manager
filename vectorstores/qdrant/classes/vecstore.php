@@ -18,6 +18,8 @@ namespace aivecstore_qdrant;
 
 use core\http_client;
 use local_ai_manager\base_vecstore;
+use local_ai_manager\collection_not_found_exception;
+use local_ai_content\local\enriched_vector;
 
 /**
  * Vector store implementation for the Qdrant vector database.
@@ -38,44 +40,58 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
-    public function create_collection(string $collection, int $dimensions): bool {
+    public function create_collection(): bool {
         $body = [
             'vectors' => [
-                'size' => $dimensions,
+                'size' => (int) $this->instance->get_dimensions(),
                 'distance' => $this->map_distance(),
             ],
         ];
-        return $this->request('PUT', '/collections/' . rawurlencode($collection), $body)['status'] === 200;
+        return $this->request('PUT', '/collections/' . rawurlencode($this->get_collection()), $body)['status'] === 200;
     }
 
     #[\Override]
-    public function delete_collection(string $collection): bool {
-        return $this->request('DELETE', '/collections/' . rawurlencode($collection))['status'] === 200;
+    public function delete_collection(): bool {
+        return $this->request('DELETE', '/collections/' . rawurlencode($this->get_collection()))['status'] === 200;
     }
 
     #[\Override]
-    public function upsert_embeddings(string $collection, array $embeddings): bool {
+    protected function store_embeddings(array $embeddings): bool {
         $points = [];
         foreach ($embeddings as $embedding) {
-            $point = [
-                'id' => $embedding['id'],
-                'vector' => array_values($embedding['vector']),
-            ];
-            if (!empty($embedding['payload'])) {
-                $point['payload'] = $embedding['payload'];
+            $vector = json_decode($embedding->get_vector(), true);
+            if (!is_array($vector) || empty($vector)) {
+                continue;
             }
-            $points[] = $point;
+            $points[] = [
+                // Qdrant requires a point id; we generate a UUID as callers do not manage record references.
+                'id' => \core\uuid::generate(),
+                'vector' => array_values($vector),
+                'payload' => [
+                    'content' => $embedding->get_content(),
+                    'contextid' => $embedding->get_contextid(),
+                    'chunk' => $embedding->get_chunk(),
+                    'maxchunks' => $embedding->get_maxchunks(),
+                ],
+            ];
         }
-        $path = '/collections/' . rawurlencode($collection) . '/points?wait=true';
-        return $this->request('PUT', $path, ['points' => $points])['status'] === 200;
+        return $this->with_existing_collection(function () use ($points): bool {
+            $path = '/collections/' . rawurlencode($this->get_collection()) . '/points?wait=true';
+            $response = $this->request('PUT', $path, ['points' => $points]);
+            if ($response['status'] === 404) {
+                throw new collection_not_found_exception();
+            }
+            return $response['status'] === 200;
+        });
     }
 
     #[\Override]
-    public function query(string $collection, array $vector, int $topk = 5, array $filters = []): array {
+    public function query(array $vector, int $topk = 5, array $filters = []): array {
         $body = [
             'vector' => array_values($vector),
             'limit' => $topk,
             'with_payload' => true,
+            'with_vector' => true,
         ];
         if (!empty($filters)) {
             $must = [];
@@ -84,25 +100,68 @@ class vecstore extends base_vecstore {
             }
             $body['filter'] = ['must' => $must];
         }
-        $response = $this->request('POST', '/collections/' . rawurlencode($collection) . '/points/search', $body);
-        if ($response['status'] !== 200 || empty($response['data']['result'])) {
-            return [];
-        }
-        $matches = [];
-        foreach ($response['data']['result'] as $hit) {
-            $matches[] = [
-                'id' => $hit['id'] ?? null,
-                'score' => $hit['score'] ?? null,
-                'payload' => $hit['payload'] ?? [],
-            ];
-        }
-        return $matches;
+        return $this->with_existing_collection(function () use ($body): array {
+            $response = $this->request('POST', '/collections/' . rawurlencode($this->get_collection()) . '/points/search', $body);
+            if ($response['status'] === 404) {
+                throw new collection_not_found_exception();
+            }
+            if ($response['status'] !== 200 || empty($response['data']['result'])) {
+                return [];
+            }
+            $matches = [];
+            foreach ($response['data']['result'] as $hit) {
+                $payload = $hit['payload'] ?? [];
+                $matches[] = enriched_vector::create(
+                    isset($hit['vector']) ? json_encode(array_values($hit['vector'])) : '',
+                    (string) ($payload['content'] ?? ''),
+                    (int) ($payload['contextid'] ?? 0),
+                    (int) ($payload['chunk'] ?? 0),
+                    (int) ($payload['maxchunks'] ?? 0)
+                );
+            }
+            return $matches;
+        });
     }
 
     #[\Override]
-    public function delete_embeddings(string $collection, array $ids): bool {
-        $path = '/collections/' . rawurlencode($collection) . '/points/delete?wait=true';
-        return $this->request('POST', $path, ['points' => array_values($ids)])['status'] === 200;
+    public function get_all(): array {
+        $vectors = [];
+        $offset = null;
+        do {
+            $body = ['limit' => 100, 'with_payload' => true, 'with_vector' => true];
+            if (!is_null($offset)) {
+                $body['offset'] = $offset;
+            }
+            $response = $this->request('POST', '/collections/' . rawurlencode($this->get_collection()) . '/points/scroll', $body);
+            if ($response['status'] !== 200 || empty($response['data']['result']['points'])) {
+                break;
+            }
+            foreach ($response['data']['result']['points'] as $point) {
+                $payload = $point['payload'] ?? [];
+                $vectors[] = enriched_vector::create(
+                    isset($point['vector']) ? json_encode(array_values($point['vector'])) : '',
+                    (string) ($payload['content'] ?? ''),
+                    (int) ($payload['contextid'] ?? 0),
+                    (int) ($payload['chunk'] ?? 0),
+                    (int) ($payload['maxchunks'] ?? 0)
+                );
+            }
+            $offset = $response['data']['result']['next_page_offset'] ?? null;
+        } while (!is_null($offset));
+        return $vectors;
+    }
+
+    #[\Override]
+    public function delete_embeddings(int $contextid): bool {
+        $path = '/collections/' . rawurlencode($this->get_collection()) . '/points/delete?wait=true';
+        $body = [
+            'filter' => [
+                'must' => [
+                    ['key' => 'contextid', 'match' => ['value' => $contextid]],
+                ],
+            ],
+        ];
+        return $this->request('POST', $path, $body)['status'] === 200;
     }
 
     /**

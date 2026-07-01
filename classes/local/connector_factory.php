@@ -19,6 +19,7 @@ namespace local_ai_manager\local;
 use local_ai_manager\base_connector;
 use local_ai_manager\base_purpose;
 use local_ai_manager\base_instance;
+use local_ai_manager\base_vecstore;
 use local_ai_manager\plugininfo\aitool;
 
 /**
@@ -214,5 +215,18 @@ class connector_factory {
             }
         }
         return $instances;
+    }
+
+    /**
+     * Returns the primary vector store driver configured for the current tenant.
+     *
+     * Convenience wrapper around {@see vecstore_factory::get_primary_vecstore()} so that callers which already
+     * work with the connector factory (for example when implementing RAG use cases) can retrieve the configured
+     * primary vector store object without having to instantiate the {@see vecstore_factory} themselves.
+     *
+     * @return ?base_vecstore the primary vector store driver, or null if the tenant has no primary vector store
+     */
+    public function get_primary_vecstore(): ?base_vecstore {
+        return (new vecstore_factory())->get_primary_vecstore();
     }
 }
