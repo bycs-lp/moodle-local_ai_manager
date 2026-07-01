@@ -9,6 +9,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "chatgpt",
             "telli"
@@ -94,6 +95,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "chatgpt"
         ]
@@ -108,6 +110,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "chatgpt"
         ]
@@ -122,6 +125,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "chatgpt"
         ]
@@ -136,6 +140,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "chatgpt"
         ]
@@ -150,6 +155,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "chatgpt"
         ]
@@ -164,6 +170,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "chatgpt",
             "telli"
@@ -179,6 +186,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "chatgpt"
         ]
@@ -193,6 +201,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "chatgpt",
             "telli"
@@ -208,6 +217,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "chatgpt",
             "telli"
@@ -223,6 +233,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "chatgpt"
         ],
@@ -238,6 +249,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "chatgpt"
         ],
@@ -253,6 +265,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "chatgpt"
@@ -269,6 +282,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "chatgpt"
         ]
@@ -283,6 +297,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "chatgpt"
         ]
@@ -297,6 +312,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "chatgpt",
@@ -313,6 +329,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "chatgpt"
@@ -328,6 +345,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "chatgpt",
@@ -346,6 +364,7 @@
         "tts": 0,
         "stt": 0,
         "deprecated": 1,
+        "embedding": 0,
         "connectors": [
             "chatgpt",
             "telli"
@@ -362,6 +381,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "chatgpt"
@@ -377,6 +397,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "chatgpt"
@@ -392,6 +413,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "chatgpt"
@@ -407,6 +429,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "chatgpt",
@@ -424,6 +447,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "chatgpt",
@@ -441,6 +465,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "chatgpt"
@@ -457,6 +482,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "dalle"
         ]
@@ -471,6 +497,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "dalle",
             "telli"
@@ -486,6 +513,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "dalle"
@@ -501,6 +529,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "dalle",
@@ -517,6 +546,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "dalle"
@@ -532,6 +562,7 @@
         "imggen": 0,
         "tts": 1,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "openaitts"
         ]
@@ -546,6 +577,7 @@
         "imggen": 0,
         "tts": 1,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "openaitts"
         ]
@@ -560,6 +592,7 @@
         "imggen": 0,
         "tts": 1,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "openaitts"
@@ -575,6 +608,7 @@
         "imggen": 0,
         "tts": 1,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "openaitts"
@@ -590,9 +624,53 @@
         "imggen": 0,
         "tts": 1,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "openaitts"
+        ]
+    },
+    {
+        "name": "text-embedding-3-small",
+        "displayname": "Text Embedding 3 Small",
+        "description": "OpenAI text-embedding-3-small efficient embedding model for semantic search and retrieval",
+        "mimetypes": "",
+        "vision": 0,
+        "imggen": 0,
+        "tts": 0,
+        "stt": 0,
+        "embedding": 1,
+        "connectors": [
+            "openaiembedding"
+        ]
+    },
+    {
+        "name": "text-embedding-3-large",
+        "displayname": "Text Embedding 3 Large",
+        "description": "OpenAI text-embedding-3-large most capable embedding model for highest accuracy",
+        "mimetypes": "",
+        "vision": 0,
+        "imggen": 0,
+        "tts": 0,
+        "stt": 0,
+        "embedding": 1,
+        "connectors": [
+            "openaiembedding"
+        ]
+    },
+    {
+        "name": "text-embedding-ada-002",
+        "displayname": "Text Embedding Ada 002",
+        "description": "OpenAI text-embedding-ada-002 previous generation embedding model",
+        "mimetypes": "",
+        "vision": 0,
+        "imggen": 0,
+        "tts": 0,
+        "stt": 0,
+        "embedding": 1,
+        "deprecated": 1,
+        "connectors": [
+            "openaiembedding"
         ]
     },
     {
@@ -620,6 +698,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "gemini"
         ],
@@ -635,6 +714,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "gemini"
@@ -651,6 +731,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "gemini"
         ],
@@ -681,6 +762,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "gemini"
         ],
@@ -696,6 +778,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "gemini"
         ],
@@ -711,6 +794,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "gemini"
         ],
@@ -801,6 +885,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "gemini"
         ],
@@ -816,6 +901,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "gemini"
         ],
@@ -831,6 +917,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "gemini"
         ],
@@ -846,6 +933,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "gemini"
         ],
@@ -861,6 +949,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "gemini"
         ],
@@ -876,6 +965,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "gemini"
         ],
@@ -891,6 +981,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "gemini"
@@ -907,6 +998,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "gemini"
@@ -923,6 +1015,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "gemini"
@@ -939,6 +1032,7 @@
         "imggen": 0,
         "tts": 1,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "googlesynthesize"
         ]
@@ -953,6 +1047,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "imagen",
@@ -969,6 +1064,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "imagen"
         ]
@@ -983,6 +1079,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "imagen"
         ]
@@ -997,6 +1094,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "imagen"
@@ -1012,6 +1110,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1027,6 +1126,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1042,6 +1142,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1057,6 +1158,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1072,6 +1174,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1087,6 +1190,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1102,6 +1206,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1117,6 +1222,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1132,6 +1238,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1147,6 +1254,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1162,6 +1270,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1177,6 +1286,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1192,6 +1302,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1207,6 +1318,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1222,6 +1334,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1237,6 +1350,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1252,6 +1366,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1267,6 +1382,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1282,6 +1398,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1297,6 +1414,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1312,6 +1430,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1327,6 +1446,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1342,6 +1462,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1357,6 +1478,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1372,6 +1494,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1387,6 +1510,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1402,6 +1526,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1417,6 +1542,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1432,6 +1558,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1447,6 +1574,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1462,6 +1590,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "ollama"
         ],
@@ -1508,6 +1637,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "telli"
         ],
@@ -1523,6 +1653,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "telli"
         ],
@@ -1538,6 +1669,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "telli"
         ],
@@ -1553,6 +1685,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "telli"
         ],
@@ -1568,6 +1701,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "telli"
         ]
@@ -1582,6 +1716,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "connectors": [
             "telli"
         ]
@@ -1596,6 +1731,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 1,
         "deprecated": 1,
         "connectors": [
             "telli"
@@ -1612,6 +1748,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "telli"
@@ -1628,6 +1765,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "telli"
@@ -1644,6 +1782,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "embedding": 0,
         "deprecated": 1,
         "connectors": [
             "telli"
