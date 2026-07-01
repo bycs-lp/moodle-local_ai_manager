@@ -18,6 +18,7 @@ namespace aivecstore_postgres;
 
 use local_ai_manager\base_vecstore;
 use local_ai_manager\base_vecstore_instance;
+use local_ai_content\local\enriched_vector;
 
 /**
  * Integration tests for the PostgreSQL/pgvector vector store driver.
@@ -45,85 +46,123 @@ final class vecstore_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $dsn = getenv('PGVECTOR_TEST_DSN') ?: 'postgresql://vectors:vectors@pgvector:5432/vectors';
+        $this->collection = 'moodle_test_' . uniqid();
         $instance = new base_vecstore_instance();
         $instance->set_vecstore('postgres');
         $instance->set_apikey($dsn);
         $instance->set_distancemetric(base_vecstore::DISTANCE_COSINE);
+        // The collection is an internal detail of the instance; configure it here for all operations.
+        $instance->set_collection($this->collection);
+        $instance->set_dimensions(4);
         $this->driver = new vecstore($instance);
 
         if (!$this->driver->is_available()) {
             $this->markTestSkipped('No reachable pgvector PostgreSQL for the configured DSN');
         }
-        $this->collection = 'moodle_test_' . uniqid();
     }
 
     #[\Override]
     protected function tearDown(): void {
         if (isset($this->driver) && isset($this->collection)) {
-            $this->driver->delete_collection($this->collection);
+            $this->driver->delete_collection();
         }
         parent::tearDown();
     }
 
     /**
-     * Exercises the full lifecycle: create table, upsert, query, delete embeddings, drop table.
+     * Exercises the full lifecycle: create table, insert, query, drop table.
      */
     public function test_full_lifecycle(): void {
-        $this->assertTrue($this->driver->create_collection($this->collection, 4));
+        $this->assertTrue($this->driver->create_collection());
 
-        $this->assertTrue($this->driver->upsert_embeddings($this->collection, [
-            ['id' => 1, 'vector' => [1.0, 0.0, 0.0, 0.0], 'payload' => ['label' => 'x']],
-            ['id' => 2, 'vector' => [0.0, 1.0, 0.0, 0.0], 'payload' => ['label' => 'y']],
-            ['id' => 3, 'vector' => [0.0, 0.0, 1.0, 0.0], 'payload' => ['label' => 'z']],
+        $this->assertTrue($this->driver->insert_embeddings([
+            enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'x', 101, 0, 1),
+            enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'y', 102, 0, 1),
+            enriched_vector::create(json_encode([0.0, 0.0, 1.0, 0.0]), 'z', 103, 0, 1),
         ]));
 
-        // A query near point 2 should return point 2 as the closest match (ids come back as text).
-        $matches = $this->driver->query($this->collection, [0.0, 0.9, 0.1, 0.0], 2);
+        // A query near the second vector should return it as the closest match.
+        $matches = $this->driver->query([0.0, 0.9, 0.1, 0.0], 2);
         $this->assertNotEmpty($matches);
-        $this->assertSame('2', $matches[0]['id']);
-        $this->assertArrayHasKey('score', $matches[0]);
-        $this->assertSame('y', $matches[0]['payload']['label']);
+        $this->assertInstanceOf(enriched_vector::class, $matches[0]);
+        $this->assertSame('y', $matches[0]->get_content());
+        $this->assertSame(102, $matches[0]->get_contextid());
+        $this->assertNotSame('', $matches[0]->get_vector());
 
-        // After deleting point 2, it must no longer be returned.
-        $this->assertTrue($this->driver->delete_embeddings($this->collection, [2]));
-        $matches = $this->driver->query($this->collection, [0.0, 0.9, 0.1, 0.0], 3);
-        $ids = array_column($matches, 'id');
-        $this->assertNotContains('2', $ids);
+        // get_all() returns all stored vectors.
+        $this->assertCount(3, $this->driver->get_all());
 
-        $this->assertTrue($this->driver->delete_collection($this->collection));
-    }
-
-    /**
-     * Upserting an existing id must update it in place rather than create a duplicate.
-     */
-    public function test_upsert_updates_in_place(): void {
-        $this->driver->create_collection($this->collection, 4);
-        $this->driver->upsert_embeddings($this->collection, [
-            ['id' => 1, 'vector' => [1.0, 0.0, 0.0, 0.0], 'payload' => ['v' => 1]],
-        ]);
-        $this->driver->upsert_embeddings($this->collection, [
-            ['id' => 1, 'vector' => [0.0, 1.0, 0.0, 0.0], 'payload' => ['v' => 2]],
-        ]);
-
-        $matches = $this->driver->query($this->collection, [0.0, 1.0, 0.0, 0.0], 5);
-        $this->assertCount(1, $matches);
-        $this->assertSame('1', $matches[0]['id']);
-        $this->assertSame(2, $matches[0]['payload']['v']);
+        $this->assertTrue($this->driver->delete_collection());
     }
 
     /**
      * Filtered queries should only return rows whose payload contains the filter.
      */
     public function test_query_with_filter(): void {
-        $this->driver->create_collection($this->collection, 4);
-        $this->driver->upsert_embeddings($this->collection, [
-            ['id' => 1, 'vector' => [1.0, 0.0, 0.0, 0.0], 'payload' => ['course' => 7]],
-            ['id' => 2, 'vector' => [0.9, 0.1, 0.0, 0.0], 'payload' => ['course' => 9]],
+        $this->driver->create_collection();
+        $this->driver->insert_embeddings([
+            enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'seven', 7, 0, 1),
+            enriched_vector::create(json_encode([0.9, 0.1, 0.0, 0.0]), 'nine', 9, 0, 1),
         ]);
 
-        $matches = $this->driver->query($this->collection, [1.0, 0.0, 0.0, 0.0], 5, ['course' => 9]);
-        $ids = array_column($matches, 'id');
-        $this->assertContains('2', $ids);
-        $this->assertNotContains('1', $ids);
+        $matches = $this->driver->query([1.0, 0.0, 0.0, 0.0], 5, ['contextid' => 9]);
+        $contents = array_map(static fn($match) => $match->get_content(), $matches);
+        $this->assertContains('nine', $contents);
+        $this->assertNotContains('seven', $contents);
+    }
+
+    /**
+     * Deleting by context id must remove all rows carrying that context id and keep the rest.
+     */
+    public function test_delete_embeddings_by_contextid(): void {
+        $this->driver->create_collection();
+        $this->driver->insert_embeddings([
+            enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'keep', 101, 0, 2),
+            enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'gone-a', 102, 0, 2),
+            enriched_vector::create(json_encode([0.0, 0.0, 1.0, 0.0]), 'gone-b', 102, 1, 2),
+        ]);
+
+        $this->assertTrue($this->driver->delete_embeddings(102));
+
+        $matches = $this->driver->query([1.0, 1.0, 1.0, 1.0], 10);
+        $contextids = array_map(static fn($match) => $match->get_contextid(), $matches);
+        $this->assertContains(101, $contextids);
+        $this->assertNotContains(102, $contextids);
+    }
+
+    /**
+     * Inserting for a context id must first remove the existing vectors of that context (replace semantics).
+     */
+    public function test_insert_replaces_existing_context(): void {
+        $this->driver->create_collection();
+        $this->driver->insert_embeddings([
+            enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'old', 200, 0, 1),
+        ]);
+        // Re-inserting for the same context id must replace the previous vectors.
+        $this->driver->insert_embeddings([
+            enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'new', 200, 0, 1),
+        ]);
+
+        $contents = array_map(static fn($vector) => $vector->get_content(), $this->driver->get_all());
+        $this->assertContains('new', $contents);
+        $this->assertNotContains('old', $contents);
+        $this->assertCount(1, $contents);
+    }
+
+    /**
+     * Inserting or querying a missing collection must transparently create it with the configured name and dimensions.
+     */
+    public function test_missing_collection_is_created_on_demand(): void {
+        // The collection name and dimensions are configured on the instance but the table is NOT created yet.
+        // Querying a non-existent collection should create it and return an empty result set.
+        $this->assertSame([], $this->driver->query([1.0, 0.0, 0.0, 0.0], 5));
+
+        // Inserting into the (now existing) collection works and the vector can be retrieved.
+        $this->assertTrue($this->driver->insert_embeddings([
+            enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'hello', 55, 0, 1),
+        ]));
+        $matches = $this->driver->query([1.0, 0.0, 0.0, 0.0], 5);
+        $this->assertNotEmpty($matches);
+        $this->assertSame('hello', $matches[0]->get_content());
     }
 }
