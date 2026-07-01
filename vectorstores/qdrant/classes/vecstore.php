@@ -96,7 +96,10 @@ class vecstore extends base_vecstore {
         if (!empty($filters)) {
             $must = [];
             foreach ($filters as $key => $value) {
-                $must[] = ['key' => $key, 'match' => ['value' => $value]];
+                // An array value matches any of the given values (IN semantics); a scalar matches exactly.
+                $must[] = is_array($value)
+                    ? ['key' => $key, 'match' => ['any' => array_values($value)]]
+                    : ['key' => $key, 'match' => ['value' => $value]];
             }
             $body['filter'] = ['must' => $must];
         }
