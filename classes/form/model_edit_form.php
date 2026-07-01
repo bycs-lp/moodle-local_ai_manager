@@ -72,6 +72,10 @@ class model_edit_form extends dynamic_form {
         $mform->addElement('advcheckbox', 'stt', get_string('model_stt', 'local_ai_manager'));
         $mform->setType('stt', PARAM_BOOL);
 
+        $mform->addElement('advcheckbox', 'embedding', get_string('model_embedding', 'local_ai_manager'));
+        $mform->setType('embedding', PARAM_BOOL);
+        $mform->addHelpButton('embedding', 'model_embedding', 'local_ai_manager');
+
         $mform->addElement(
             'advcheckbox',
             'supports_temperature',
@@ -147,6 +151,7 @@ class model_edit_form extends dynamic_form {
         $modelobj->set_imggen((bool) $data->imggen);
         $modelobj->set_tts((bool) $data->tts);
         $modelobj->set_stt((bool) $data->stt);
+        $modelobj->set_embedding((bool) $data->embedding);
         if (!empty($data->supports_temperature)) {
             $min = round(floatval($data->temperature_min ?? 0.0), 1);
             $max = round(floatval($data->temperature_max ?? 1.0), 1);
@@ -193,6 +198,7 @@ class model_edit_form extends dynamic_form {
             $data['imggen'] = (int) $modelobj->supports_imggen();
             $data['tts'] = (int) $modelobj->supports_tts();
             $data['stt'] = (int) $modelobj->supports_stt();
+            $data['embedding'] = (int) $modelobj->supports_embedding();
             $data['supports_temperature'] = (int) $modelobj->supports_temperature();
             $data['temperature_min'] = number_format($modelobj->get_min_temperature() ?? 0.0, 1);
             $data['temperature_max'] = number_format($modelobj->get_max_temperature() ?? 1.0, 1);

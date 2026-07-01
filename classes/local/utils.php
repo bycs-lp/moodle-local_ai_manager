@@ -51,10 +51,12 @@ class utils {
             $existing = $DB->get_record('local_ai_manager_model', ['name' => $modeldata['name']]);
             if ($existing) {
                 $modelid = $existing->id;
-                // Update deprecated flag if it has changed.
+                // Update the flags that may change between releases (deprecated and embedding).
                 $deprecated = (int) ($modeldata['deprecated'] ?? 0);
-                if ((int) $existing->deprecated !== $deprecated) {
+                $embedding = (int) ($modeldata['embedding'] ?? 0);
+                if ((int) $existing->deprecated !== $deprecated || (int) $existing->embedding !== $embedding) {
                     $existing->deprecated = $deprecated;
+                    $existing->embedding = $embedding;
                     $existing->timemodified = $now;
                     $DB->update_record('local_ai_manager_model', $existing);
                 }
@@ -68,6 +70,7 @@ class utils {
                 $record->imggen = (int) ($modeldata['imggen'] ?? 0);
                 $record->tts = (int) ($modeldata['tts'] ?? 0);
                 $record->stt = (int) ($modeldata['stt'] ?? 0);
+                $record->embedding = (int) ($modeldata['embedding'] ?? 0);
                 $record->temperature = $modeldata['temperature'] ?? null;
                 $record->deprecated = (int) ($modeldata['deprecated'] ?? 0);
                 $record->timecreated = $now;

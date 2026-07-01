@@ -64,6 +64,10 @@ abstract class base_connector {
      * - 'tts': only models with the tts attribute
      * - 'imggen': only models with the imggen attribute
      * - 'itt': only models with the vision attribute
+     * - 'embedding': only models with the embedding attribute
+     *
+     * Embedding models are exclusively available for the embedding purpose and are never
+     * offered for any of the text based purposes.
      *
      * Subclasses may override this method if they need custom logic.
      *
@@ -80,6 +84,7 @@ abstract class base_connector {
         $visionmodels = [];
         $imggenmodels = [];
         $ttsmodels = [];
+        $embeddingmodels = [];
 
         foreach ($models as $model) {
             $name = $model->get_name();
@@ -93,11 +98,14 @@ abstract class base_connector {
             if ($model->supports_tts()) {
                 $ttsmodels[] = $name;
             }
+            if ($model->supports_embedding()) {
+                $embeddingmodels[] = $name;
+            }
         }
 
-        // Text models are all models that are not pure imggen or tts models.
-        $textmodels = array_values(array_filter($allmodels, function ($name) use ($imggenmodels, $ttsmodels) {
-            return !in_array($name, $imggenmodels) && !in_array($name, $ttsmodels);
+        // Text models are all models that are not pure imggen, tts or embedding models.
+        $textmodels = array_values(array_filter($allmodels, function ($name) use ($imggenmodels, $ttsmodels, $embeddingmodels) {
+            return !in_array($name, $imggenmodels) && !in_array($name, $ttsmodels) && !in_array($name, $embeddingmodels);
         }));
 
         $purposes = base_purpose::get_installed_purposes_array();
@@ -111,6 +119,9 @@ abstract class base_connector {
                     break;
                 case 'itt':
                     $purposes[$purpose] = $visionmodels;
+                    break;
+                case 'embedding':
+                    $purposes[$purpose] = $embeddingmodels;
                     break;
                 default:
                     $purposes[$purpose] = $textmodels;

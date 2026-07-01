@@ -15,18 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for local_ai_manager.
+ * Version file for aipurpose_embedding.
  *
- * @package    local_ai_manager
- * @copyright  ISB Bayern, 2024
- * @author     Dr. Peter Mayer
+ * @package    aipurpose_embedding
+ * @copyright  2026 ISB Bayern
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->version  = 2026063000;
-$plugin->requires = 2025041400;
-$plugin->supported = [500, 502];
-$plugin->release = '3.0';
-$plugin->component = 'local_ai_manager';
-$plugin->maturity = MATURITY_STABLE;
+$plugin->requires = 2023042403;
+$plugin->release = '0.0.1';
+$plugin->component = 'aipurpose_embedding';
+$plugin->maturity = MATURITY_ALPHA;
+

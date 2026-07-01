@@ -51,7 +51,7 @@ class model_management_table extends table_sql implements dynamic {
 
         $columns = [
             'name', 'displayname', 'description', 'mimetypes', 'vision', 'imggen', 'tts', 'stt',
-            'temperature', 'connectors', 'deprecated', 'actions',
+            'embedding', 'temperature', 'connectors', 'deprecated', 'actions',
         ];
         $headers = [
             get_string('model_name', 'local_ai_manager'),
@@ -62,6 +62,7 @@ class model_management_table extends table_sql implements dynamic {
             get_string('model_imggen', 'local_ai_manager'),
             get_string('model_tts', 'local_ai_manager'),
             get_string('model_stt', 'local_ai_manager'),
+            get_string('model_embedding', 'local_ai_manager'),
             get_string('model_temperature_range', 'local_ai_manager'),
             get_string('model_connectors', 'local_ai_manager'),
             get_string('model_deprecated', 'local_ai_manager'),
@@ -91,7 +92,7 @@ class model_management_table extends table_sql implements dynamic {
         global $DB;
 
         $concat = $DB->sql_group_concat('mp.connector', ', ');
-        $fields = "m.id, m.name, m.displayname, m.description, m.mimetypes, m.vision, m.imggen, m.tts, m.stt, m.temperature, m.deprecated, "
+        $fields = "m.id, m.name, m.displayname, m.description, m.mimetypes, m.vision, m.imggen, m.tts, m.stt, m.embedding, m.temperature, m.deprecated, "
             . $concat . " AS connectors";
         $from = '{local_ai_manager_model} m LEFT JOIN {local_ai_manager_model_connector} mp ON mp.modelid = m.id';
         $where = '1 = 1';
@@ -142,7 +143,7 @@ class model_management_table extends table_sql implements dynamic {
             }
         }
 
-        $groupby = ' GROUP BY m.id, m.name, m.displayname, m.description, m.mimetypes, m.vision, m.imggen, m.tts, m.stt, m.temperature, m.deprecated';
+        $groupby = ' GROUP BY m.id, m.name, m.displayname, m.description, m.mimetypes, m.vision, m.imggen, m.tts, m.stt, m.embedding, m.temperature, m.deprecated';
 
         $this->set_sql($fields, $from, $where . $filtersql . $groupby, array_merge($params, $filterparams));
 
@@ -231,6 +232,16 @@ class model_management_table extends table_sql implements dynamic {
      */
     public function col_stt(stdClass $row): string {
         return $this->render_boolean_icon(!empty($row->stt));
+    }
+
+    /**
+     * Render the embedding column.
+     *
+     * @param stdClass $row The current row data
+     * @return string The embedding icon
+     */
+    public function col_embedding(stdClass $row): string {
+        return $this->render_boolean_icon(!empty($row->embedding));
     }
 
     /**

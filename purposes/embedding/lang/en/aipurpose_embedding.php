@@ -15,18 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for local_ai_manager.
+ * Lang strings for aipurpose_embedding - EN.
  *
- * @package    local_ai_manager
- * @copyright  ISB Bayern, 2024
- * @author     Dr. Peter Mayer
+ * @package    aipurpose_embedding
+ * @copyright  2026 ISB Bayern
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2026063000;
-$plugin->requires = 2025041400;
-$plugin->supported = [500, 502];
-$plugin->release = '3.0';
-$plugin->component = 'local_ai_manager';
-$plugin->maturity = MATURITY_STABLE;
+$string['pluginname'] = 'Embedding';
+$string['privacy:metadata'] = 'The local ai_manager purpose subplugin "Embedding" does not store any personal data.';
+$string['purposedescription'] = 'The purpose "Embedding" is being used to turn text into numerical vector representations that capture semantic meaning. A text prompt is being sent to the external AI system and it will return an embedding vector, typically used for semantic search, clustering and retrieval-augmented generation.';
+$string['requestcount'] = 'embedding requests';
+$string['requestcount_shortened'] = 'embeddings';
+

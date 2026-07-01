@@ -15,18 +15,32 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for local_ai_manager.
+ * aitool_openaiembedding privacy provider class.
  *
- * @package    local_ai_manager
- * @copyright  ISB Bayern, 2024
- * @author     Dr. Peter Mayer
+ * @package    aitool_openaiembedding
+ * @copyright  2026 ISB Bayern
+ * @author     GitHub Copilot
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2026063000;
-$plugin->requires = 2025041400;
-$plugin->supported = [500, 502];
-$plugin->release = '3.0';
-$plugin->component = 'local_ai_manager';
-$plugin->maturity = MATURITY_STABLE;
+namespace aitool_openaiembedding\privacy;
+
+/**
+ * aitool_openaiembedding privacy provider class.
+ *
+ * @package    aitool_openaiembedding
+ * @copyright  2026 ISB Bayern
+ * @author     GitHub Copilot
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class provider implements \core_privacy\local\metadata\null_provider {
+    /**
+     * Get the language string identifier with the component's language
+     * file to explain why this plugin stores no data.
+     *
+     * @return  string
+     */
+    public static function get_reason(): string {
+        return 'privacy:metadata';
+    }
+}
