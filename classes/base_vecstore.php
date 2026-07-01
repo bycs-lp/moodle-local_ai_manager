@@ -17,6 +17,7 @@
 namespace local_ai_manager;
 
 use core_plugin_manager;
+use local_ai_content\local\enriched_vector;
 
 /**
  * Base class for vector store subplugins.
@@ -102,6 +103,19 @@ abstract class base_vecstore {
     }
 
     /**
+     * Returns the name of the collection configured for this vector store instance.
+     *
+     * The collection is an internal detail of the vector store instance: it is created once (with the configured
+     * name and dimensionality) and used for all subsequent operations. Callers therefore neither pass nor need to
+     * know the collection name.
+     *
+     * @return string the configured collection name (empty string if none is configured)
+     */
+    public function get_collection(): string {
+        return (string) $this->instance->get_collection();
+    }
+
+    /**
      * Checks whether the vector store backend is correctly configured and reachable.
      *
      * @return bool true if the backend is available, false otherwise
@@ -109,55 +123,95 @@ abstract class base_vecstore {
     abstract public function is_available(): bool;
 
     /**
-     * Creates a collection (index) for storing vectors of the given dimensionality.
+     * Creates the configured collection (index) for this instance using its configured dimensionality.
      *
-     * @param string $collection the name of the collection to create
-     * @param int $dimensions the dimensionality of the vectors that will be stored
      * @return bool true on success
      */
-    abstract public function create_collection(string $collection, int $dimensions): bool;
+    abstract public function create_collection(): bool;
 
     /**
-     * Deletes a whole collection (index) including all stored vectors.
+     * Deletes the configured collection (index) including all stored vectors.
      *
-     * @param string $collection the name of the collection to delete
      * @return bool true on success
      */
-    abstract public function delete_collection(string $collection): bool;
+    abstract public function delete_collection(): bool;
 
     /**
-     * Stores (inserts or updates) a set of embeddings in the given collection.
+     * Stores a set of embeddings in the configured collection.
      *
-     * Each embedding has the form:
-     * [
-     *     'id' => string|int,       // unique identifier of the vector
-     *     'vector' => float[],      // the embedding vector
-     *     'payload' => array,       // optional associative array of metadata
-     * ]
+     * Before inserting, all existing vectors carrying one of the context ids of the given embeddings are deleted, so
+     * that re-indexing a context replaces its previous vectors instead of accumulating duplicates.
      *
-     * @param string $collection the name of the collection to store the embeddings in
-     * @param array $embeddings array of embedding definitions as described above
+     * The embeddings are passed as {@see enriched_vector} objects. Each vecstore subplugin is responsible for
+     * extracting the required information via the getters and building the actual store call for its backend (see
+     * {@see self::store_embeddings()}). The backend record identifier is generated internally by the subplugin, so
+     * callers neither provide nor need to know about it.
+     *
+     * @param enriched_vector[] $embeddings array of enriched vector objects to store
      * @return bool true on success
      */
-    abstract public function upsert_embeddings(string $collection, array $embeddings): bool;
+    public function insert_embeddings(array $embeddings): bool {
+        // Replace semantics: first remove any existing vectors for the affected context ids.
+        $contextids = [];
+        foreach ($embeddings as $embedding) {
+            $contextids[$embedding->get_contextid()] = $embedding->get_contextid();
+        }
+        foreach ($contextids as $contextid) {
+            $this->delete_embeddings($contextid);
+        }
+        return $this->store_embeddings($embeddings);
+    }
 
     /**
-     * Performs a similarity search in the given collection.
+     * Performs the actual backend insert of the given embeddings into the configured collection.
      *
-     * @param string $collection the name of the collection to query
+     * Called by {@see self::insert_embeddings()} after existing vectors of the affected contexts have been removed.
+     *
+     * @param enriched_vector[] $embeddings array of enriched vector objects to store
+     * @return bool true on success
+     */
+    abstract protected function store_embeddings(array $embeddings): bool;
+
+    /**
+     * Performs a similarity search in the configured collection.
+     *
      * @param array $vector the query embedding vector as array of floats
      * @param int $topk the maximum number of nearest neighbours to return
      * @param array $filters optional associative array of payload filters to restrict the search
-     * @return array array of matches, each containing at least 'id', 'score' and 'payload'
+     * @return enriched_vector[] array of enriched vector objects representing the matches
      */
-    abstract public function query(string $collection, array $vector, int $topk = 5, array $filters = []): array;
+    abstract public function query(array $vector, int $topk = 5, array $filters = []): array;
 
     /**
-     * Deletes specific embeddings from the given collection.
+     * Retrieves all embeddings currently stored in the configured collection.
      *
-     * @param string $collection the name of the collection to delete from
-     * @param array $ids array of vector identifiers to delete
+     * @return enriched_vector[] array of all stored enriched vector objects (empty if the collection does not exist)
+     */
+    abstract public function get_all(): array;
+
+    /**
+     * Deletes all embeddings in the configured collection that carry the given context id as metadata.
+     *
+     * @param int $contextid the context id whose embeddings should be deleted
      * @return bool true on success
      */
-    abstract public function delete_embeddings(string $collection, array $ids): bool;
+    abstract public function delete_embeddings(int $contextid): bool;
+
+    /**
+     * Runs a store or retrieve operation, transparently creating the configured collection if it does not exist yet.
+     *
+     * If the operation signals a missing collection by throwing a {@see collection_not_found_exception}, the
+     * collection is created with the configured name and dimensionality and the operation is retried once.
+     *
+     * @param callable $operation the store or retrieve operation to run
+     * @return mixed the return value of the operation
+     */
+    protected function with_existing_collection(callable $operation): mixed {
+        try {
+            return $operation();
+        } catch (collection_not_found_exception $e) {
+            $this->create_collection();
+            return $operation();
+        }
+    }
 }
