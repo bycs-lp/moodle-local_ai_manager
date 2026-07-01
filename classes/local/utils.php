@@ -62,6 +62,7 @@ class utils {
             $record->imggen = (int) ($modeldata['imggen'] ?? 0);
             $record->tts = (int) ($modeldata['tts'] ?? 0);
             $record->stt = (int) ($modeldata['stt'] ?? 0);
+            $record->embedding = (int) ($modeldata['embedding'] ?? 0);
             $record->temperature = $modeldata['temperature'] ?? null;
             $record->deprecated = (int) ($modeldata['deprecated'] ?? 0);
             $record->timecreated = $now;
