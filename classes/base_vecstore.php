@@ -177,7 +177,9 @@ abstract class base_vecstore {
      *
      * @param array $vector the query embedding vector as array of floats
      * @param int $topk the maximum number of nearest neighbours to return
-     * @param array $filters optional associative array of payload filters to restrict the search
+     * @param array $filters optional payload filters keyed by payload field. A scalar value matches that field
+     *  exactly; an array value matches any of the given values (IN semantics), e.g.
+     *  ['contextid' => [12, 34]] restricts the search to those context ids
      * @return enriched_vector[] array of enriched vector objects representing the matches
      */
     abstract public function query(array $vector, int $topk = 5, array $filters = []): array;
