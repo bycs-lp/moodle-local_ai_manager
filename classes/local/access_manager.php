@@ -17,6 +17,7 @@
 namespace local_ai_manager\local;
 
 use local_ai_manager\base_instance;
+use local_ai_manager\base_vecstore_instance;
 use local_ai_manager\hook\custom_tenant;
 
 /**
@@ -135,6 +136,23 @@ class access_manager {
      * @return bool true if the current user is allowed to manage the instance
      */
     public function can_manage_connectorinstance(base_instance $instance) {
+        global $USER;
+        if (has_capability('local/ai_manager:managetenants', \context_system::instance())) {
+            return true;
+        }
+        if ($this->is_tenant_manager($USER->id, new tenant($instance->get_tenant()))) {
+            return has_capability('local/ai_manager:manage', $this->tenant->get_context());
+        }
+        return false;
+    }
+
+    /**
+     * Helper function to determine if the current user has the capability to manage a vector store instance.
+     *
+     * @param base_vecstore_instance $instance The vector store instance the capability should be checked for
+     * @return bool true if the current user is allowed to manage the instance
+     */
+    public function can_manage_vecstoreinstance(base_vecstore_instance $instance) {
         global $USER;
         if (has_capability('local/ai_manager:managetenants', \context_system::instance())) {
             return true;
