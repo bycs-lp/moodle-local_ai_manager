@@ -40,6 +40,27 @@ abstract class base_vecstore {
     /** @var string Distance metric: euclidean distance. */
     const DISTANCE_EUCLIDEAN = 'euclidean';
 
+    /** @var base_vecstore_instance the vector store instance providing the connection configuration */
+    protected base_vecstore_instance $instance;
+
+    /**
+     * Create the vector store driver for a given configured instance.
+     *
+     * @param base_vecstore_instance $instance the vector store instance holding the connection configuration
+     */
+    public function __construct(base_vecstore_instance $instance) {
+        $this->instance = $instance;
+    }
+
+    /**
+     * Returns the vector store instance holding this driver's connection configuration.
+     *
+     * @return base_vecstore_instance the instance object
+     */
+    public function get_instance(): base_vecstore_instance {
+        return $this->instance;
+    }
+
     /**
      * Returns the localized name of the vector store backend.
      *
@@ -70,14 +91,14 @@ abstract class base_vecstore {
     }
 
     /**
-     * Returns the distance metric used by this vector store backend.
+     * Returns the distance metric configured for this vector store instance.
      *
      * Subclasses may override this if their backend uses or requires a different metric.
      *
      * @return string one of the self::DISTANCE_* constants
      */
     public function get_distance_metric(): string {
-        return self::DISTANCE_COSINE;
+        return $this->instance->get_distancemetric();
     }
 
     /**
@@ -140,4 +161,3 @@ abstract class base_vecstore {
      */
     abstract public function delete_embeddings(string $collection, array $ids): bool;
 }
-
