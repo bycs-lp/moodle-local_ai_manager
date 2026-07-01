@@ -23,6 +23,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['connectionstring'] = 'Connection string';
+$string['connectionstring_help'] = 'The full PostgreSQL connection string (libpq DSN) used to reach your pgvector database, including credentials — for example postgresql://user:password@host:5432/dbname?sslmode=require. The collection name below is used as the table name.';
+$string['formvalidation_connectionstring'] = 'Please enter a PostgreSQL connection string';
 $string['pluginname'] = 'PostgreSQL (pgvector)';
 $string['privacy:metadata'] = 'The local ai_manager vector store subplugin "PostgreSQL (pgvector)" does not store any personal data in Moodle itself.';
-
