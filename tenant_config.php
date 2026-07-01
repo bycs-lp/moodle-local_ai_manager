@@ -28,6 +28,7 @@ use local_ai_manager\local\tenant_config_output_utils;
 use local_ai_manager\output\instancetable;
 use local_ai_manager\output\tenantenable;
 use local_ai_manager\output\tenantnavbar;
+use local_ai_manager\output\vecstoretable;
 
 require_once(dirname(__FILE__) . '/../../config.php');
 require_login();
@@ -64,6 +65,9 @@ echo $OUTPUT->render($tenantenable);
 if ($configmanager->is_tenant_enabled()) {
     $instancetable = new instancetable();
     echo $renderer->render($instancetable);
+
+    $vecstoretable = new vecstoretable();
+    echo $renderer->render($vecstoretable);
 }
 
 echo $OUTPUT->footer();

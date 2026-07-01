@@ -31,7 +31,7 @@
             <button class="btn"{{!
                  }} data-confirmation="modal"{{!
                  }} data-confirmation-title-str='["delete", "core"]'{{!
-                 }} data-confirmation-content-str='["instancedeleteconfirm", "local_ai_manager"]'{{!
+                 }} data-confirmation-content-str='["{{#deleteconfirmstr}}{{deleteconfirmstr}}{{/deleteconfirmstr}}{{^deleteconfirmstr}}instancedeleteconfirm{{/deleteconfirmstr}}", "local_ai_manager"]'{{!
                  }} data-confirmation-yes-button-str='["delete", "core"]'{{!
                  }} data-confirmation-destination='{{{deleteurl}}}'>
                 <i class="fa fa-trash"></i>
