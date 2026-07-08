@@ -18,6 +18,7 @@ namespace local_ai_manager;
 
 use core_plugin_manager;
 use local_ai_content\local\enriched_vector;
+use local_ai_manager\local\vecstore_response;
 
 /**
  * Base class for vector store subplugins.
@@ -118,23 +119,23 @@ abstract class base_vecstore {
     /**
      * Checks whether the vector store backend is correctly configured and reachable.
      *
-     * @return bool true if the backend is available, false otherwise
+     * @return vecstore_response structured response containing operation status and potential error details
      */
-    abstract public function is_available(): bool;
+    abstract public function is_available(): vecstore_response;
 
     /**
      * Creates the configured collection (index) for this instance using its configured dimensionality.
      *
-     * @return bool true on success
+     * @return vecstore_response structured response containing operation status and potential error details
      */
-    abstract public function create_collection(): bool;
+    abstract public function create_collection(): vecstore_response;
 
     /**
      * Deletes the configured collection (index) including all stored vectors.
      *
-     * @return bool true on success
+     * @return vecstore_response structured response containing operation status and potential error details
      */
-    abstract public function delete_collection(): bool;
+    abstract public function delete_collection(): vecstore_response;
 
     /**
      * Stores a set of embeddings in the configured collection.
@@ -148,16 +149,19 @@ abstract class base_vecstore {
      * callers neither provide nor need to know about it.
      *
      * @param enriched_vector[] $embeddings array of enriched vector objects to store
-     * @return bool true on success
+     * @return vecstore_response structured response containing operation status and potential error details
      */
-    public function insert_embeddings(array $embeddings): bool {
+    public function insert_embeddings(array $embeddings): vecstore_response {
         // Replace semantics: first remove any existing vectors for the affected context ids.
         $contextids = [];
         foreach ($embeddings as $embedding) {
             $contextids[$embedding->get_contextid()] = $embedding->get_contextid();
         }
         foreach ($contextids as $contextid) {
-            $this->delete_embeddings($contextid);
+            $response = $this->delete_embeddings($contextid);
+            if ($response->get_code() !== 200) {
+                return $response;
+            }
         }
         return $this->store_embeddings($embeddings);
     }
@@ -168,9 +172,9 @@ abstract class base_vecstore {
      * Called by {@see self::insert_embeddings()} after existing vectors of the affected contexts have been removed.
      *
      * @param enriched_vector[] $embeddings array of enriched vector objects to store
-     * @return bool true on success
+     * @return vecstore_response structured response containing operation status and potential error details
      */
-    abstract protected function store_embeddings(array $embeddings): bool;
+    abstract protected function store_embeddings(array $embeddings): vecstore_response;
 
     /**
      * Performs a similarity search in the configured collection.
@@ -180,24 +184,24 @@ abstract class base_vecstore {
      * @param array $filters optional payload filters keyed by payload field. A scalar value matches that field
      *  exactly; an array value matches any of the given values (IN semantics), e.g.
      *  ['contextid' => [12, 34]] restricts the search to those context ids
-     * @return enriched_vector[] array of enriched vector objects representing the matches
+     * @return vecstore_response structured response containing operation status and a query payload
      */
-    abstract public function query(array $vector, int $topk = 5, array $filters = []): array;
+    abstract public function query(array $vector, int $topk = 5, array $filters = []): vecstore_response;
 
     /**
      * Retrieves all embeddings currently stored in the configured collection.
      *
-     * @return enriched_vector[] array of all stored enriched vector objects (empty if the collection does not exist)
+     * @return vecstore_response structured response containing operation status and a query payload
      */
-    abstract public function get_all(): array;
+    abstract public function get_all(): vecstore_response;
 
     /**
      * Deletes all embeddings in the configured collection that carry the given context id as metadata.
      *
      * @param int $contextid the context id whose embeddings should be deleted
-     * @return bool true on success
+     * @return vecstore_response structured response containing operation status and potential error details
      */
-    abstract public function delete_embeddings(int $contextid): bool;
+    abstract public function delete_embeddings(int $contextid): vecstore_response;
 
     /**
      * Runs a store or retrieve operation, transparently creating the configured collection if it does not exist yet.
@@ -206,13 +210,16 @@ abstract class base_vecstore {
      * collection is created with the configured name and dimensionality and the operation is retried once.
      *
      * @param callable $operation the store or retrieve operation to run
-     * @return mixed the return value of the operation
+     * @return vecstore_response the operation result
      */
-    protected function with_existing_collection(callable $operation): mixed {
+    protected function with_existing_collection(callable $operation): vecstore_response {
         try {
             return $operation();
         } catch (collection_not_found_exception $e) {
-            $this->create_collection();
+            $createcollectionresponse = $this->create_collection();
+            if ($createcollectionresponse->get_code() !== 200) {
+                return $createcollectionresponse;
+            }
             return $operation();
         }
     }

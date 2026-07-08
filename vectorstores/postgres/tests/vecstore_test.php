@@ -56,7 +56,7 @@ final class vecstore_test extends \advanced_testcase {
         $instance->set_dimensions(4);
         $this->driver = new vecstore($instance);
 
-        if (!$this->driver->is_available()) {
+        if ($this->driver->is_available()->get_code() !== 200) {
             $this->markTestSkipped('No reachable pgvector PostgreSQL for the configured DSN');
         }
     }
@@ -73,16 +73,18 @@ final class vecstore_test extends \advanced_testcase {
      * Exercises the full lifecycle: create table, insert, query, drop table.
      */
     public function test_full_lifecycle(): void {
-        $this->assertTrue($this->driver->create_collection());
+        $this->assertSame(200, $this->driver->create_collection()->get_code());
 
-        $this->assertTrue($this->driver->insert_embeddings([
+        $this->assertSame(200, $this->driver->insert_embeddings([
             enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'x', 101, 0, 1),
             enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'y', 102, 0, 1),
             enriched_vector::create(json_encode([0.0, 0.0, 1.0, 0.0]), 'z', 103, 0, 1),
-        ]));
+        ])->get_code());
 
         // A query near the second vector should return it as the closest match.
-        $matches = $this->driver->query([0.0, 0.9, 0.1, 0.0], 2);
+        $queryresponse = $this->driver->query([0.0, 0.9, 0.1, 0.0], 2);
+        $this->assertSame(200, $queryresponse->get_code());
+        $matches = $queryresponse->get_queryresponse()->get_matches();
         $this->assertNotEmpty($matches);
         $this->assertInstanceOf(enriched_vector::class, $matches[0]);
         $this->assertSame('y', $matches[0]->get_content());
@@ -90,9 +92,11 @@ final class vecstore_test extends \advanced_testcase {
         $this->assertNotSame('', $matches[0]->get_vector());
 
         // The get_all() call returns all stored vectors.
-        $this->assertCount(3, $this->driver->get_all());
+        $allresponse = $this->driver->get_all();
+        $this->assertSame(200, $allresponse->get_code());
+        $this->assertCount(3, $allresponse->get_queryresponse()->get_matches());
 
-        $this->assertTrue($this->driver->delete_collection());
+        $this->assertSame(200, $this->driver->delete_collection()->get_code());
     }
 
     /**
@@ -105,7 +109,7 @@ final class vecstore_test extends \advanced_testcase {
             enriched_vector::create(json_encode([0.9, 0.1, 0.0, 0.0]), 'nine', 9, 0, 1),
         ]);
 
-        $matches = $this->driver->query([1.0, 0.0, 0.0, 0.0], 5, ['contextid' => 9]);
+        $matches = $this->driver->query([1.0, 0.0, 0.0, 0.0], 5, ['contextid' => 9])->get_queryresponse()->get_matches();
         $contents = array_map(static fn($match) => $match->get_content(), $matches);
         $this->assertContains('nine', $contents);
         $this->assertNotContains('seven', $contents);
@@ -123,7 +127,7 @@ final class vecstore_test extends \advanced_testcase {
         ]);
 
         // Restrict to context ids 7 and 9 (excluding 8) via an array value = IN semantics.
-        $matches = $this->driver->query([1.0, 1.0, 1.0, 1.0], 10, ['contextid' => [7, 9]]);
+        $matches = $this->driver->query([1.0, 1.0, 1.0, 1.0], 10, ['contextid' => [7, 9]])->get_queryresponse()->get_matches();
         $contextids = array_map(static fn($match) => $match->get_contextid(), $matches);
         sort($contextids);
         $this->assertSame([7, 9], $contextids);
@@ -140,9 +144,9 @@ final class vecstore_test extends \advanced_testcase {
             enriched_vector::create(json_encode([0.0, 0.0, 1.0, 0.0]), 'gone-b', 102, 1, 2),
         ]);
 
-        $this->assertTrue($this->driver->delete_embeddings(102));
+        $this->assertSame(200, $this->driver->delete_embeddings(102)->get_code());
 
-        $matches = $this->driver->query([1.0, 1.0, 1.0, 1.0], 10);
+        $matches = $this->driver->query([1.0, 1.0, 1.0, 1.0], 10)->get_queryresponse()->get_matches();
         $contextids = array_map(static fn($match) => $match->get_contextid(), $matches);
         $this->assertContains(101, $contextids);
         $this->assertNotContains(102, $contextids);
@@ -161,7 +165,10 @@ final class vecstore_test extends \advanced_testcase {
             enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'new', 200, 0, 1),
         ]);
 
-        $contents = array_map(static fn($vector) => $vector->get_content(), $this->driver->get_all());
+        $contents = array_map(
+            static fn($vector) => $vector->get_content(),
+            $this->driver->get_all()->get_queryresponse()->get_matches()
+        );
         $this->assertContains('new', $contents);
         $this->assertNotContains('old', $contents);
         $this->assertCount(1, $contents);
@@ -173,13 +180,15 @@ final class vecstore_test extends \advanced_testcase {
     public function test_missing_collection_is_created_on_demand(): void {
         // The collection name and dimensions are configured on the instance but the table is NOT created yet.
         // Querying a non-existent collection should create it and return an empty result set.
-        $this->assertSame([], $this->driver->query([1.0, 0.0, 0.0, 0.0], 5));
+        $queryresponse = $this->driver->query([1.0, 0.0, 0.0, 0.0], 5);
+        $this->assertSame(200, $queryresponse->get_code());
+        $this->assertSame([], $queryresponse->get_queryresponse()->get_matches());
 
         // Inserting into the (now existing) collection works and the vector can be retrieved.
-        $this->assertTrue($this->driver->insert_embeddings([
+        $this->assertSame(200, $this->driver->insert_embeddings([
             enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'hello', 55, 0, 1),
-        ]));
-        $matches = $this->driver->query([1.0, 0.0, 0.0, 0.0], 5);
+        ])->get_code());
+        $matches = $this->driver->query([1.0, 0.0, 0.0, 0.0], 5)->get_queryresponse()->get_matches();
         $this->assertNotEmpty($matches);
         $this->assertSame('hello', $matches[0]->get_content());
     }
