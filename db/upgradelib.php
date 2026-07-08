@@ -119,3 +119,13 @@ function local_ai_manager_migrate_instance_model_to_id(): void {
     }
     $rs->close();
 }
+
+/**
+ * Backwards-compatible wrapper to import model definitions from JSON.
+ *
+ * Kept as global function because existing tests and upgrade hooks still call it directly.
+ */
+function local_ai_manager_import_models_from_json(): void {
+    \local_ai_manager\local\utils::import_models_from_json();
+}
+

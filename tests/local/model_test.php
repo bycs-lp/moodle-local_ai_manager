@@ -46,8 +46,8 @@ final class model_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $model = new model();
-        $model->set_name('gpt-4o');
-        $model->set_displayname('GPT-4o');
+        $model->set_name('test-gpt-4o-custom');
+        $model->set_displayname('Test GPT-4o Custom');
         $model->set_description('A multimodal model');
         $model->set_mimetypes('image/png,image/jpeg');
         $model->set_vision(true);
@@ -62,8 +62,8 @@ final class model_test extends \advanced_testcase {
 
         // Reload and verify.
         $loaded = new model($model->get_id());
-        $this->assertEquals('gpt-4o', $loaded->get_name());
-        $this->assertEquals('GPT-4o', $loaded->get_displayname());
+        $this->assertEquals('test-gpt-4o-custom', $loaded->get_name());
+        $this->assertEquals('Test GPT-4o Custom', $loaded->get_displayname());
         $this->assertEquals('A multimodal model', $loaded->get_description());
         $this->assertEquals('image/png,image/jpeg', $loaded->get_mimetypes());
         $this->assertTrue($loaded->supports_vision());
@@ -146,15 +146,18 @@ final class model_test extends \advanced_testcase {
     public function test_get_all_models(): void {
         $this->resetAfterTest();
 
+        $baselineall = count(model::get_all_models());
+        $baselinenondeprecated = count(model::get_all_models(null, false));
+
         $this->get_generator()->create_model(['name' => 'model-a']);
         $this->get_generator()->create_model(['name' => 'model-b', 'deprecated' => 1]);
         $this->get_generator()->create_model(['name' => 'model-c']);
 
         $all = model::get_all_models();
-        $this->assertCount(3, $all);
+        $this->assertCount($baselineall + 3, $all);
 
         $nondeprecated = model::get_all_models(null, false);
-        $this->assertCount(2, $nondeprecated);
+        $this->assertCount($baselinenondeprecated + 2, $nondeprecated);
     }
 
     /**
@@ -169,19 +172,19 @@ final class model_test extends \advanced_testcase {
         $this->get_generator()->create_model(['name' => 'model-z']);
 
         $model1 = new model((int) $r1->id);
-        $model1->add_connector('chatgpt');
+        $model1->add_connector('testconnector1');
         $model2 = new model((int) $r2->id);
-        $model2->add_connector('chatgpt');
-        $model2->add_connector('gemini');
+        $model2->add_connector('testconnector1');
+        $model2->add_connector('testconnector2');
 
-        $chatgptmodels = model::get_all_models('chatgpt');
-        $this->assertCount(2, $chatgptmodels);
+        $testconnector1models = model::get_all_models('testconnector1');
+        $this->assertCount(2, $testconnector1models);
 
-        $geminimodels = model::get_all_models('gemini');
-        $this->assertCount(1, $geminimodels);
+        $testconnector2models = model::get_all_models('testconnector2');
+        $this->assertCount(1, $testconnector2models);
 
-        $ollamamodels = model::get_all_models('ollama');
-        $this->assertCount(0, $ollamamodels);
+        $unknownconnectormodels = model::get_all_models('testconnector3');
+        $this->assertCount(0, $unknownconnectormodels);
     }
 
     /**

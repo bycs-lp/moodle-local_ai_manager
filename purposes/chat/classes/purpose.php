@@ -52,8 +52,8 @@ class purpose extends base_purpose {
         if (array_key_exists('conversationcontext', $options)) {
             $requestoptions['conversationcontext'] = $options['conversationcontext'];
         }
-        if (!empty($options['ragrecordids'])) {
-            $requestoptions['ragrecordids'] = $options['ragrecordids'];
+        if (!empty($options['sourceids'])) {
+            $requestoptions['sourceids'] = $options['sourceids'];
         }
         return $requestoptions;
     }
@@ -62,18 +62,18 @@ class purpose extends base_purpose {
     public function get_additional_purpose_options(): array {
         return [
             'conversationcontext' => base_purpose::PARAM_ARRAY,
-            'ragrecordids' => PARAM_SEQUENCE,
+            'sourceids' => PARAM_SEQUENCE,
         ];
     }
 
     #[\Override]
     public function format_prompt_text(string $prompttext, request_options $requestoptions): string {
         $options = $requestoptions->get_options();
-        if (empty($options['ragrecordids'])) {
+        if (empty($options['sourceids'])) {
             return $prompttext;
         }
-        $recordids = array_values(array_filter(array_map('intval', explode(',', $options['ragrecordids']))));
-        if (empty($recordids)) {
+        $sourceids = array_values(array_filter(array_map('intval', explode(',', $options['sourceids']))));
+        if (empty($sourceids)) {
             return $prompttext;
         }
 
@@ -81,7 +81,7 @@ class purpose extends base_purpose {
         $ragmanager = \core\di::get(rag_manager::class);
         $ragcontent = $ragmanager->get_rag_content(
             $prompttext,
-            $recordids,
+            $sourceids,
             $requestoptions->get_component(),
             $requestoptions->get_context()->id
         );

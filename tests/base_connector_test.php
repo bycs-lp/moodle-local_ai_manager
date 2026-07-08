@@ -117,9 +117,10 @@ final class base_connector_test extends \advanced_testcase {
         $modelsbypurpose = $connector->get_models_by_purpose();
 
         // Text purposes (chat, feedback etc.) should contain text-model and vision-model but NOT imggen/tts.
+        // embedding has its own dedicated model filter and is not a text purpose.
         $purposes = base_purpose::get_installed_purposes_array();
         foreach (array_keys($purposes) as $purpose) {
-            if (in_array($purpose, ['imggen', 'tts', 'itt'])) {
+            if (in_array($purpose, ['imggen', 'tts', 'itt', 'embedding'])) {
                 continue;
             }
             $this->assertContains('text-model', $modelsbypurpose[$purpose],
