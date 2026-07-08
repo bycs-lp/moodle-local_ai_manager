@@ -19,6 +19,8 @@ namespace aivecstore_postgres;
 use local_ai_manager\base_vecstore;
 use local_ai_manager\collection_not_found_exception;
 use local_ai_content\local\enriched_vector;
+use local_ai_manager\local\vecstore_query_response;
+use local_ai_manager\local\vecstore_response;
 
 /**
  * Vector store implementation backed by PostgreSQL using the pgvector extension.
@@ -36,45 +38,60 @@ class vecstore extends base_vecstore {
     /** @var \PgSql\Connection|resource|false|null The cached PostgreSQL connection (null = not yet attempted). */
     protected $connection = null;
 
+    /** @var string The last connection error message captured during {@see self::get_connection()}. */
+    protected string $connectionerror = '';
+
     #[\Override]
-    public function is_available(): bool {
+    public function is_available(): vecstore_response {
         $connection = $this->get_connection();
         if (!$connection) {
-            return false;
+            return $this->create_connection_error_response();
         }
-        return pg_query($connection, 'SELECT 1') !== false;
+        if (pg_query($connection, 'SELECT 1') === false) {
+            return $this->create_error_response(503, 'Could not run postgres vecstore health query.',
+                pg_last_error($connection));
+        }
+        return vecstore_response::create_from_result();
     }
 
     #[\Override]
-    public function create_collection(): bool {
+    public function create_collection(): vecstore_response {
         $connection = $this->get_connection();
         if (!$connection) {
-            return false;
+            return $this->create_connection_error_response();
         }
         // The vector type requires the pgvector extension; create it if the user is allowed to.
         pg_query($connection, 'CREATE EXTENSION IF NOT EXISTS vector');
         $table = pg_escape_identifier($connection, $this->get_collection());
         $sql = "CREATE TABLE IF NOT EXISTS {$table} "
             . '(id text PRIMARY KEY, embedding vector(' . (int) $this->instance->get_dimensions() . '), payload jsonb)';
-        return pg_query($connection, $sql) !== false;
+        if (pg_query($connection, $sql) === false) {
+            return $this->create_error_response(500, 'Could not create postgres vecstore collection table.',
+                pg_last_error($connection));
+        }
+        return vecstore_response::create_from_result();
     }
 
     #[\Override]
-    public function delete_collection(): bool {
+    public function delete_collection(): vecstore_response {
         $connection = $this->get_connection();
         if (!$connection) {
-            return false;
+            return $this->create_connection_error_response();
         }
         $table = pg_escape_identifier($connection, $this->get_collection());
-        return pg_query($connection, "DROP TABLE IF EXISTS {$table}") !== false;
+        if (pg_query($connection, "DROP TABLE IF EXISTS {$table}") === false) {
+            return $this->create_error_response(500, 'Could not delete postgres vecstore collection table.',
+                pg_last_error($connection));
+        }
+        return vecstore_response::create_from_result();
     }
 
     #[\Override]
-    protected function store_embeddings(array $embeddings): bool {
-        return $this->with_existing_collection(function () use ($embeddings): bool {
+    protected function store_embeddings(array $embeddings): vecstore_response {
+        return $this->with_existing_collection(function () use ($embeddings): vecstore_response {
             $connection = $this->get_connection();
             if (!$connection) {
-                return false;
+                return $this->create_connection_error_response();
             }
             if (!$this->table_exists()) {
                 throw new collection_not_found_exception();
@@ -102,16 +119,20 @@ class vecstore extends base_vecstore {
                 }
             }
             pg_query($connection, $success ? 'COMMIT' : 'ROLLBACK');
-            return $success;
+            if (!$success) {
+                return $this->create_error_response(500, 'Could not store embeddings in postgres vecstore collection.',
+                    pg_last_error($connection));
+            }
+            return vecstore_response::create_from_result();
         });
     }
 
     #[\Override]
-    public function query(array $vector, int $topk = 5, array $filters = []): array {
-        return $this->with_existing_collection(function () use ($vector, $topk, $filters): array {
+    public function query(array $vector, int $topk = 5, array $filters = []): vecstore_response {
+        return $this->with_existing_collection(function () use ($vector, $topk, $filters): vecstore_response {
             $connection = $this->get_connection();
             if (!$connection) {
-                return [];
+                return $this->create_connection_error_response();
             }
             if (!$this->table_exists()) {
                 throw new collection_not_found_exception();
@@ -153,11 +174,12 @@ class vecstore extends base_vecstore {
 
             $result = @pg_query_params($connection, $sql, $params);
             if ($result === false) {
-                return [];
+                return $this->create_error_response(500, 'Could not run postgres vecstore similarity query.',
+                    pg_last_error($connection));
             }
             $rows = pg_fetch_all($result);
             if (!is_array($rows)) {
-                return [];
+                return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
             }
             $matches = [];
             foreach ($rows as $row) {
@@ -170,24 +192,28 @@ class vecstore extends base_vecstore {
                     (int) ($payload['maxchunks'] ?? 0)
                 );
             }
-            return $matches;
+            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($matches));
         });
     }
 
     #[\Override]
-    public function get_all(): array {
+    public function get_all(): vecstore_response {
         $connection = $this->get_connection();
-        if (!$connection || !$this->table_exists()) {
-            return [];
+        if (!$connection) {
+            return $this->create_connection_error_response();
+        }
+        if (!$this->table_exists()) {
+            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
         }
         $table = pg_escape_identifier($connection, $this->get_collection());
         $result = @pg_query($connection, "SELECT id, payload, embedding::text AS vector FROM {$table}");
         if ($result === false) {
-            return [];
+            return $this->create_error_response(500, 'Could not fetch vectors from postgres vecstore collection.',
+                pg_last_error($connection));
         }
         $rows = pg_fetch_all($result);
         if (!is_array($rows)) {
-            return [];
+            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
         }
         $vectors = [];
         foreach ($rows as $row) {
@@ -200,18 +226,59 @@ class vecstore extends base_vecstore {
                 (int) ($payload['maxchunks'] ?? 0)
             );
         }
-        return $vectors;
+        return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($vectors));
     }
 
     #[\Override]
-    public function delete_embeddings(int $contextid): bool {
+    public function delete_embeddings(int $contextid): vecstore_response {
         $connection = $this->get_connection();
         if (!$connection) {
-            return false;
+            return $this->create_connection_error_response();
+        }
+        if (!$this->table_exists()) {
+            return vecstore_response::create_from_result();
         }
         $table = pg_escape_identifier($connection, $this->get_collection());
         $sql = "DELETE FROM {$table} WHERE payload @> \$1::jsonb";
-        return @pg_query_params($connection, $sql, [json_encode(['contextid' => $contextid])]) !== false;
+        if (@pg_query_params($connection, $sql, [json_encode(['contextid' => $contextid])]) === false) {
+            return $this->create_error_response(500, 'Could not delete embeddings from postgres vecstore collection.',
+                pg_last_error($connection));
+        }
+        return vecstore_response::create_from_result();
+    }
+
+    /**
+     * Creates a standardized error response for postgres vecstore operations.
+     *
+     * @param int $code the error code
+     * @param string $errormessage the error message
+     * @param string $debuginfo optional debug info
+     * @return vecstore_response the standardized error response
+     */
+    protected function create_error_response(int $code, string $errormessage, string $debuginfo = ''): vecstore_response {
+        return vecstore_response::create_from_error($code, $errormessage, $debuginfo);
+    }
+
+    /**
+     * Creates a standardized error response for a connection failure, deriving the appropriate status code
+     * from the connection error message captured during {@see self::get_connection()}.
+     *
+     * The codes follow HTTP semantics:
+     * - 400 Bad Request: no connection string configured
+     * - 401 Unauthorized: authentication or password failure
+     * - 503 Service Unavailable: backend not reachable
+     *
+     * @return vecstore_response the standardized connection error response
+     */
+    protected function create_connection_error_response(): vecstore_response {
+        $dsn = trim((string) $this->instance->get_apikey());
+        if (empty($dsn)) {
+            return $this->create_error_response(400, 'No PostgreSQL connection string configured.');
+        }
+        if (preg_match('/\b(authentication|password|pg_hba)\b/i', $this->connectionerror)) {
+            return $this->create_error_response(401, 'PostgreSQL authentication failed.', $this->connectionerror);
+        }
+        return $this->create_error_response(503, 'Could not connect to postgres vecstore backend.', $this->connectionerror);
     }
 
     /**
@@ -260,6 +327,9 @@ class vecstore extends base_vecstore {
     /**
      * Lazily opens (and caches) the PostgreSQL connection from the instance's libpq connection string.
      *
+     * On failure the libpq error message is stored in {@see self::$connectionerror} so that
+     * {@see self::create_connection_error_response()} can derive a meaningful status code.
+     *
      * @return \PgSql\Connection|resource|false the connection, or false if it could not be established
      */
     protected function get_connection() {
@@ -272,7 +342,12 @@ class vecstore extends base_vecstore {
             return false;
         }
         $connection = @pg_connect($dsn);
-        $this->connection = $connection === false ? false : $connection;
+        if ($connection === false) {
+            $this->connectionerror = pg_last_error() ?: 'Connection failed.';
+            $this->connection = false;
+            return false;
+        }
+        $this->connection = $connection;
         return $this->connection;
     }
 
