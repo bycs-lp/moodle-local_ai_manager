@@ -150,19 +150,18 @@ final class model_test extends \advanced_testcase {
         global $DB;
         $this->resetAfterTest();
 
-        // Remove all imported default models, installed via install.php.
-        $DB->delete_records('local_ai_manager_model_connector');
-        $DB->delete_records('local_ai_manager_model');
+        $baselineall = count(model::get_all_models());
+        $baselinenondeprecated = count(model::get_all_models(null, false));
 
         $this->get_generator()->create_model(['name' => 'model-a']);
         $this->get_generator()->create_model(['name' => 'model-b', 'deprecated' => 1]);
         $this->get_generator()->create_model(['name' => 'model-c']);
 
         $all = model::get_all_models();
-        $this->assertCount(3, $all);
+        $this->assertCount($baselineall + 3, $all);
 
         $nondeprecated = model::get_all_models(null, false);
-        $this->assertCount(2, $nondeprecated);
+        $this->assertCount($baselinenondeprecated + 2, $nondeprecated);
     }
 
     /**
@@ -181,19 +180,19 @@ final class model_test extends \advanced_testcase {
         $this->get_generator()->create_model(['name' => 'model-z']);
 
         $model1 = new model((int) $r1->id);
-        $model1->add_connector('chatgpt');
+        $model1->add_connector('testconnector1');
         $model2 = new model((int) $r2->id);
-        $model2->add_connector('chatgpt');
-        $model2->add_connector('gemini');
+        $model2->add_connector('testconnector1');
+        $model2->add_connector('testconnector2');
 
-        $chatgptmodels = model::get_all_models('chatgpt');
-        $this->assertCount(2, $chatgptmodels);
+        $testconnector1models = model::get_all_models('testconnector1');
+        $this->assertCount(2, $testconnector1models);
 
-        $geminimodels = model::get_all_models('gemini');
-        $this->assertCount(1, $geminimodels);
+        $testconnector2models = model::get_all_models('testconnector2');
+        $this->assertCount(1, $testconnector2models);
 
-        $ollamamodels = model::get_all_models('ollama');
-        $this->assertCount(0, $ollamamodels);
+        $unknownconnectormodels = model::get_all_models('testconnector3');
+        $this->assertCount(0, $unknownconnectormodels);
     }
 
     /**
