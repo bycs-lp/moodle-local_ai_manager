@@ -140,8 +140,8 @@ abstract class base_vecstore {
     /**
      * Stores a set of embeddings in the configured collection.
      *
-     * Before inserting, all existing vectors carrying one of the context ids of the given embeddings are deleted, so
-     * that re-indexing a context replaces its previous vectors instead of accumulating duplicates.
+     * Before inserting, all existing vectors carrying one of the source ids of the given embeddings are deleted, so
+     * that re-indexing a source replaces its previous vectors instead of accumulating duplicates.
      *
      * The embeddings are passed as {@see enriched_vector} objects. Each vecstore subplugin is responsible for
      * extracting the required information via the getters and building the actual store call for its backend (see
@@ -152,13 +152,13 @@ abstract class base_vecstore {
      * @return vecstore_response structured response containing operation status and potential error details
      */
     public function insert_embeddings(array $embeddings): vecstore_response {
-        // Replace semantics: first remove any existing vectors for the affected context ids.
-        $contextids = [];
+        // Replace semantics: first remove any existing vectors for the affected source ids.
+        $sourceids = [];
         foreach ($embeddings as $embedding) {
-            $contextids[$embedding->get_contextid()] = $embedding->get_contextid();
+            $sourceids[$embedding->get_sourceid()] = $embedding->get_sourceid();
         }
-        foreach ($contextids as $contextid) {
-            $response = $this->delete_embeddings($contextid);
+        foreach ($sourceids as $sourceid) {
+            $response = $this->delete_embeddings($sourceid);
             if ($response->get_code() !== 200) {
                 return $response;
             }
@@ -196,12 +196,12 @@ abstract class base_vecstore {
     abstract public function get_all(): vecstore_response;
 
     /**
-     * Deletes all embeddings in the configured collection that carry the given context id as metadata.
+     * Deletes all embeddings in the configured collection that carry the given source id as metadata.
      *
-     * @param int $contextid the context id whose embeddings should be deleted
+     * @param int $sourceid the local_ai_content_sources record ID whose embeddings should be deleted
      * @return vecstore_response structured response containing operation status and potential error details
      */
-    abstract public function delete_embeddings(int $contextid): vecstore_response;
+    abstract public function delete_embeddings(int $sourceid): vecstore_response;
 
     /**
      * Runs a store or retrieve operation, transparently creating the configured collection if it does not exist yet.

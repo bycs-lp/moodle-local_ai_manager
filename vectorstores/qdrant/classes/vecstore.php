@@ -83,7 +83,7 @@ class vecstore extends base_vecstore {
                 'vector' => array_values($vector),
                 'payload' => [
                     'content' => $embedding->get_content(),
-                    'contextid' => $embedding->get_contextid(),
+                    'sourceid' => $embedding->get_sourceid(),
                     'chunk' => $embedding->get_chunk(),
                     'maxchunks' => $embedding->get_maxchunks(),
                 ],
@@ -137,7 +137,7 @@ class vecstore extends base_vecstore {
                 $matches[] = enriched_vector::create(
                     isset($hit['vector']) ? json_encode(array_values($hit['vector'])) : '',
                     (string) ($payload['content'] ?? ''),
-                    (int) ($payload['contextid'] ?? 0),
+                    (int) ($payload['sourceid'] ?? 0),
                     (int) ($payload['chunk'] ?? 0),
                     (int) ($payload['maxchunks'] ?? 0)
                 );
@@ -167,7 +167,7 @@ class vecstore extends base_vecstore {
                 $vectors[] = enriched_vector::create(
                     isset($point['vector']) ? json_encode(array_values($point['vector'])) : '',
                     (string) ($payload['content'] ?? ''),
-                    (int) ($payload['contextid'] ?? 0),
+                    (int) ($payload['sourceid'] ?? 0),
                     (int) ($payload['chunk'] ?? 0),
                     (int) ($payload['maxchunks'] ?? 0)
                 );
@@ -178,12 +178,12 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
-    public function delete_embeddings(int $contextid): vecstore_response {
+    public function delete_embeddings(int $sourceid): vecstore_response {
         $path = '/collections/' . rawurlencode($this->get_collection()) . '/points/delete?wait=true';
         $body = [
             'filter' => [
                 'must' => [
-                    ['key' => 'contextid', 'match' => ['value' => $contextid]],
+                    ['key' => 'sourceid', 'match' => ['value' => $sourceid]],
                 ],
             ],
         ];
