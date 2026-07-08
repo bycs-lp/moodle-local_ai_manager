@@ -48,7 +48,8 @@ if (!$accessmanager->can_manage_vecstoreinstance($instance)) {
     throw new moodle_exception('exception_editinstancedenied', 'local_ai_manager');
 }
 
-$available = $factory->get_vecstore_by_instance($instance)->is_available();
+$availabilityresponse = $factory->get_vecstore_by_instance($instance)->is_available();
+$available = $availabilityresponse->get_code() === 200;
 
 redirect(
     $returnurl,
