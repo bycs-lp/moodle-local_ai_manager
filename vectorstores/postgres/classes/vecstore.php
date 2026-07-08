@@ -103,7 +103,7 @@ class vecstore extends base_vecstore {
             foreach ($embeddings as $embedding) {
                 $payload = [
                     'content' => $embedding->get_content(),
-                    'contextid' => $embedding->get_contextid(),
+                    'sourceid' => $embedding->get_sourceid(),
                     'chunk' => $embedding->get_chunk(),
                     'maxchunks' => $embedding->get_maxchunks(),
                 ];
@@ -187,7 +187,7 @@ class vecstore extends base_vecstore {
                 $matches[] = enriched_vector::create(
                     (string) ($row['vector'] ?? ''),
                     (string) ($payload['content'] ?? ''),
-                    (int) ($payload['contextid'] ?? 0),
+                    (int) ($payload['sourceid'] ?? 0),
                     (int) ($payload['chunk'] ?? 0),
                     (int) ($payload['maxchunks'] ?? 0)
                 );
@@ -221,7 +221,7 @@ class vecstore extends base_vecstore {
             $vectors[] = enriched_vector::create(
                 (string) ($row['vector'] ?? ''),
                 (string) ($payload['content'] ?? ''),
-                (int) ($payload['contextid'] ?? 0),
+                (int) ($payload['sourceid'] ?? 0),
                 (int) ($payload['chunk'] ?? 0),
                 (int) ($payload['maxchunks'] ?? 0)
             );
@@ -230,7 +230,7 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
-    public function delete_embeddings(int $contextid): vecstore_response {
+    public function delete_embeddings(int $sourceid): vecstore_response {
         $connection = $this->get_connection();
         if (!$connection) {
             return $this->create_connection_error_response();
@@ -240,7 +240,7 @@ class vecstore extends base_vecstore {
         }
         $table = pg_escape_identifier($connection, $this->get_collection());
         $sql = "DELETE FROM {$table} WHERE payload @> \$1::jsonb";
-        if (@pg_query_params($connection, $sql, [json_encode(['contextid' => $contextid])]) === false) {
+        if (@pg_query_params($connection, $sql, [json_encode(['sourceid' => $sourceid])]) === false) {
             return $this->create_error_response(500, 'Could not delete embeddings from postgres vecstore collection.',
                 pg_last_error($connection));
         }

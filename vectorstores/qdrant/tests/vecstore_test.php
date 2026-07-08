@@ -90,7 +90,7 @@ final class vecstore_test extends \advanced_testcase {
         $this->assertNotEmpty($matches);
         $this->assertInstanceOf(enriched_vector::class, $matches[0]);
         $this->assertSame('y', $matches[0]->get_content());
-        $this->assertSame(102, $matches[0]->get_contextid());
+        $this->assertSame(102, $matches[0]->get_sourceid());
         $this->assertNotSame('', $matches[0]->get_vector());
 
         // The get_all() call returns all stored vectors.
@@ -111,7 +111,7 @@ final class vecstore_test extends \advanced_testcase {
             enriched_vector::create(json_encode([0.9, 0.1, 0.0, 0.0]), 'nine', 9, 0, 1),
         ]);
 
-        $matches = $this->driver->query([1.0, 0.0, 0.0, 0.0], 5, ['contextid' => 9])->get_queryresponse()->get_matches();
+        $matches = $this->driver->query([1.0, 0.0, 0.0, 0.0], 5, ['sourceid' => 9])->get_queryresponse()->get_matches();
         $contents = array_map(static fn($match) => $match->get_content(), $matches);
         $this->assertContains('nine', $contents);
         $this->assertNotContains('seven', $contents);
@@ -128,17 +128,17 @@ final class vecstore_test extends \advanced_testcase {
             enriched_vector::create(json_encode([0.0, 0.0, 1.0, 0.0]), 'nine', 9, 0, 1),
         ]);
 
-        // Restrict to context ids 7 and 9 (excluding 8) via an array value = IN semantics.
-        $matches = $this->driver->query([1.0, 1.0, 1.0, 1.0], 10, ['contextid' => [7, 9]])->get_queryresponse()->get_matches();
-        $contextids = array_map(static fn($match) => $match->get_contextid(), $matches);
-        sort($contextids);
-        $this->assertSame([7, 9], $contextids);
+        // Restrict to source ids 7 and 9 (excluding 8) via an array value = IN semantics.
+        $matches = $this->driver->query([1.0, 1.0, 1.0, 1.0], 10, ['sourceid' => [7, 9]])->get_queryresponse()->get_matches();
+        $sourceids = array_map(static fn($match) => $match->get_sourceid(), $matches);
+        sort($sourceids);
+        $this->assertSame([7, 9], $sourceids);
     }
 
     /**
-     * Deleting by context id must remove all vectors carrying that context id and keep the rest.
+     * Deleting by source id must remove all vectors carrying that source id and keep the rest.
      */
-    public function test_delete_embeddings_by_contextid(): void {
+    public function test_delete_embeddings_by_sourceid(): void {
         $this->driver->create_collection();
         $this->driver->insert_embeddings([
             enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'keep', 101, 0, 2),
@@ -149,20 +149,20 @@ final class vecstore_test extends \advanced_testcase {
         $this->assertSame(200, $this->driver->delete_embeddings(102)->get_code());
 
         $matches = $this->driver->query([1.0, 1.0, 1.0, 1.0], 10)->get_queryresponse()->get_matches();
-        $contextids = array_map(static fn($match) => $match->get_contextid(), $matches);
-        $this->assertContains(101, $contextids);
-        $this->assertNotContains(102, $contextids);
+        $sourceids = array_map(static fn($match) => $match->get_sourceid(), $matches);
+        $this->assertContains(101, $sourceids);
+        $this->assertNotContains(102, $sourceids);
     }
 
     /**
-     * Inserting for a context id must first remove the existing vectors of that context (replace semantics).
+     * Inserting for a source id must first remove the existing vectors of that source (replace semantics).
      */
     public function test_insert_replaces_existing_context(): void {
         $this->driver->create_collection();
         $this->driver->insert_embeddings([
             enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'old', 200, 0, 1),
         ]);
-        // Re-inserting for the same context id must replace the previous vectors.
+        // Re-inserting for the same source id must replace the previous vectors.
         $this->driver->insert_embeddings([
             enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'new', 200, 0, 1),
         ]);
