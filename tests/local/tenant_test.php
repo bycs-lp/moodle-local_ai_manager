@@ -15,6 +15,8 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace local_ai_manager\local;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Unit tests for the tenant data object.
@@ -24,13 +26,12 @@ namespace local_ai_manager\local;
  * @author     Johannes Funk
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+#[CoversClass(tenant::class)]
 final class tenant_test extends \advanced_testcase {
     /**
      * Tests the validation of identifier string in the tenant constructor.
-     *
-     * @dataProvider tenant_name_validation_provider
-     * @covers \local_ai_manager\local\tenant::__construct
      */
+    #[DataProvider('tenant_name_validation_provider')]
     public function test_tenant_name_validation($name, $valid): void {
         $this->resetAfterTest();
         global $DB;

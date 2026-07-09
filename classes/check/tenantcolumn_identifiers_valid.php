@@ -20,7 +20,7 @@ use core\check\result;
 use core\output\html_writer;
 
 /**
- * Check whether tenant identifiers stored in the configured user column are valid.
+ * Check whether tenant identifiers stored in the configured column of the user table are valid.
  *
  * @package    local_ai_manager
  * @copyright  2026 ISB Bayern

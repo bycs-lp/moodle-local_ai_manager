@@ -32,7 +32,9 @@
 function local_ai_manager_check_valid_tenants(environment_results $result): environment_results {
     global $DB;
 
-    if (!$DB->get_manager()->table_exists('local_ai_manager_config')) {
+    $plugininfo = \core_plugin_manager::instance()->get_plugin_info('local_ai_manager');
+    if ($plugininfo === null || $plugininfo->versiondb === null) {
+        // The plugin is not installed yet, so there is nothing to check.
         $result->setStatus(true);
         return $result;
     }
@@ -46,12 +48,12 @@ function local_ai_manager_check_valid_tenants(environment_results $result): envi
 
     foreach ($identifiers as $identifier) {
         if (!\local_ai_manager\local\tenant::is_valid_identifier($identifier)) {
-            $result->setInfo('Some currently used tenant identifiers are invalid.');
+            $result->setInfo(get_string('environmentcheck_tenants_invalid', 'local_ai_manager'));
             $result->setStatus(false);
             return $result;
         }
     }
-    $result->setInfo('All currently used tenants valid');
+    $result->setInfo(get_string('environmentcheck_tenants_valid', 'local_ai_manager'));
     $result->setStatus(true);
     return $result;
 }
