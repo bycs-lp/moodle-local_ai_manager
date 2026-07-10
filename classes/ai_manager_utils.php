@@ -17,6 +17,7 @@
 namespace local_ai_manager;
 
 use context;
+use core\exception\invalid_parameter_exception;
 use core_plugin_manager;
 use local_ai_manager\hook\additional_user_restriction;
 use local_ai_manager\hook\purpose_usage;
@@ -318,12 +319,21 @@ class ai_manager_utils {
         ?string $tenant = null,
         ?array $selectedpurposes = []
     ): array {
-        if (!is_null($tenant)) {
-            $tenant = new tenant($tenant);
-            \core\di::set(tenant::class, $tenant);
+        try {
+            if (!is_null($tenant)) {
+                $tenant = new tenant($tenant);
+                \core\di::set(tenant::class, $tenant);
+            }
+                $tenant = \core\di::get(tenant::class);
+        } catch (invalid_parameter_exception) {
+            return [
+                'availability' => [
+                    'available' => self::AVAILABILITY_HIDDEN,
+                    'errormessage' => '',
+                ],
+                'purposes' => [],
+            ];
         }
-        $tenant = \core\di::get(tenant::class);
-
         $installedpurposes = array_keys(core_plugin_manager::instance()->get_installed_plugins('aipurpose'));
         if (empty($selectedpurposes)) {
             // If no purpose is specified, we return the config for all purposes.

@@ -14,35 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace local_ai_manager\form;
-
-defined('MOODLE_INTERNAL') || die;
-
-global $CFG;
-require_once($CFG->libdir . '/formslib.php');
-
 /**
- * A form for configuring tenant configurations.
- *
+ * Functions to link into the main Moodle API
  * @package    local_ai_manager
- * @copyright  2024 ISB Bayern
- * @author     Philipp Memmel
+ * @copyright  2026 ISB Bayern
+ * @author     Johannes Funk
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class tenant_config_form extends \moodleform {
-    /**
-     * Form definition.
-     */
-    public function definition() {
-        $tenant = $this->_customdata['tenant'];
 
-        $mform = &$this->_form;
-
-        $mform->addElement('hidden', 'tenant', $tenant);
-        $mform->setType('tenant', PARAM_TEXT);
-
-        $mform->addElement('selectyesno', 'tenantenabled', get_string('enable_ai_integration', 'local_ai_manager'));
-
-        $this->add_action_buttons();
-    }
+/**
+ * Register plugin status checks with Moodle's Check API.
+ *
+ * @return array array of status checks to be executed
+ */
+function local_ai_manager_status_checks(): array {
+    return [
+        new \local_ai_manager\check\tenantcolumn_identifiers_valid(),
+    ];
 }

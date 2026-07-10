@@ -16,6 +16,7 @@
 
 namespace local_ai_manager\local;
 
+use core\exception\invalid_parameter_exception;
 use core\hook\navigation\primary_extend;
 use moodle_url;
 use navigation_node;
@@ -38,15 +39,25 @@ class hook_callbacks {
         if (empty(get_config('local_ai_manager', 'addnavigationentry'))) {
             return;
         }
-        $accessmanager = \core\di::get(access_manager::class);
-        $tenant = \core\di::get(tenant::class);
-        if (!$accessmanager->is_tenant_manager() || !$tenant->is_tenant_allowed()) {
-            return;
-        }
+
         $node = navigation_node::create(
             get_string('aiadministrationlink', 'local_ai_manager'),
             new moodle_url('/local/ai_manager/tenant_config.php')
         );
-        $hook->get_primaryview()->add_node($node);
+
+        try {
+            $accessmanager = \core\di::get(access_manager::class);
+            $tenant = \core\di::get(tenant::class);
+            if (!$accessmanager->is_tenant_manager() || !$tenant->is_tenant_allowed()) {
+                return;
+            }
+            $hook->get_primaryview()->add_node($node);
+        } catch (invalid_parameter_exception) {
+            if (has_capability('local/ai_manager:managetenants', \context_system::instance())) {
+                $hook->get_primaryview()->add_node($node);
+            } else {
+                return;
+            }
+        }
     }
 }
