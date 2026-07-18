@@ -37,5 +37,54 @@ function xmldb_aipurpose_agent_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026041600, 'aipurpose', 'agent');
     }
 
+    if ($oldversion < 2026041601) {
+        $current = get_config('aipurpose_agent', 'agentprompt');
+        if (empty($current)) {
+            set_config('agentprompt', \aipurpose_agent\purpose::get_default_agentprompt(), 'aipurpose_agent');
+        } else {
+            $formattingprompt = \local_ai_manager\base_purpose::get_default_formatting_prompt();
+            if (!str_contains($current, $formattingprompt)) {
+                set_config('agentprompt', $current . "\n\n" . $formattingprompt, 'aipurpose_agent');
+            }
+        }
+        upgrade_plugin_savepoint(true, 2026041601, 'aipurpose', 'agent');
+    }
+
+    if ($oldversion < 2026041602) {
+        $current = get_config('aipurpose_agent', 'agentprompt');
+        if (empty($current)) {
+            set_config('agentprompt', \aipurpose_agent\purpose::get_default_agentprompt(), 'aipurpose_agent');
+        } else {
+            $newvalueexception = \aipurpose_agent\purpose::get_newvalue_formatting_exception();
+            if (!str_contains($current, $newvalueexception)) {
+                set_config('agentprompt', $current . "\n\n" . $newvalueexception, 'aipurpose_agent');
+            }
+        }
+        upgrade_plugin_savepoint(true, 2026041602, 'aipurpose', 'agent');
+    }
+
+    if ($oldversion < 2026072100) {
+        $current = get_config('aipurpose_agent', 'agentprompt');
+        if (empty($current)) {
+            set_config('agentprompt', \aipurpose_agent\purpose::get_default_agentprompt(), 'aipurpose_agent');
+        } else {
+            // MBS-10879: append the agent prompt instructions added in this ticket to an existing customized
+            // prompt. Each delta is only appended if missing, so re-runs and freshly generated prompts stay
+            // free of duplicates.
+            $deltas = [
+                \local_ai_manager\base_purpose::get_mathjax_instruction(),
+                \aipurpose_agent\purpose::get_json_escaping_instruction(),
+                \aipurpose_agent\purpose::get_htmlcodeblock_instruction(),
+            ];
+            foreach ($deltas as $delta) {
+                if (!str_contains($current, $delta)) {
+                    $current .= "\n\n" . $delta;
+                }
+            }
+            set_config('agentprompt', $current, 'aipurpose_agent');
+        }
+        upgrade_plugin_savepoint(true, 2026072100, 'aipurpose', 'agent');
+    }
+
     return true;
 }

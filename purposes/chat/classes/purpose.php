@@ -38,10 +38,19 @@ use local_ai_manager\base_purpose;
 class purpose extends base_purpose {
     #[\Override]
     public function get_additional_request_options(array $options): array {
+        $formattingprompt = get_config('aipurpose_chat', 'chatsystemprompt') ?: base_purpose::get_default_formatting_prompt();
+
+        $conversationcontext[] = [
+            'sender' => 'system',
+            'message' => $formattingprompt,
+        ];
+
         if (array_key_exists('conversationcontext', $options)) {
-            return ['conversationcontext' => $options['conversationcontext']];
+            $conversationoptions = $options['conversationcontext'];
+            $conversationcontext = array_merge($conversationcontext, $conversationoptions);
         }
-        return [];
+
+        return ['conversationcontext' => $conversationcontext];
     }
 
     #[\Override]

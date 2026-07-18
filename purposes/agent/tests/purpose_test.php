@@ -273,7 +273,7 @@ final class purpose_test extends \advanced_testcase {
                             'name' => 'test',
                             'newValue' => 'Value',
                             'label' => 'Label',
-                            'explanation' => 'I used <pre> tags for code blocks.',
+                            'explanation' => 'I used <strong>bold</strong> text for emphasis.',
                         ],
                     ],
                     'chatoutput' => [
@@ -281,9 +281,9 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                'expectedcontains' => '&lt;pre&gt;',
+                'expectedcontains' => '<strong>bold</strong>',
             ],
-            'mathjax_inline_delimiters_consumed_by_markdown_in_explanation' => [
+            'mathjax_inline_delimiters_preserved_in_explanation' => [
                 'input' => json_encode([
                     'formelements' => [
                         [
@@ -299,10 +299,10 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                // MarkdownExtra consumes escaped parentheses: \( becomes (.
-                'expectedcontains' => '(x^2)',
+                // MathJax inline delimiters are masked before Markdown processing, so \( is preserved.
+                'expectedcontains' => '\(x^2\)',
             ],
-            'mathjax_display_delimiters_consumed_by_markdown_in_explanation' => [
+            'mathjax_display_delimiters_preserved_in_explanation' => [
                 'input' => json_encode([
                     'formelements' => [
                         [
@@ -318,8 +318,8 @@ final class purpose_test extends \advanced_testcase {
                         ['type' => 'outro', 'text' => 'Outro'],
                     ],
                 ]),
-                // MarkdownExtra consumes escaped brackets: \[ becomes [.
-                'expectedcontains' => '[E = mc^2]',
+                // MathJax display delimiters are masked before Markdown processing, so \[ is preserved.
+                'expectedcontains' => '\[E = mc^2\]',
             ],
             'mathjax_begin_end_escaped_in_explanation' => [
                 'input' => json_encode([
@@ -548,8 +548,8 @@ final class purpose_test extends \advanced_testcase {
             ],
             'script_tag_sanitized' => [
                 'text' => 'Hello <script>alert("xss")</script> world',
-                'mustcontain' => ['Hello', 'world', '&lt;script&gt;'],
-                'mustnotcontain' => ['<script>'],
+                'mustcontain' => ['Hello', 'world'],
+                'mustnotcontain' => ['<script>', '&lt;script&gt;', 'alert('],
             ],
             'link_formatting' => [
                 'text' => 'Visit [Moodle](https://moodle.org) for more.',
@@ -561,15 +561,26 @@ final class purpose_test extends \advanced_testcase {
                 'mustcontain' => ['<strong>important</strong>'],
                 'mustnotcontain' => [],
             ],
-            'mathjax_inline_delimiters_consumed_by_markdown' => [
+            'mathjax_inline_delimiters_preserved' => [
                 'text' => 'The formula \(x^2 + y^2\) is a sum of squares.',
-                'mustcontain' => ['(x^2 + y^2)'],
+                'mustcontain' => ['\(x^2 + y^2\)'],
                 'mustnotcontain' => [],
             ],
-            'mathjax_display_delimiters_consumed_by_markdown' => [
+            'mathjax_display_delimiters_preserved' => [
                 'text' => 'Display: \[E = mc^2\] is famous.',
-                'mustcontain' => ['[E = mc^2]'],
+                'mustcontain' => ['\[E = mc^2\]'],
                 'mustnotcontain' => [],
+            ],
+            'multiline_fence_no_br_leak' => [
+                'text' => 'Copy this:' . PHP_EOL . PHP_EOL
+                    . $codeblock . 'latex' . PHP_EOL
+                    . '\documentclass{article}' . PHP_EOL
+                    . '\begin{document}' . PHP_EOL
+                    . 'Hello' . PHP_EOL
+                    . '\end{document}' . PHP_EOL
+                    . $codeblock,
+                'mustcontain' => ['<pre>', '<code', '\documentclass{article}'],
+                'mustnotcontain' => ['<br'],
             ],
         ];
     }
@@ -685,6 +696,69 @@ final class purpose_test extends \advanced_testcase {
         $this->assertNotNull($decoded, 'Output must be valid JSON even for invalid input');
         $this->assertArrayHasKey('formelements', $decoded, 'Output must contain formelements key');
         $this->assertArrayHasKey('chatoutput', $decoded, 'Output must contain chatoutput key');
+    }
+
+    /**
+     * Test that JSON extraction is not confused by braces inside JSON string values.
+     *
+     * @covers ::format_output
+     */
+    public function test_format_output_json_with_braces_in_strings(): void {
+        $purpose = new purpose();
+        $input = json_encode([
+            'formelements' => [
+                [
+                    'id' => 'id_summary_editor',
+                    'name' => 'summary',
+                    'newValue' => 'function test() { return 1; }',
+                    'label' => 'Code',
+                    'explanation' => 'Close the block with } at the end.',
+                ],
+            ],
+            'chatoutput' => [
+                ['type' => 'intro', 'text' => 'A block ends with } and starts with {.'],
+                ['type' => 'outro', 'text' => ''],
+            ],
+        ]);
+
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotEmpty(
+            $decoded['formelements'],
+            'Braces inside string values must not break the JSON extraction'
+        );
+        $this->assertEquals('function test() { return 1; }', $decoded['formelements'][0]['newValue']);
+    }
+
+    /**
+     * Test that repairing malformed JSON restores all masked math segments correctly.
+     *
+     * Uses twelve math segments so that the two digit placeholder indexes (10, 11) verify
+     * that the restoration is not corrupted by placeholder prefix collisions.
+     *
+     * @covers ::format_output
+     */
+    public function test_format_output_repairs_json_with_many_math_segments(): void {
+        $purpose = new purpose();
+        $mathsegments = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $mathsegments[] = '\(a_{' . $i . '}\)';
+        }
+        // The single backslashes of the math delimiters make this JSON unparseable,
+        // which triggers the backslash repair path.
+        $text = 'The sequence ' . implode(' and ', $mathsegments) . ' converges.';
+        $input = '{"formelements":[],"chatoutput":[{"type":"intro","text":"' . $text
+            . '"},{"type":"outro","text":""}]}';
+
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotEmpty($decoded['chatoutput'], 'Repaired JSON must be parsed as agent answer');
+        $intro = $decoded['chatoutput'][0]['text'];
+        foreach ($mathsegments as $segment) {
+            $this->assertStringContainsString($segment, $intro);
+        }
     }
 
     /**
@@ -1299,6 +1373,20 @@ final class purpose_test extends \advanced_testcase {
                 'displayvaluemustcontain' => [],
                 'displayvaluemustnotcontain' => [],
             ],
+            'fully_sanitized_newvalue_creates_harmless_displayvalue' => [
+                'formelement' => [
+                    'id' => 'id_summary_editor',
+                    'name' => 'summary',
+                    'newValue' => '<iframe src="https://evil.example"></iframe>',
+                    'label' => 'Course description',
+                    'explanation' => 'Malicious suggestion.',
+                ],
+                'newvaluemustcontain' => ['<iframe'],
+                'newvaluemustnotcontain' => [],
+                'hasdisplayvalue' => true,
+                'displayvaluemustcontain' => [],
+                'displayvaluemustnotcontain' => ['<iframe', 'evil.example'],
+            ],
             'plain_text_newvalue_creates_displayvalue' => [
                 'formelement' => [
                     'id' => 'id_name',
@@ -1596,5 +1684,126 @@ final class purpose_test extends \advanced_testcase {
 
         $result = $purpose->get_additional_request_options($options);
         $this->assertEmpty($result);
+    }
+
+    /**
+     * Data provider for LaTeX/MathJax JSON repair tests.
+     *
+     * Each input is raw, invalid JSON as an LLM commonly returns it: LaTeX content written with
+     * single (unescaped) backslashes, which by itself makes json_decode fail. The repair inside
+     * extract_single_json_object() must recover the object and preserve the LaTeX source in the
+     * (unformatted) newValue field.
+     *
+     * @return array Test cases: raw invalid JSON input and the expected recovered newValue
+     */
+    public static function format_output_latex_json_repair_provider(): array {
+        return [
+            'inline_math_single_backslash' => [
+                // Inline math \(...\) with single backslashes; the delimiters must survive the repair.
+                'input' => <<<'JSON'
+{"formelements":[{"id":"id_x","name":"x","newValue":"\(x = 5\)"}],"chatoutput":[]}
+JSON
+                ,
+                'expectednewvalue' => '\(x = 5\)',
+            ],
+            'frac_command_single_backslash' => [
+                // LaTeX commands (\frac, \cdot) whose letters collide with JSON escapes must be doubled inside math.
+                'input' => <<<'JSON'
+{"formelements":[{"id":"id_a","name":"a","newValue":"\(A = \frac{1}{2} \cdot g \cdot h\)"}],"chatoutput":[]}
+JSON
+                ,
+                'expectednewvalue' => '\(A = \frac{1}{2} \cdot g \cdot h\)',
+            ],
+            'display_math_dollar_delimiters' => [
+                // Display math $$...$$ with backslash commands inside; the whole segment must be repaired.
+                'input' => <<<'JSON'
+{"formelements":[{"id":"id_q","name":"q","newValue":"$$x_{1,2} = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$"}],"chatoutput":[]}
+JSON
+                ,
+                'expectednewvalue' => '$$x_{1,2} = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$',
+            ],
+            'matrix_environment_with_row_separators' => [
+                // Matrix environment whose row separators (\\) must decode back to a literal double backslash.
+                'input' => <<<'JSON'
+{"formelements":[{"id":"id_m","name":"m","newValue":"\begin{pmatrix}a\\b\end{pmatrix}"}],"chatoutput":[]}
+JSON
+                ,
+                'expectednewvalue' => '\begin{pmatrix}a\\\\b\end{pmatrix}',
+            ],
+        ];
+    }
+
+    /**
+     * Test that invalid JSON with single-backslash LaTeX is repaired and the newValue preserved.
+     *
+     * @param string $input The raw invalid JSON input
+     * @param string $expectednewvalue The expected recovered (LaTeX source) newValue
+     *
+     * @covers ::format_output
+     * @dataProvider format_output_latex_json_repair_provider
+     */
+    public function test_format_output_repairs_latex_json(string $input, string $expectednewvalue): void {
+        $purpose = new purpose();
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded, 'Output must be valid JSON');
+        $this->assertNotEmpty(
+            $decoded['formelements'],
+            'The object must be recovered by the repair, not fall back to a plain text response'
+        );
+        $this->assertEquals(
+            $expectednewvalue,
+            $decoded['formelements'][0]['newValue'],
+            'The LaTeX source must be preserved exactly in newValue'
+        );
+    }
+
+    /**
+     * Test that the repair preserves legitimate JSON escapes (e.g. "\n" line breaks) in prose
+     * while still fixing single-backslash LaTeX in the same string.
+     *
+     * @covers ::format_output
+     */
+    public function test_format_output_repair_preserves_prose_newlines(): void {
+        // The newValue mixes a valid JSON newline escape ("\n") with invalid single-backslash LaTeX.
+        $input = <<<'JSON'
+{"formelements":[{"id":"id_n","name":"n","newValue":"Line 1\nLine 2 \(x = 5\)"}],"chatoutput":[]}
+JSON;
+        $purpose = new purpose();
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded, 'Output must be valid JSON');
+        $this->assertNotEmpty($decoded['formelements'], 'The object must be recovered by the repair');
+        $newvalue = $decoded['formelements'][0]['newValue'];
+        $this->assertStringContainsString(
+            "Line 1\nLine 2",
+            $newvalue,
+            'The valid "\n" escape must be decoded to a real line break, not doubled'
+        );
+        $this->assertStringContainsString(
+            '\(x = 5\)',
+            $newvalue,
+            'The single-backslash LaTeX must be repaired and preserved'
+        );
+    }
+
+    /**
+     * Test that genuinely unrecoverable JSON still falls back to a plain text response
+     * instead of being wrongly "repaired".
+     *
+     * @covers ::format_output
+     */
+    public function test_format_output_unrecoverable_json_falls_back(): void {
+        // Unterminated string value - no backslash repair can make this valid.
+        $input = '{"formelements":[{"id":"id_x","name":"x","newValue":"unterminated';
+        $purpose = new purpose();
+        $output = $purpose->format_output($input);
+        $decoded = json_decode($output, true);
+
+        $this->assertNotNull($decoded, 'Output must be valid JSON');
+        $this->assertEmpty($decoded['formelements'], 'Unrecoverable input must not produce form elements');
+        $this->assertArrayHasKey('chatoutput', $decoded, 'Fallback must still contain chatoutput');
     }
 }

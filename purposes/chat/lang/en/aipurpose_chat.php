@@ -23,6 +23,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['chatsystemprompt'] = 'Formatting prompt';
+$string['chatsystempromptdesc'] = 'System prompt which is injected before every request to the AI tool to prevent formatting issues in its responses.';
 $string['pluginname'] = 'Chat';
 $string['privacy:metadata'] = 'The local ai_manager purpose subplugin "Chat" does not store any personal data.';
 $string['purposedescription'] = 'The purpose "Chat" is being used by tools that need to interact with the external AI system via a chat-like interface, it for example supports the sending of messages in different roles (system, user, ...).';
