@@ -35,6 +35,9 @@ class base_instance {
     /** @var string the string representing that a model cannot be chosen, but is preconfigured by the external AI service */
     public const PRECONFIGURED_MODEL = 'preconfigured';
 
+    /** @var string sentinel value used by the model selector to indicate that a custom, free-text model is being used */
+    public const CUSTOM_MODEL = '__custommodel__';
+
     /** @var ?stdClass The database record */
     protected ?stdClass $record = null;
 
@@ -473,6 +476,17 @@ class base_instance {
         $data->apikey = $this->get_apikey();
         $data->useglobalapikey = $this->get_useglobalapikey();
         $data->model = $this->get_model();
+        // If the stored model is not part of the predefined model selection of the connector, it has been entered as a
+        // custom model. In that case preselect the "custom model" option and fill the free-text field accordingly.
+        $connector = \core\di::get(connector_factory::class)->get_connector_by_connectorname($this->get_connector());
+        if (
+            !empty($this->get_model())
+            && $this->get_model() !== self::PRECONFIGURED_MODEL
+            && !in_array($this->get_model(), $connector->get_models(), true)
+        ) {
+            $data->model = self::CUSTOM_MODEL;
+            $data->custommodel = $this->get_model();
+        }
         $data->infolink = $this->get_infolink();
         foreach ($this->get_extended_formdata() as $key => $value) {
             $data->{$key} = $value;
@@ -560,7 +574,15 @@ class base_instance {
             // phpcs:enable moodle.Commenting.TodoComment.MissingInfoInline
             $availablemodels[$modelname] = $modelname;
         }
+        // Allow specifying a model that is not part of the predefined selection by choosing the "custom model" option
+        // and entering the model name into a free-text field.
+        $availablemodels[self::CUSTOM_MODEL] = get_string('custommodel', 'local_ai_manager');
         $mform->addElement('select', 'model', get_string('model', 'local_ai_manager'), $availablemodels, $textelementparams);
+
+        $mform->addElement('text', 'custommodel', get_string('custommodelname', 'local_ai_manager'), $textelementparams);
+        $mform->setType('custommodel', PARAM_TEXT);
+        $mform->addHelpButton('custommodel', 'custommodelname', 'local_ai_manager');
+        $mform->hideIf('custommodel', 'model', 'neq', self::CUSTOM_MODEL);
 
         $mform->addElement('text', 'infolink', get_string('infolink', 'local_ai_manager'), $textelementparams);
         $mform->setType('infolink', PARAM_URL);
@@ -581,6 +603,10 @@ class base_instance {
         $this->set_connector($data->connector);
         $tenantvalue = trim($data->tenant);
         $this->set_tenant(empty($tenantvalue) ? tenant::DEFAULT_IDENTIFIER : $tenantvalue);
+        if (isset($data->model) && $data->model === self::CUSTOM_MODEL) {
+            // The "custom model" option has been selected, so use the value of the free-text field as model.
+            $data->model = !empty($data->custommodel) ? trim($data->custommodel) : '';
+        }
         if (empty($data->model)) {
             // This is only a fallback. If the connector does not support the selection of a model,
             // it is supposed to overwrite this default value in the extend_store_formdata function.
@@ -621,6 +647,14 @@ class base_instance {
             && !str_starts_with($data['endpoint'], 'https://')
         ) {
             $errors['endpoint'] = get_string('formvalidation_editinstance_endpointnossl', 'local_ai_manager');
+        }
+        if (isset($data['model']) && $data['model'] === self::CUSTOM_MODEL) {
+            if (empty(trim($data['custommodel'] ?? ''))) {
+                $errors['custommodel'] = get_string('formvalidation_editinstance_custommodelempty', 'local_ai_manager');
+            }
+            // Resolve the custom model into the actual model name so that connector specific validation (e.g. checking
+            // that the endpoint URL contains the model name) operates on the real model name.
+            $data['model'] = trim($data['custommodel'] ?? '');
         }
         return $errors + $this->extend_validation($data, $files);
     }
@@ -679,9 +713,14 @@ class base_instance {
             return [];
         }
         $connector = \core\di::get(connector_factory::class)->get_connector_by_connectorname($this->connector);
+        // A custom (free-text) model is not part of any predefined model list of the connector, so we cannot know which
+        // purposes it supports. In that case we offer it for every purpose the connector supports in general, i.e. for
+        // which it provides at least one predefined model.
+        $iscustommodel = $this->get_model() !== self::PRECONFIGURED_MODEL
+            && !in_array($this->get_model(), $connector->get_models(), true);
         $purposesofcurrentmodel = [];
         foreach ($connector->get_models_by_purpose() as $purpose => $models) {
-            if (in_array($this->get_model(), $models)) {
+            if ($iscustommodel ? !empty($models) : in_array($this->get_model(), $models)) {
                 $purposesofcurrentmodel[] = $purpose;
             }
         }
