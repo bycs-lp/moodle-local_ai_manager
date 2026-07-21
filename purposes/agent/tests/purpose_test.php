@@ -543,7 +543,7 @@ final class purpose_test extends \advanced_testcase {
                     . $codeblock . 'python' . PHP_EOL
                     . 'print("<html>")' . PHP_EOL
                     . $codeblock,
-                'mustcontain' => ['<pre>', '<code', '&lt;html&gt;'],
+                'mustcontain' => ['<pre class="language-', '<code', '&lt;html&gt;'],
                 'mustnotcontain' => ['<html>'],
             ],
             'script_tag_sanitized' => [
@@ -579,7 +579,7 @@ final class purpose_test extends \advanced_testcase {
                     . 'Hello' . PHP_EOL
                     . '\end{document}' . PHP_EOL
                     . $codeblock,
-                'mustcontain' => ['<pre>', '<code', '\documentclass{article}'],
+                'mustcontain' => ['<pre class="language-', '<code', '\documentclass{article}'],
                 'mustnotcontain' => ['<br'],
             ],
         ];

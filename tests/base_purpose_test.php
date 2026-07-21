@@ -83,7 +83,7 @@ final class base_purpose_test extends \advanced_testcase {
                     . $codeblock . 'html' . "\n"
                     . '<div class="test"><p>Hello</p></div>' . "\n"
                     . $codeblock,
-                'mustcontain' => ['&lt;div', '&lt;p&gt;', '<pre>', '<code'],
+                'mustcontain' => ['&lt;div', '&lt;p&gt;', '<pre class="language-', '<code'],
                 'mustnotcontain' => ['<div class="test">'],
             ],
             'javascript_in_code_block' => [
@@ -100,7 +100,7 @@ final class base_purpose_test extends \advanced_testcase {
                     . $codeblock . 'html' . "\n"
                     . '<script>alert(\'evil\')</script>' . "\n"
                     . $codeblock,
-                'mustcontain' => ['&lt;script&gt;', '<pre>', '<code'],
+                'mustcontain' => ['&lt;script&gt;', '<pre class="language-', '<code'],
                 'mustnotcontain' => ['<script>alert'],
             ],
             'inline_code_html' => [
@@ -263,7 +263,7 @@ final class base_purpose_test extends \advanced_testcase {
             ],
             'code_block_structure' => [
                 'input' => $codeblock . 'php' . "\n" . 'echo \'Hello\';' . "\n" . $codeblock,
-                'mustcontain' => ['<pre>', '<code'],
+                'mustcontain' => ['<pre class="language-', '<code'],
             ],
             'empty_input' => [
                 'input' => '',
@@ -326,7 +326,7 @@ final class base_purpose_test extends \advanced_testcase {
                     . '</html>' . "\n"
                     . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
+                    '<pre class="language-',
                     '<code',
                     '&lt;html&gt;',
                     '&lt;script&gt;',
@@ -353,8 +353,8 @@ final class base_purpose_test extends \advanced_testcase {
                     . '    print(greet("World"))' . "\n"
                     . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
-                    '<code class="python"',
+                    '<pre class="language-',
+                    'language-python"><code>',
                     'import os',
                     'def greet(name: str)',
                     'print(greet(',
@@ -371,8 +371,8 @@ final class base_purpose_test extends \advanced_testcase {
                     . '}' . "\n"
                     . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
-                    '<code class="java"',
+                    '<pre class="language-',
+                    'language-java"><code>',
                     'public class HelloWorld',
                     'System.out.println',
                 ],
@@ -391,7 +391,7 @@ final class base_purpose_test extends \advanced_testcase {
                     '&lt;style&gt;',
                     '&lt;div class=',
                     '&lt;script src=',
-                    '<pre>',
+                    '<pre class="language-',
                     '<code',
                 ],
                 'mustnotcontain' => [
@@ -429,7 +429,7 @@ final class base_purpose_test extends \advanced_testcase {
                 'mustcontain' => [
                     '<h2>',
                     '<strong>config file</strong>',
-                    '<code class="python"',
+                    'language-python"><code>',
                     'pip install moodle-client',
                     '&lt;form action=',
                     '&lt;input type=',
@@ -460,7 +460,7 @@ final class base_purpose_test extends \advanced_testcase {
                     . '</div>' . "\n"
                     . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
+                    '<pre class="language-',
                     '<code',
                     '&lt;div class=',
                     '&lt;a href=',
@@ -483,10 +483,10 @@ final class base_purpose_test extends \advanced_testcase {
                     . '    print("hi")' . "\n"
                     . '    ' . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
-                    '<code class="html"',
+                    '<pre class="language-',
+                    'language-html"><code>',
                     '&lt;div&gt;hello&lt;/div&gt;',
-                    '<code class="python"',
+                    'language-python"><code>',
                     'print("hi")',
                 ],
                 'mustnotcontain' => [
@@ -505,10 +505,10 @@ final class base_purpose_test extends \advanced_testcase {
                     . '    print("hi")' . "\n"
                     . '    ' . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
-                    '<code class="html"',
+                    '<pre class="language-',
+                    'language-html"><code>',
                     '&lt;div&gt;hello&lt;/div&gt;',
-                    '<code class="python"',
+                    'language-python"><code>',
                     'print("hi")',
                 ],
                 'mustnotcontain' => [
@@ -527,7 +527,7 @@ final class base_purpose_test extends \advanced_testcase {
                     . '    print("world")' . "\n"
                     . '    ' . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
+                    '<pre class="language-',
                     '<code>',
                     'echo "hello";',
                     'print("world")',
@@ -544,8 +544,8 @@ final class base_purpose_test extends \advanced_testcase {
                     '<code>print("world")</code>',
                 ],
                 'mustnotcontain' => [
-                    '<pre><code>echo',
-                    '<pre><code>print',
+                    '><code>echo',
+                    '><code>print',
                 ],
             ],
             'mixed_list_code_blocks_and_inline_code' => [
@@ -562,15 +562,15 @@ final class base_purpose_test extends \advanced_testcase {
                 'mustcontain' => [
                     '<code>npm install</code>',
                     '<code>node app.js</code>',
-                    '<code class="javascript"',
+                    'language-javascript"><code>',
                     'console.log("Hello")',
-                    '<code class="python"',
+                    'language-python"><code>',
                     'print("Hello")',
-                    '<pre>',
+                    '<pre class="language-',
                 ],
                 'mustnotcontain' => [
-                    '<pre><code>npm install',
-                    '<pre><code>node app.js',
+                    '><code>npm install',
+                    '><code>node app.js',
                     $codeblock . 'javascript',
                     $codeblock . 'python',
                 ],
@@ -607,7 +607,7 @@ final class base_purpose_test extends \advanced_testcase {
                     '<h2>',
                     '&lt;div&gt;',
                     '<strong>bold</strong>',
-                    '<pre>',
+                    '<pre class="language-',
                     '<code',
                 ],
                 'mustnotcontain' => [],
@@ -690,7 +690,7 @@ final class base_purpose_test extends \advanced_testcase {
                     . '$$x^2$$' . "\n"
                     . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
+                    '<pre class="language-',
                     '<code',
                     '$$x^2$$',
                 ],

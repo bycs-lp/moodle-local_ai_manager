@@ -18,6 +18,7 @@ namespace local_ai_manager;
 
 use core_plugin_manager;
 use local_ai_manager\local\userinfo;
+use Michelf\MarkdownExtra;
 
 /**
  * Base class for purpose subplugins.
@@ -223,9 +224,17 @@ class base_purpose {
         // identifiers work correctly without this fix.
         $markdown = preg_replace('/(?<!\n)\n(\s*\x60{3}\w)/', "\n\n$1", $markdown);
 
-        // Use Moodle's core markdown_to_html() function.
-        // It uses MarkdownExtra which already escapes HTML inside code blocks by default.
-        $html = markdown_to_html($markdown);
+        // Use an own MarkdownExtra instance instead of markdown_to_html(): the core function keeps the library
+        // defaults and renders fenced code blocks as <pre><code class="python">, while Prism.js expects the
+        // language on the <pre> element and with a "language-" prefix. HTML inside code blocks is escaped
+        // by MarkdownExtra either way.
+        $markdownparser = new MarkdownExtra();
+        $markdownparser->code_class_prefix = 'language-';
+        $markdownparser->code_attr_on_pre = true;
+        $html = $markdownparser->transform($markdown);
+        // Fenced blocks without a language identifier get no class at all and would look different from
+        // highlighted ones, so give them Prism's neutral styling.
+        $html = str_replace('<pre><code>', '<pre class="language-none"><code>', $html);
 
         // Restore masked math segments, outermost first: an outer \begin{}...\end{} may contain inner
         // \(...\) placeholders, which only reappear once the outer segment is reinserted.
