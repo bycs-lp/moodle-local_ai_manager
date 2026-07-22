@@ -187,30 +187,10 @@ class base_purpose {
      */
     public function format_ai_markdown_output(string $markdown, array $options = []): string {
         // Mask math/LaTeX segments behind placeholders before running MarkdownExtra, which would otherwise
-        // consume the backslash escapes and destroy MathJax delimiters and matrix row separators.
+        // consume the backslash escapes and destroy MathJax delimiters and matrix row separators. Store the
+        // segments unchanged; they are restored (html-escaped) after the conversion.
         $mathsegments = [];
-        // Builds a random, hard-to-spoof placeholder prefix (uniqid without dots) so the LLM cannot forge placeholders.
-        $mathplaceholderprefix = 'AIMATHPLACEHOLDER' . str_replace('.', '', uniqid('', true));
-        $mathindex = 0;
-        $maskmathsegment = function ($matches) use (&$mathsegments, &$mathindex, $mathplaceholderprefix) {
-            // The non-digit terminator after the index prevents any placeholder from being a prefix
-            // of another one or of a placeholder followed by a literal digit in the text.
-            $placeholder = $mathplaceholderprefix . $mathindex++ . 'X';
-            $mathsegments[$placeholder] = $matches[0];
-            return $placeholder;
-        };
-        // Masks display math delimited by $$ ... $$.
-        $markdown = preg_replace_callback('/\$\$.+?\$\$/s', $maskmathsegment, $markdown);
-        // Masks display math delimited by \[ ... \].
-        $markdown = preg_replace_callback('/\\\\\[.+?\\\\\]/s', $maskmathsegment, $markdown);
-        // Masks inline math delimited by \( ... \).
-        $markdown = preg_replace_callback('/\\\\\(.+?\\\\\)/s', $maskmathsegment, $markdown);
-        // Masks bare LaTeX environments (\begin{env} ... \end{env}) with matching environment names.
-        $markdown = preg_replace_callback(
-            '/\\\\begin\{([a-zA-Z*]+)\}.*?\\\\end\{\1\}/s',
-            $maskmathsegment,
-            $markdown
-        );
+        $markdown = self::mask_math_segments($markdown, fn($segment) => $segment, $mathsegments);
 
         // Ensure blank lines around fenced code blocks inside list items.
         // PHP Markdown Extra only correctly parses fenced code blocks (including language identifiers)
@@ -224,10 +204,9 @@ class base_purpose {
         // identifiers work correctly without this fix.
         $markdown = preg_replace('/(?<!\n)\n(\s*\x60{3}\w)/', "\n\n$1", $markdown);
 
-        // Use an own MarkdownExtra instance instead of markdown_to_html(): the core function keeps the library
-        // defaults and renders fenced code blocks as <pre><code class="python">, while Prism.js expects the
-        // language on the <pre> element and with a "language-" prefix. HTML inside code blocks is escaped
-        // by MarkdownExtra either way.
+        // Configure MarkdownExtra so fenced code blocks carry the language class on the <pre> element with a
+        // "language-" prefix, which is what Prism.js (filter_codehighlighter) expects. HTML inside code blocks
+        // is escaped either way.
         $markdownparser = new MarkdownExtra();
         $markdownparser->code_class_prefix = 'language-';
         $markdownparser->code_attr_on_pre = true;
@@ -249,38 +228,58 @@ class base_purpose {
     }
 
     /**
+     * Masks math/LaTeX segments ($$ ... $$, \[ ... \], \( ... \), \begin{env} ... \end{env}) behind unique
+     * placeholders.
+     *
+     * Used to protect LaTeX backslashes from processing steps that would otherwise destroy them: the
+     * MarkdownExtra conversion in {@see self::format_ai_markdown_output()} and the JSON escape repair in the
+     * agent purpose. The caller decides via $store how the matched segment is stored (verbatim, or with
+     * doubled backslashes) and restores the placeholders itself.
+     *
+     * @param string $text the text to mask
+     * @param callable $store maps a matched segment (string) to the value stored under its placeholder
+     * @param array $segments filled with placeholder => stored-value pairs, by reference
+     * @return string the text with math segments replaced by placeholders
+     */
+    protected static function mask_math_segments(string $text, callable $store, array &$segments): string {
+        // Random, hard-to-spoof placeholder prefix (uniqid without dots) so the LLM cannot forge placeholders.
+        $prefix = 'AIMATHMASK' . str_replace('.', '', uniqid('', true));
+        $index = 0;
+        $mask = function ($matches) use (&$segments, &$index, $prefix, $store) {
+            // The non-digit terminator after the index prevents any placeholder from being a prefix
+            // of another one or of a placeholder followed by a literal digit in the text.
+            $placeholder = $prefix . $index++ . 'X';
+            $segments[$placeholder] = $store($matches[0]);
+            return $placeholder;
+        };
+        // Mask the four supported math delimiter forms: display math, and the two inline LaTeX delimiter
+        // pairs, plus bare begin/end environments.
+        $text = preg_replace_callback('/\$\$.+?\$\$/s', $mask, $text);
+        $text = preg_replace_callback('/\\\\\[.+?\\\\\]/s', $mask, $text);
+        $text = preg_replace_callback('/\\\\\(.+?\\\\\)/s', $mask, $text);
+        $text = preg_replace_callback('/\\\\begin\{([a-zA-Z*]+)\}.*?\\\\end\{\1\}/s', $mask, $text);
+        return $text;
+    }
+
+    /**
      * Returns the default formatting prompt.
      *
      * @return string The default formatting prompt as string.
      */
     public static function get_default_formatting_prompt(): string {
-        $mathjaxinstruction = self::get_mathjax_instruction();
         return <<<EOF
 When writing program code or markup (HTML, CSS, JavaScript, Python, etc.),
 ALWAYS wrap it in fenced code blocks with the appropriate language identifier.
+For short code fragments inside a sentence, use inline code with single backticks.
 
 Use Markdown syntax for text formatting (headings, bold, italic, lists).
 Do not use raw HTML tags for formatting purposes.
 
-{$mathjaxinstruction}
-EOF;
-    }
-
-    /**
-     * Returns the MathJax formatting instruction.
-     *
-     * Kept as a separate method so upgrade steps can append exactly this delta to an existing prompt
-     * without dragging in the rest of the formatting prompt.
-     *
-     * @return string The MathJax formatting instruction.
-     */
-    public static function get_mathjax_instruction(): string {
-        return <<<EOF
 Wrap ALL mathematical formulas and expressions in MathJax delimiters:
 \( ... \) for inline math and $$ ... $$ for display math. This also applies
 to formulas inside running text and derivation steps.
 Never put mathematical formulas in fenced code blocks unless the user
-explicitly asks for LaTeX source code.
+explicitly asks for (La)TeX source code.
 EOF;
     }
 

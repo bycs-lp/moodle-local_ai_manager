@@ -26,8 +26,15 @@
 $string['agentpromptsetting'] = 'Prompt for agent functionality';
 $string['agentpromptsettingdesc'] = 'This prompt is being used to make the LLM return the required agent response.<br/><br/><b>CARE: This setting is CRITICAL for the functionality of the whole agent mode. It is strongly recommended to make at most little changes to the default value.';
 $string['error_unusuableresponse'] = 'Unfortunately, no useful response could be generated.';
+$string['messageprovider:promptoverwritten'] = 'Agent prompt reset to default during upgrade';
 $string['pluginname'] = 'Agent';
 $string['privacy:metadata'] = 'The local ai_manager purpose subplugin "Agent" does not store any personal data.';
+$string['promptoverwrittenmessage'] = 'During an upgrade the agent system prompt had to be reset to the new default value, because its structure changed. Your previous customized value was:
+
+{$a}
+
+If you had customizations you still need, please re-apply them in the agent prompt admin setting.';
+$string['promptoverwrittensubject'] = 'The customized agent prompt was reset to the new default';
 $string['purposedescription'] = 'The purpose "Agent" is being used by to assist the user by filling in forms.';
 $string['requestcount'] = 'agent requests';
 $string['requestcount_shortened'] = 'agent';

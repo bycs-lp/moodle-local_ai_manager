@@ -37,53 +37,33 @@ function xmldb_aipurpose_agent_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026041600, 'aipurpose', 'agent');
     }
 
-    if ($oldversion < 2026041601) {
-        $current = get_config('aipurpose_agent', 'agentprompt');
-        if (empty($current)) {
-            set_config('agentprompt', \aipurpose_agent\purpose::get_default_agentprompt(), 'aipurpose_agent');
-        } else {
-            $formattingprompt = \local_ai_manager\base_purpose::get_default_formatting_prompt();
-            if (!str_contains($current, $formattingprompt)) {
-                set_config('agentprompt', $current . "\n\n" . $formattingprompt, 'aipurpose_agent');
+    if ($oldversion < 2026072200) {
+        // Overwrite the setting with the new default and notify all site admins with their old value, so a
+        // change to the prompt structure cannot leave a broken customized prompt behind. Admins can re-apply
+        // their customizations from the notification if needed.
+        $oldprompt = get_config('aipurpose_agent', 'agentprompt');
+        $newprompt = \aipurpose_agent\purpose::get_default_agentprompt();
+        if (!empty($oldprompt) && $oldprompt !== $newprompt) {
+            // The message provider is introduced in this same version, so register it before using it.
+            message_update_providers('aipurpose_agent');
+            foreach (get_admins() as $admin) {
+                $message = new \core\message\message();
+                $message->component = 'aipurpose_agent';
+                $message->name = 'promptoverwritten';
+                $message->courseid = SITEID;
+                $message->userfrom = \core_user::get_noreply_user();
+                $message->userto = $admin;
+                $message->subject = get_string('promptoverwrittensubject', 'aipurpose_agent');
+                $message->fullmessage = get_string('promptoverwrittenmessage', 'aipurpose_agent', $oldprompt);
+                $message->fullmessageformat = FORMAT_PLAIN;
+                $message->fullmessagehtml = '';
+                $message->smallmessage = get_string('promptoverwrittensubject', 'aipurpose_agent');
+                $message->notification = 1;
+                message_send($message);
             }
         }
-        upgrade_plugin_savepoint(true, 2026041601, 'aipurpose', 'agent');
-    }
-
-    if ($oldversion < 2026041602) {
-        $current = get_config('aipurpose_agent', 'agentprompt');
-        if (empty($current)) {
-            set_config('agentprompt', \aipurpose_agent\purpose::get_default_agentprompt(), 'aipurpose_agent');
-        } else {
-            $newvalueexception = \aipurpose_agent\purpose::get_newvalue_formatting_exception();
-            if (!str_contains($current, $newvalueexception)) {
-                set_config('agentprompt', $current . "\n\n" . $newvalueexception, 'aipurpose_agent');
-            }
-        }
-        upgrade_plugin_savepoint(true, 2026041602, 'aipurpose', 'agent');
-    }
-
-    if ($oldversion < 2026072100) {
-        $current = get_config('aipurpose_agent', 'agentprompt');
-        if (empty($current)) {
-            set_config('agentprompt', \aipurpose_agent\purpose::get_default_agentprompt(), 'aipurpose_agent');
-        } else {
-            // MBS-10879: append the agent prompt instructions added in this ticket to an existing customized
-            // prompt. Each delta is only appended if missing, so re-runs and freshly generated prompts stay
-            // free of duplicates.
-            $deltas = [
-                \local_ai_manager\base_purpose::get_mathjax_instruction(),
-                \aipurpose_agent\purpose::get_json_escaping_instruction(),
-                \aipurpose_agent\purpose::get_htmlcodeblock_instruction(),
-            ];
-            foreach ($deltas as $delta) {
-                if (!str_contains($current, $delta)) {
-                    $current .= "\n\n" . $delta;
-                }
-            }
-            set_config('agentprompt', $current, 'aipurpose_agent');
-        }
-        upgrade_plugin_savepoint(true, 2026072100, 'aipurpose', 'agent');
+        set_config('agentprompt', $newprompt, 'aipurpose_agent');
+        upgrade_plugin_savepoint(true, 2026072200, 'aipurpose', 'agent');
     }
 
     return true;

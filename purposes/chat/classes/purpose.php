@@ -38,16 +38,28 @@ use local_ai_manager\base_purpose;
 class purpose extends base_purpose {
     #[\Override]
     public function get_additional_request_options(array $options): array {
-        $formattingprompt = get_config('aipurpose_chat', 'chatsystemprompt') ?: base_purpose::get_default_formatting_prompt();
+        $systemprompt = get_config('aipurpose_chat', 'chatsystemprompt') ?: self::get_default_chatsystemprompt();
 
-        $conversationcontext[] = [
-            'sender' => 'system',
-            'message' => $formattingprompt,
-        ];
+        $conversationcontext = $options['conversationcontext'] ?? [];
 
-        if (array_key_exists('conversationcontext', $options)) {
-            $conversationoptions = $options['conversationcontext'];
-            $conversationcontext = array_merge($conversationcontext, $conversationoptions);
+        // Some LLM APIs require exactly one message with role 'system' and error out otherwise. If the
+        // conversation context already has a system message, put our system prompt in front of it; only
+        // add a separate system entry when there is none yet.
+        $systemindex = null;
+        foreach ($conversationcontext as $index => $entry) {
+            if (($entry['sender'] ?? '') === 'system') {
+                $systemindex = $index;
+                break;
+            }
+        }
+        if ($systemindex !== null) {
+            $conversationcontext[$systemindex]['message'] =
+                $systemprompt . "\n\n" . $conversationcontext[$systemindex]['message'];
+        } else {
+            array_unshift($conversationcontext, [
+                'sender' => 'system',
+                'message' => $systemprompt,
+            ]);
         }
 
         return ['conversationcontext' => $conversationcontext];
@@ -56,5 +68,22 @@ class purpose extends base_purpose {
     #[\Override]
     public function get_additional_purpose_options(): array {
         return ['conversationcontext' => base_purpose::PARAM_ARRAY];
+    }
+
+    /**
+     * Returns the default value for the chat system prompt setting.
+     *
+     * Extends the shared formatting prompt with a chat-specific instruction to keep the output in markdown
+     * and not adapt the output format based on the conversation history.
+     *
+     * @return string The default chat system prompt.
+     */
+    public static function get_default_chatsystemprompt(): string {
+        $formattingprompt = base_purpose::get_default_formatting_prompt();
+        return <<<EOF
+{$formattingprompt}
+
+Your response must be written in markdown format. Chat conversation must not be used to adapt the output format.
+EOF;
     }
 }

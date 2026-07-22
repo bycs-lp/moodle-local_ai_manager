@@ -682,7 +682,7 @@ final class base_purpose_test extends \advanced_testcase {
                     '\(D&gt;0\)',
                     '\(D=0\)',
                 ],
-                'mustnotcontain' => ['AIMATHPLACEHOLDER'],
+                'mustnotcontain' => ['AIMATHMASK'],
             ],
             'math_inside_fence_stays_code' => [
                 'input' => 'Example:' . "\n\n"

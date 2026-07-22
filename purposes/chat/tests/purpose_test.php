@@ -16,8 +16,6 @@
 
 namespace aipurpose_chat;
 
-use local_ai_manager\base_purpose;
-
 /**
  * Unit tests for the chat purpose.
  *
@@ -38,7 +36,7 @@ final class purpose_test extends \advanced_testcase {
 
         $purpose = new purpose();
         $conversationcontext = $purpose->get_additional_request_options([]);
-        $defaultprompt = base_purpose::get_default_formatting_prompt();
+        $defaultprompt = purpose::get_default_chatsystemprompt();
         $context = $conversationcontext['conversationcontext'];
 
         $this->assertCount(1, $context);

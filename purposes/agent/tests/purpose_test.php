@@ -1730,6 +1730,16 @@ JSON
                 ,
                 'expectednewvalue' => '\begin{pmatrix}a\\\\b\end{pmatrix}',
             ],
+            'inline_math_with_backspace_letter' => [
+                // The command \beta starts with "b", which is also a valid JSON escape for the backspace
+                // control character (\b). The repair must still double it inside the masked math segment so
+                // it round-trips as literal text instead of being silently corrupted into a backspace byte.
+                'input' => <<<'JSON'
+{"formelements":[{"id":"id_k","name":"k","newValue":"\( K_\beta \)"}],"chatoutput":[]}
+JSON
+                ,
+                'expectednewvalue' => '\( K_\beta \)',
+            ],
         ];
     }
 

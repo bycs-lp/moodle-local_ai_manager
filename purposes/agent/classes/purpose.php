@@ -337,7 +337,8 @@ class purpose extends base_purpose {
      * or \times) are masked first, and outside of them only clearly invalid escape
      * sequences are repaired while all valid JSON escapes are kept untouched.
      *
-     * This mirrors the math masking approach of base_purpose::format_ai_markdown_output().
+     * The math masking reuses base_purpose::mask_math_segments(); here every backslash inside a masked
+     * segment is doubled so it survives as a valid JSON escape.
      *
      * @param string $json the JSON string that failed to decode
      * @return string the repaired JSON string (may still be invalid)
@@ -345,19 +346,7 @@ class purpose extends base_purpose {
     private function repair_json_backslash_escapes(string $json): string {
         // Mask math segments, doubling every backslash inside them.
         $segments = [];
-        $prefix = 'AIJSONREPAIR' . str_replace('.', '', uniqid('', true));
-        $index = 0;
-        $mask = function ($matches) use (&$segments, &$index, $prefix) {
-            // The non-digit terminator after the index prevents any placeholder from being a prefix
-            // of another one or of a placeholder followed by a literal digit in the text.
-            $placeholder = $prefix . $index++ . 'X';
-            $segments[$placeholder] = str_replace('\\', '\\\\', $matches[0]);
-            return $placeholder;
-        };
-        $json = preg_replace_callback('/\$\$.+?\$\$/s', $mask, $json);
-        $json = preg_replace_callback('/\\\\\[.+?\\\\\]/s', $mask, $json);
-        $json = preg_replace_callback('/\\\\\(.+?\\\\\)/s', $mask, $json);
-        $json = preg_replace_callback('/\\\\begin\{([a-zA-Z*]+)\}.*?\\\\end\{\1\}/s', $mask, $json);
+        $json = self::mask_math_segments($json, fn($segment) => str_replace('\\', '\\\\', $segment), $segments);
 
         // Outside math segments: keep valid JSON escapes, double the backslash of invalid ones.
         // The callback consumes valid escapes completely, so an already escaped backslash
@@ -409,67 +398,15 @@ class purpose extends base_purpose {
     }
 
     /**
-     * Returns the "newValue" formatting exception for the default agent prompt.
-     *
-     * @return string The newValue formatting exception.
-     */
-    public static function get_newvalue_formatting_exception(): string {
-        return <<<EOF
-Exception: The "newValue" field is inserted directly into the target form field, it is not
-rendered through the normal chat display pipeline. Never wrap "newValue" content in fenced
-code blocks, regardless of format - the target form field would show the fence markers literally.
-
-Check the "editorFormat" property of the corresponding form element in the form structure JSON:
-- editorFormat "html": "newValue" must contain the raw, directly usable HTML exactly as it
-  should appear in the rich text editor. Do not use Markdown syntax here.
-- any other editorFormat (or if missing): "newValue" must contain plain text or Markdown syntax
-  as appropriate for the field, and must never contain raw HTML tags.
-EOF;
-    }
-
-    /**
-     * Returns the JSON escaping instruction for the default agent prompt.
-     *
-     * @return string The JSON escaping instruction.
-     */
-    public static function get_json_escaping_instruction(): string {
-        return <<<EOF
-Because your entire answer is a single JSON object, all string values must use valid JSON
-escaping: every literal backslash must be written as a double backslash. This is especially
-important for LaTeX/MathJax content where every delimiter and command starts with a backslash.
-Correct example:
-
-"newValue": "The area is \\\\(A = \\\\frac{1}{2} \\\\cdot g \\\\cdot h\\\\)."
-
-Never write a single backslash before characters like ( ) [ ] { } or letters inside JSON strings.
-EOF;
-    }
-
-    /**
-     * Returns the HTML code block instruction for the default agent prompt.
-     *
-     * @return string The HTML code block instruction.
-     */
-    public static function get_htmlcodeblock_instruction(): string {
-        return <<<EOF
-When "editorFormat" is "html" and the "newValue" contains a code block, write it as
-<pre class="language-xxx"><code>...</code></pre> with the language class on the <pre> element
-(e.g. language-python), so it gets syntax highlighting after saving.
-EOF;
-    }
-
-    /**
      * Returns the default value for the agentprompt setting.
      *
-     * This is only being used on install to inject into the admin setting. After that the admin setting is being used.
+     * Used to seed the admin setting on install and to overwrite it on upgrade when the default changes.
+     * After install/upgrade the admin setting is authoritative.
      *
      * @return string The default agent prompt.
      */
     public static function get_default_agentprompt(): string {
         $formattingprompt = self::get_default_formatting_prompt();
-        $newvalueformattingexception = self::get_newvalue_formatting_exception();
-        $jsonescapinginstruction = self::get_json_escaping_instruction();
-        $htmlcodeblockinstruction = self::get_htmlcodeblock_instruction();
         return <<<EOF
 This system prompt has the following structure:
 
@@ -524,11 +461,27 @@ In addition to formelements, the JSON has another key called "chatoutput". All y
 
 {$formattingprompt}
 
-{$newvalueformattingexception}
+Exception: The "newValue" field is inserted directly into the target form field, it is not
+rendered through the normal chat display pipeline. Never wrap "newValue" content in fenced
+code blocks, regardless of format - the target form field would show the fence markers literally.
 
-{$htmlcodeblockinstruction}
+Check the "editorFormat" property of the corresponding form element in the form structure JSON:
+- editorFormat "html": "newValue" must contain the raw, directly usable HTML exactly as it
+  should appear in the rich text editor. Do not use Markdown syntax here.
+  When it contains a code block, write it as <pre class="language-xxx"><code>...</code></pre>
+  with the language class on the <pre> element (e.g. language-python), so it gets syntax
+  highlighting after saving.
+- any other editorFormat (or if missing): "newValue" must contain plain text or Markdown syntax
+  as appropriate for the field, and must never contain raw HTML tags.
 
-{$jsonescapinginstruction}
+Because your entire answer is a single JSON object, all string values must use valid JSON
+escaping: every literal backslash must be written as a double backslash. This is especially
+important for LaTeX/MathJax content where every delimiter and command starts with a backslash.
+Correct example:
+
+"newValue": "The area is \\\\(A = \\\\frac{1}{2} \\\\cdot g \\\\cdot h\\\\)."
+
+Never write a single backslash before characters like ( ) [ ] { } or letters inside JSON strings.
 
 All of your output MUST ALWAYS be inside the JSON structure.
 DO ONLY RETURN A VALID JSON OBJECT.
