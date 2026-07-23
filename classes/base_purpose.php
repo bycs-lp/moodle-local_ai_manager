@@ -18,6 +18,7 @@ namespace local_ai_manager;
 
 use core_plugin_manager;
 use local_ai_manager\local\userinfo;
+use Michelf\MarkdownExtra;
 
 /**
  * Base class for purpose subplugins.
@@ -185,20 +186,11 @@ class base_purpose {
      * @return string The sanitized HTML output.
      */
     public function format_ai_markdown_output(string $markdown, array $options = []): string {
-        // Convert HTML code blocks (<pre><code>) from LLM output to markdown fenced code blocks.
-        // Some LLMs return raw HTML code blocks instead of markdown syntax. We convert them
-        // to markdown fenced code blocks so they are properly handled by the existing pipeline.
-        $markdown = preg_replace_callback(
-            '/<pre>\s*<code(?:\s+class="language-(\w+)")?\s*>([\s\S]*?)<\/code>\s*<\/pre>/i',
-            function ($matches) {
-                $lang = $matches[1] ?? '';
-                // Decode any HTML entities in the code content since it will be
-                // re-encoded by MarkdownExtra when converting back to HTML.
-                $code = html_entity_decode($matches[2], ENT_QUOTES | ENT_HTML401, 'UTF-8');
-                return "\n\n\x60\x60\x60" . $lang . "\n" . $code . "\n\x60\x60\x60\n\n";
-            },
-            $markdown
-        );
+        // Mask math/LaTeX segments behind placeholders before running MarkdownExtra, which would otherwise
+        // consume the backslash escapes and destroy MathJax delimiters and matrix row separators. Store the
+        // segments unchanged; they are restored (html-escaped) after the conversion.
+        $mathsegments = [];
+        $markdown = self::mask_math_segments($markdown, fn($segment) => $segment, $mathsegments);
 
         // Ensure blank lines around fenced code blocks inside list items.
         // PHP Markdown Extra only correctly parses fenced code blocks (including language identifiers)
@@ -212,52 +204,23 @@ class base_purpose {
         // identifiers work correctly without this fix.
         $markdown = preg_replace('/(?<!\n)\n(\s*\x60{3}\w)/', "\n\n$1", $markdown);
 
-        // Escape raw HTML tags outside code blocks so they are displayed as literal text
-        // instead of being silently removed by format_text() sanitization.
-        // Strategy: Extract code regions first, escape the remaining text with s(), then restore code regions.
+        // Configure MarkdownExtra so fenced code blocks carry the language class on the <pre> element with a
+        // "language-" prefix, which is what Prism.js (filter_codehighlighter) expects. HTML inside code blocks
+        // is escaped either way.
+        $markdownparser = new MarkdownExtra();
+        $markdownparser->code_class_prefix = 'language-';
+        $markdownparser->code_attr_on_pre = true;
+        $html = $markdownparser->transform($markdown);
+        // Fenced blocks without a language identifier get no class at all and would look different from
+        // highlighted ones, so give them Prism's neutral styling.
+        $html = str_replace('<pre><code>', '<pre class="language-none"><code>', $html);
 
-        // Step 1: Extract fenced code blocks, inline code and blockquote markers,
-        // replacing them with placeholders.
-        $placeholders = [];
-        $counter = 0;
-        // Generate a unique placeholder prefix that does not appear in the markdown text.
-        // The prefix starts with a null byte (\x00) which never occurs in normal text or LLM output,
-        // making collisions extremely unlikely. If a collision is detected, 'X' is appended
-        // repeatedly until the prefix is unique.
-        $placeholderprefix = self::generate_placeholder_prefix($markdown);
-        // Fenced code blocks (triple backticks or triple tildes) and inline code.
-        $codepattern = '/(\x60{3,}[\s\S]*?\x60{3,}|~{3,}[\s\S]*?~{3,}|\x60[^\x60\n]+\x60)/';
-        $markdown = preg_replace_callback($codepattern, function ($m) use (&$placeholders, &$counter, $placeholderprefix) {
-            $key = $placeholderprefix . $counter++ . "\x00";
-            $placeholders[$key] = $m[0];
-            return $key;
-        }, $markdown);
-        // Blockquote markers (> at start of line, possibly nested).
-        $markdown = preg_replace_callback('/^(\s*>)+/m', function ($m) use (&$placeholders, &$counter, $placeholderprefix) {
-            $key = $placeholderprefix . $counter++ . "\x00";
-            $placeholders[$key] = $m[0];
-            return $key;
-        }, $markdown);
-
-        // Step 2: Escape all HTML in the remaining (non-code) text.
-        // We use htmlspecialchars with double_encode=false to avoid double-escaping
-        // existing HTML entities (e.g. &amp; or &lt;) that the LLM might return.
-        // Moodle's s() function cannot be used here because it always double-encodes.
-        $markdown = htmlspecialchars($markdown, ENT_QUOTES | ENT_HTML401 | ENT_SUBSTITUTE, 'UTF-8', false);
-
-        // Step 3: Restore code regions and blockquote markers from placeholders.
-        $markdown = str_replace(array_keys($placeholders), array_values($placeholders), $markdown);
-
-        // Use Moodle's core markdown_to_html() function.
-        // It uses MarkdownExtra which already escapes HTML inside code blocks by default.
-        $html = markdown_to_html($markdown);
-
-        // Escape MathJax \begin{...}/\end{...} environment patterns outside <pre> blocks.
-        // MathJax's client-side processing picks up these patterns anywhere in the page DOM
-        // and tries to render them as math environments. This is undesirable when the LLM
-        // returns LaTeX code (like \begin{document}) outside of fenced code blocks.
-        $html = self::escape_mathjax_environments($html);
-
+        // Restore masked math segments, outermost first: an outer \begin{}...\end{} may contain inner
+        // \(...\) placeholders, which only reappear once the outer segment is reinserted.
+        // ENT_NOQUOTES matches MarkdownExtra's fenced code escaping; format_text() below still sanitizes.
+        foreach (array_reverse($mathsegments, true) as $placeholder => $mathsegment) {
+            $html = str_replace($placeholder, htmlspecialchars($mathsegment, ENT_NOQUOTES), $html);
+        }
         // Apply Moodle output function for both sanitizing and other Moodle specific formatting.
         // Previously converted markdown-generated structure is being preserved.
         // This prevents XSS from raw HTML that the LLM might return.
@@ -265,65 +228,59 @@ class base_purpose {
     }
 
     /**
-     * Escapes MathJax \begin{...} and \end{...} patterns outside pre blocks in HTML.
+     * Masks math/LaTeX segments ($$ ... $$, \[ ... \], \( ... \), \begin{env} ... \end{env}) behind unique
+     * placeholders.
      *
-     * MathJax's client-side processing picks up \begin{...}...\end{...} patterns
-     * anywhere in the page DOM and tries to render them as math environments.
-     * This is undesirable when the LLM returns LaTeX structural commands
-     * (like \begin{document}) outside of code blocks, as they get incorrectly
-     * rendered as (broken) math.
+     * Used to protect LaTeX backslashes from processing steps that would otherwise destroy them: the
+     * MarkdownExtra conversion in {@see self::format_ai_markdown_output()} and the JSON escape repair in the
+     * agent purpose. The caller decides via $store how the matched segment is stored (verbatim, or with
+     * doubled backslashes) and restores the placeholders itself.
      *
-     * This method wraps such patterns in a span element with the
-     * mathjax_ignore class that tells MathJax v3 to ignore them.
-     * Content inside pre blocks is not modified, since MathJax already
-     * skips pre elements by default.
-     *
-     * @param string $html The HTML to process.
-     * @return string The HTML with MathJax environment patterns escaped outside pre blocks.
+     * @param string $text the text to mask
+     * @param callable $store maps a matched segment (string) to the value stored under its placeholder
+     * @param array $segments filled with placeholder => stored-value pairs, by reference
+     * @return string the text with math segments replaced by placeholders
      */
-    public static function escape_mathjax_environments(string $html): string {
-        // Split on <pre>...</pre> to avoid modifying content inside code blocks.
-        // MathJax already ignores content inside <pre> elements by default.
-        $parts = preg_split(
-            '/(<pre[\s>][\s\S]*?<\/pre>)/i',
-            $html,
-            -1,
-            PREG_SPLIT_DELIM_CAPTURE
-        );
-
-        for ($i = 0, $count = count($parts); $i < $count; $i++) {
-            // Even indices are outside <pre> blocks, odd indices are matched <pre> blocks.
-            if ($i % 2 === 0) {
-                // Wrap \begin{...} and \end{...} patterns in MathJax ignore spans.
-                $parts[$i] = preg_replace(
-                    '/\\\\(begin|end)\\{[^}]*\\}/',
-                    '<span class="mathjax_ignore">$0</span>',
-                    $parts[$i]
-                );
-            }
-        }
-
-        return implode('', $parts);
+    protected static function mask_math_segments(string $text, callable $store, array &$segments): string {
+        // Random, hard-to-spoof placeholder prefix (uniqid without dots) so the LLM cannot forge placeholders.
+        $prefix = 'AIMATHMASK' . str_replace('.', '', uniqid('', true));
+        $index = 0;
+        $mask = function ($matches) use (&$segments, &$index, $prefix, $store) {
+            // The non-digit terminator after the index prevents any placeholder from being a prefix
+            // of another one or of a placeholder followed by a literal digit in the text.
+            $placeholder = $prefix . $index++ . 'X';
+            $segments[$placeholder] = $store($matches[0]);
+            return $placeholder;
+        };
+        // Mask the four supported math delimiter forms: display math, and the two inline LaTeX delimiter
+        // pairs, plus bare begin/end environments.
+        $text = preg_replace_callback('/\$\$.+?\$\$/s', $mask, $text);
+        $text = preg_replace_callback('/\\\\\[.+?\\\\\]/s', $mask, $text);
+        $text = preg_replace_callback('/\\\\\(.+?\\\\\)/s', $mask, $text);
+        $text = preg_replace_callback('/\\\\begin\{([a-zA-Z*]+)\}.*?\\\\end\{\1\}/s', $mask, $text);
+        return $text;
     }
 
     /**
-     * Generates a unique placeholder prefix string that does not occur in the given text.
+     * Returns the default formatting prompt.
      *
-     * This is used to safely replace and restore code regions and blockquote markers
-     * during HTML escaping without collisions with existing text content.
-     * The prefix starts with a null byte (\x00) which never occurs in normal text or
-     * LLM output, making collisions extremely unlikely. If a collision is still detected,
-     * 'X' is appended deterministically until the prefix is unique.
-     *
-     * @param string $text The text to check for collisions.
-     * @return string A placeholder prefix guaranteed not to appear in the text.
+     * @return string The default formatting prompt as string.
      */
-    public static function generate_placeholder_prefix(string $text): string {
-        $placeholderprefix = "\x00PLACEHOLDER";
-        while (str_contains($text, $placeholderprefix)) {
-            $placeholderprefix .= 'X';
-        }
-        return $placeholderprefix;
+    public static function get_default_formatting_prompt(): string {
+        return <<<EOF
+When writing program code or markup (HTML, CSS, JavaScript, Python, etc.),
+ALWAYS wrap it in fenced code blocks with the appropriate language identifier.
+For short code fragments inside a sentence, use inline code with single backticks.
+
+Use Markdown syntax for text formatting (headings, bold, italic, lists).
+Do not use raw HTML tags for formatting purposes.
+
+Wrap ALL mathematical formulas and expressions in MathJax delimiters:
+\( ... \) for inline math and $$ ... $$ for display math. This also applies
+to formulas inside running text and derivation steps.
+Never put mathematical formulas in fenced code blocks unless the user
+explicitly asks for (La)TeX source code.
+EOF;
     }
 
     /**

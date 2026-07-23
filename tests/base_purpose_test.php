@@ -83,7 +83,7 @@ final class base_purpose_test extends \advanced_testcase {
                     . $codeblock . 'html' . "\n"
                     . '<div class="test"><p>Hello</p></div>' . "\n"
                     . $codeblock,
-                'mustcontain' => ['&lt;div', '&lt;p&gt;', '<pre>', '<code'],
+                'mustcontain' => ['&lt;div', '&lt;p&gt;', '<pre class="language-', '<code'],
                 'mustnotcontain' => ['<div class="test">'],
             ],
             'javascript_in_code_block' => [
@@ -100,7 +100,7 @@ final class base_purpose_test extends \advanced_testcase {
                     . $codeblock . 'html' . "\n"
                     . '<script>alert(\'evil\')</script>' . "\n"
                     . $codeblock,
-                'mustcontain' => ['&lt;script&gt;', '<pre>', '<code'],
+                'mustcontain' => ['&lt;script&gt;', '<pre class="language-', '<code'],
                 'mustnotcontain' => ['<script>alert'],
             ],
             'inline_code_html' => [
@@ -192,13 +192,13 @@ final class base_purpose_test extends \advanced_testcase {
         return [
             'raw_script_outside_code_block' => [
                 'input' => 'Hello <script>alert(\'xss\')</script> world',
-                'mustcontain' => ['Hello', 'world', '&lt;script&gt;', '&lt;/script&gt;'],
-                'mustnotcontain' => ['<script>'],
+                'mustcontain' => ['Hello', 'world'],
+                'mustnotcontain' => ['<script>', '&lt;script&gt;', 'alert('],
             ],
             'svg_script_payload' => [
                 'input' => 'Image: <svg onload="alert(\'xss\')"><circle r="50"/></svg>',
-                'mustcontain' => ['&lt;svg'],
-                'mustnotcontain' => ['<svg'],
+                'mustcontain' => ['Image:'],
+                'mustnotcontain' => ['<svg', '&lt;svg', 'onload'],
             ],
         ];
     }
@@ -263,7 +263,7 @@ final class base_purpose_test extends \advanced_testcase {
             ],
             'code_block_structure' => [
                 'input' => $codeblock . 'php' . "\n" . 'echo \'Hello\';' . "\n" . $codeblock,
-                'mustcontain' => ['<pre>', '<code'],
+                'mustcontain' => ['<pre class="language-', '<code'],
             ],
             'empty_input' => [
                 'input' => '',
@@ -326,7 +326,7 @@ final class base_purpose_test extends \advanced_testcase {
                     . '</html>' . "\n"
                     . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
+                    '<pre class="language-',
                     '<code',
                     '&lt;html&gt;',
                     '&lt;script&gt;',
@@ -353,8 +353,8 @@ final class base_purpose_test extends \advanced_testcase {
                     . '    print(greet("World"))' . "\n"
                     . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
-                    '<code class="python"',
+                    '<pre class="language-',
+                    'language-python"><code>',
                     'import os',
                     'def greet(name: str)',
                     'print(greet(',
@@ -371,8 +371,8 @@ final class base_purpose_test extends \advanced_testcase {
                     . '}' . "\n"
                     . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
-                    '<code class="java"',
+                    '<pre class="language-',
+                    'language-java"><code>',
                     'public class HelloWorld',
                     'System.out.println',
                 ],
@@ -391,7 +391,7 @@ final class base_purpose_test extends \advanced_testcase {
                     '&lt;style&gt;',
                     '&lt;div class=',
                     '&lt;script src=',
-                    '<pre>',
+                    '<pre class="language-',
                     '<code',
                 ],
                 'mustnotcontain' => [
@@ -429,7 +429,7 @@ final class base_purpose_test extends \advanced_testcase {
                 'mustcontain' => [
                     '<h2>',
                     '<strong>config file</strong>',
-                    '<code class="python"',
+                    'language-python"><code>',
                     'pip install moodle-client',
                     '&lt;form action=',
                     '&lt;input type=',
@@ -460,7 +460,7 @@ final class base_purpose_test extends \advanced_testcase {
                     . '</div>' . "\n"
                     . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
+                    '<pre class="language-',
                     '<code',
                     '&lt;div class=',
                     '&lt;a href=',
@@ -483,10 +483,10 @@ final class base_purpose_test extends \advanced_testcase {
                     . '    print("hi")' . "\n"
                     . '    ' . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
-                    '<code class="html"',
+                    '<pre class="language-',
+                    'language-html"><code>',
                     '&lt;div&gt;hello&lt;/div&gt;',
-                    '<code class="python"',
+                    'language-python"><code>',
                     'print("hi")',
                 ],
                 'mustnotcontain' => [
@@ -505,10 +505,10 @@ final class base_purpose_test extends \advanced_testcase {
                     . '    print("hi")' . "\n"
                     . '    ' . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
-                    '<code class="html"',
+                    '<pre class="language-',
+                    'language-html"><code>',
                     '&lt;div&gt;hello&lt;/div&gt;',
-                    '<code class="python"',
+                    'language-python"><code>',
                     'print("hi")',
                 ],
                 'mustnotcontain' => [
@@ -527,7 +527,7 @@ final class base_purpose_test extends \advanced_testcase {
                     . '    print("world")' . "\n"
                     . '    ' . $codeblock,
                 'mustcontain' => [
-                    '<pre>',
+                    '<pre class="language-',
                     '<code>',
                     'echo "hello";',
                     'print("world")',
@@ -544,8 +544,8 @@ final class base_purpose_test extends \advanced_testcase {
                     '<code>print("world")</code>',
                 ],
                 'mustnotcontain' => [
-                    '<pre><code>echo',
-                    '<pre><code>print',
+                    '><code>echo',
+                    '><code>print',
                 ],
             ],
             'mixed_list_code_blocks_and_inline_code' => [
@@ -562,39 +562,39 @@ final class base_purpose_test extends \advanced_testcase {
                 'mustcontain' => [
                     '<code>npm install</code>',
                     '<code>node app.js</code>',
-                    '<code class="javascript"',
+                    'language-javascript"><code>',
                     'console.log("Hello")',
-                    '<code class="python"',
+                    'language-python"><code>',
                     'print("Hello")',
-                    '<pre>',
+                    '<pre class="language-',
                 ],
                 'mustnotcontain' => [
-                    '<pre><code>npm install',
-                    '<pre><code>node app.js',
+                    '><code>npm install',
+                    '><code>node app.js',
                     $codeblock . 'javascript',
                     $codeblock . 'python',
                 ],
             ],
-            'html_tag_outside_code_block_is_escaped' => [
-                'input' => 'Use <div> for containers',
+            'html_tag_outside_code_block_renders_as_html' => [
+                'input' => 'Use <strong>emphasis</strong> for containers',
                 'mustcontain' => [
-                    '&lt;div&gt;',
+                    '<strong>emphasis</strong>',
                 ],
                 'mustnotcontain' => [
-                    '<div>',
+                    '&lt;strong&gt;',
                 ],
             ],
-            'multiple_html_tags_outside_code_block_are_escaped' => [
-                'input' => 'Use <div> and </div> and <span class="test"> elements',
+            'multiple_html_tags_outside_code_block_render_as_html' => [
+                'input' => 'Use <strong>bold</strong> and <em>italic</em> and <span class="test">marked</span> elements',
                 'mustcontain' => [
-                    '&lt;div&gt;',
-                    '&lt;/div&gt;',
-                    '&lt;span class=',
+                    '<strong>bold</strong>',
+                    '<em>italic</em>',
+                    '<span class="test">marked</span>',
                 ],
                 'mustnotcontain' => [
-                    '<div>',
-                    '</div>',
-                    '<span class=',
+                    '&lt;strong&gt;',
+                    '&lt;em&gt;',
+                    '&lt;span class=',
                 ],
             ],
             'html_tags_outside_code_block_mixed_with_markdown' => [
@@ -607,19 +607,19 @@ final class base_purpose_test extends \advanced_testcase {
                     '<h2>',
                     '&lt;div&gt;',
                     '<strong>bold</strong>',
-                    '<pre>',
+                    '<pre class="language-',
                     '<code',
                 ],
                 'mustnotcontain' => [],
             ],
             'html_tags_outside_code_block_with_blockquote' => [
-                'input' => '> A blockquote' . "\n\n" . 'Use <div> for layout',
+                'input' => '> A blockquote' . "\n\n" . 'Use <strong>bold text</strong> for layout',
                 'mustcontain' => [
                     '<blockquote>',
-                    '&lt;div&gt;',
+                    '<strong>bold text</strong>',
                 ],
                 'mustnotcontain' => [
-                    '<div>',
+                    '&lt;strong&gt;',
                 ],
             ],
             'nested_blockquotes' => [
@@ -633,16 +633,68 @@ final class base_purpose_test extends \advanced_testcase {
                 'mustnotcontain' => [],
             ],
             'blockquote_with_html_tag' => [
-                'input' => '> Use <div> for layout' . "\n" . '>> And <span> for inline',
+                'input' => '> Use <strong>bold</strong> for layout' . "\n" . '>> And <em>italic</em> for inline',
                 'mustcontain' => [
                     '<blockquote>',
-                    '&lt;div&gt;',
-                    '&lt;span&gt;',
+                    '<strong>bold</strong>',
+                    '<em>italic</em>',
                 ],
                 'mustnotcontain' => [
-                    '<div>',
-                    '<span>',
+                    '&lt;strong&gt;',
+                    '&lt;em&gt;',
                 ],
+            ],
+            'display_math_with_matrix_preserved' => [
+                'input' => 'Consider $$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$ here.',
+                'mustcontain' => [
+                    '$$\begin{pmatrix} a &amp; b \\ c &amp; d \end{pmatrix}$$',
+                ],
+                'mustnotcontain' => [],
+            ],
+            'inline_math_parens_preserved' => [
+                'input' => 'The formula \(x_1 + y_2 = z\) holds.',
+                'mustcontain' => [
+                    '\(x_1 + y_2 = z\)',
+                ],
+                'mustnotcontain' => [],
+            ],
+            'display_math_brackets_preserved' => [
+                'input' => 'Display: \[ \frac{a}{b} \]',
+                'mustcontain' => [
+                    '\[ \frac{a}{b} \]',
+                ],
+                'mustnotcontain' => [],
+            ],
+            'bare_latex_environment_preserved' => [
+                'input' => '\begin{align} x &= 1 \\ y &= 2 \end{align}',
+                'mustcontain' => [
+                    '\begin{align} x &amp;= 1 \\ y &amp;= 2 \end{align}',
+                ],
+                'mustnotcontain' => [],
+            ],
+            'nested_math_in_environment_no_placeholder_leak' => [
+                'input' => 'Cases:' . "\n\n"
+                    . '\begin{itemize}' . "\n"
+                    . '\item \(D>0\): two solutions' . "\n"
+                    . '\item \(D=0\): one solution' . "\n"
+                    . '\end{itemize}',
+                'mustcontain' => [
+                    '\(D&gt;0\)',
+                    '\(D=0\)',
+                ],
+                'mustnotcontain' => ['AIMATHMASK'],
+            ],
+            'math_inside_fence_stays_code' => [
+                'input' => 'Example:' . "\n\n"
+                    . $codeblock . 'latex' . "\n"
+                    . '$$x^2$$' . "\n"
+                    . $codeblock,
+                'mustcontain' => [
+                    '<pre class="language-',
+                    '<code',
+                    '$$x^2$$',
+                ],
+                'mustnotcontain' => [],
             ],
         ];
     }
@@ -675,166 +727,10 @@ final class base_purpose_test extends \advanced_testcase {
     }
 
     /**
-     * Data provider for placeholder prefix generation tests.
+     * Data provider for full-pipeline MathJax/LaTeX preservation tests.
      *
-     * Ensures that generate_placeholder_prefix returns a prefix that does not
-     * collide with existing content in the given text.
-     *
-     * @return array test cases with input text
-     */
-    public static function generate_placeholder_prefix_provider(): array {
-        return [
-            'plain_text' => [
-                'input' => 'Just some normal text without anything special.',
-                'expectedprefix' => "\x00PLACEHOLDER",
-            ],
-            'text_contains_default_placeholder' => [
-                'input' => "The string \x00PLACEHOLDER is used internally.",
-                'expectedprefix' => "\x00PLACEHOLDER" . 'X',
-            ],
-            'text_contains_extended_placeholder' => [
-                'input' => "Both \x00PLACEHOLDER and \x00PLACEHOLDERX appear here.",
-                'expectedprefix' => "\x00PLACEHOLDER" . 'XX',
-            ],
-        ];
-    }
-
-    /**
-     * Test that generate_placeholder_prefix returns a prefix not contained in the input.
-     *
-     * @param string $input The text to generate a placeholder prefix for
-     * @param string $expectedprefix The exact expected placeholder prefix
-     * @covers \local_ai_manager\base_purpose::generate_placeholder_prefix
-     * @dataProvider generate_placeholder_prefix_provider
-     */
-    public function test_generate_placeholder_prefix(string $input, string $expectedprefix): void {
-        $prefix = base_purpose::generate_placeholder_prefix($input);
-        $this->assertEquals($expectedprefix, $prefix);
-        $this->assertStringNotContainsString($prefix, $input);
-    }
-
-    /**
-     * Data provider for MathJax environment escaping tests.
-     *
-     * Provides test cases to verify that \begin{...} and \end{...} patterns
-     * outside pre blocks are wrapped in MathJax ignore spans, while content
-     * inside pre blocks is left unchanged.
-     *
-     * @return array test cases with HTML input, mustcontain and mustnotcontain arrays
-     */
-    public static function escape_mathjax_environments_provider(): array {
-        return [
-            'begin_document_outside_pre' => [
-                'input' => '<p>\documentclass{article}\begin{document}Hello World\end{document}</p>',
-                'mustcontain' => [
-                    '<span class="mathjax_ignore">\begin{document}</span>',
-                    '<span class="mathjax_ignore">\end{document}</span>',
-                    '\documentclass{article}',
-                ],
-                'mustnotcontain' => [],
-            ],
-            'begin_equation_outside_pre' => [
-                'input' => '<p>\begin{equation}x^2\end{equation}</p>',
-                'mustcontain' => [
-                    '<span class="mathjax_ignore">\begin{equation}</span>',
-                    '<span class="mathjax_ignore">\end{equation}</span>',
-                ],
-                'mustnotcontain' => [],
-            ],
-            'begin_inside_pre_not_modified' => [
-                'input' => '<pre><code>\begin{document}Hello World\end{document}</code></pre>',
-                'mustcontain' => [
-                    '\begin{document}Hello World\end{document}',
-                ],
-                'mustnotcontain' => [
-                    'mathjax_ignore',
-                ],
-            ],
-            'mixed_pre_and_non_pre' => [
-                'input' => '<p>\begin{document}</p><pre><code>\begin{equation}</code></pre><p>\end{document}</p>',
-                'mustcontain' => [
-                    '<span class="mathjax_ignore">\begin{document}</span>',
-                    '<pre><code>\begin{equation}</code></pre>',
-                    '<span class="mathjax_ignore">\end{document}</span>',
-                ],
-                'mustnotcontain' => [],
-            ],
-            'no_begin_end_patterns' => [
-                'input' => '<p>Normal text without LaTeX</p>',
-                'mustcontain' => [
-                    '<p>Normal text without LaTeX</p>',
-                ],
-                'mustnotcontain' => [
-                    'mathjax_ignore',
-                ],
-            ],
-            'dollar_math_not_affected' => [
-                'input' => '<p>$$x^2 + y^2 = z^2$$</p>',
-                'mustcontain' => [
-                    '$$x^2 + y^2 = z^2$$',
-                ],
-                'mustnotcontain' => [
-                    'mathjax_ignore',
-                ],
-            ],
-            'documentclass_not_affected' => [
-                'input' => '<p>\documentclass{article}</p>',
-                'mustcontain' => [
-                    '\documentclass{article}',
-                ],
-                'mustnotcontain' => [
-                    'mathjax_ignore',
-                ],
-            ],
-            'multiple_environments_outside_pre' => [
-                'input' => '<p>\begin{align}x = 1\end{align} and \begin{itemize}\end{itemize}</p>',
-                'mustcontain' => [
-                    '<span class="mathjax_ignore">\begin{align}</span>',
-                    '<span class="mathjax_ignore">\end{align}</span>',
-                    '<span class="mathjax_ignore">\begin{itemize}</span>',
-                    '<span class="mathjax_ignore">\end{itemize}</span>',
-                ],
-                'mustnotcontain' => [],
-            ],
-            'empty_input' => [
-                'input' => '',
-                'mustcontain' => [],
-                'mustnotcontain' => [
-                    'mathjax_ignore',
-                ],
-            ],
-        ];
-    }
-
-    /**
-     * Test that MathJax environment patterns are correctly escaped outside pre blocks.
-     *
-     * @param string $input The HTML input
-     * @param array $mustcontain Strings that must be in the output
-     * @param array $mustnotcontain Strings that must not be in the output
-     * @covers \local_ai_manager\base_purpose::escape_mathjax_environments
-     * @dataProvider escape_mathjax_environments_provider
-     */
-    public function test_escape_mathjax_environments(
-        string $input,
-        array $mustcontain,
-        array $mustnotcontain,
-    ): void {
-        $output = base_purpose::escape_mathjax_environments($input);
-
-        foreach ($mustcontain as $expected) {
-            $this->assertStringContainsString($expected, $output);
-        }
-        foreach ($mustnotcontain as $notexpected) {
-            $this->assertStringNotContainsString($notexpected, $output);
-        }
-    }
-
-    /**
-     * Data provider for full-pipeline MathJax environment escaping tests.
-     *
-     * Tests that the format_output pipeline correctly handles LaTeX \begin/\end
-     * patterns both inside and outside code blocks.
+     * Tests that the format_output pipeline preserves LaTeX/MathJax delimiters and bare
+     * \begin/\end environments both inside and outside code blocks.
      *
      * @return array test cases
      */
@@ -842,37 +738,6 @@ final class base_purpose_test extends \advanced_testcase {
         $codeblock = "\x60\x60\x60";
 
         return [
-            'latex_code_without_code_fences_gets_escaped' => [
-                'input' => 'Example LaTeX:' . "\n\n"
-                    . '\documentclass{article}' . "\n"
-                    . '\begin{document}' . "\n"
-                    . 'Hello World' . "\n"
-                    . '\end{document}',
-                'mustcontain' => [
-                    'mathjax_ignore',
-                    '\begin{document}',
-                    '\end{document}',
-                ],
-                'mustnotcontain' => [],
-            ],
-            'latex_code_in_code_block_not_escaped' => [
-                'input' => 'Example:' . "\n\n"
-                    . $codeblock . 'latex' . "\n"
-                    . '\documentclass{article}' . "\n"
-                    . '\begin{document}' . "\n"
-                    . 'Hello World' . "\n"
-                    . '\end{document}' . "\n"
-                    . $codeblock,
-                'mustcontain' => [
-                    '<pre>',
-                    '<code',
-                    '\begin{document}',
-                    '\end{document}',
-                ],
-                'mustnotcontain' => [
-                    'mathjax_ignore',
-                ],
-            ],
             'dollar_math_passes_through' => [
                 'input' => 'The formula $$x^2 + y^2 = z^2$$ is important.',
                 'mustcontain' => [

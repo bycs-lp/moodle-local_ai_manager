@@ -15,17 +15,25 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for aipurpose_agent.
+ * Settings for aipurpose_chat.
  *
- * @package    aipurpose_agent
- * @copyright  ISB Bayern, 2025
- * @author     Andreas Wagner
+ * @package    aipurpose_chat
+ * @copyright  2026 ISB Bayern
+ * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2026072200;
-$plugin->requires = 2023042403;
-$plugin->release = '1.0';
-$plugin->component = 'aipurpose_agent';
-$plugin->maturity = MATURITY_BETA;
+defined('MOODLE_INTERNAL') || die;
+
+global $CFG;
+
+if ($hassiteconfig) {
+    $settings->add(
+        new admin_setting_configtextarea(
+            'aipurpose_chat/chatsystemprompt',
+            new lang_string('chatsystemprompt', 'aipurpose_chat'),
+            new lang_string('chatsystempromptdesc', 'aipurpose_chat'),
+            \aipurpose_chat\purpose::get_default_chatsystemprompt()
+        )
+    );
+}

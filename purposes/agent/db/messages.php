@@ -15,17 +15,19 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version file for aipurpose_agent.
+ * Message providers for aipurpose_agent.
  *
  * @package    aipurpose_agent
- * @copyright  ISB Bayern, 2025
- * @author     Andreas Wagner
+ * @category   message
+ * @copyright  2026 ISB Bayern
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2026072200;
-$plugin->requires = 2023042403;
-$plugin->release = '1.0';
-$plugin->component = 'aipurpose_agent';
-$plugin->maturity = MATURITY_BETA;
+$messageproviders = [
+    // Notifies site admins when an upgrade had to overwrite a customized agent prompt with the new default.
+    'promptoverwritten' => [
+        'capability' => 'moodle/site:config',
+    ],
+];

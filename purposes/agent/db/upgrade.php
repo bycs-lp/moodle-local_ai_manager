@@ -37,5 +37,34 @@ function xmldb_aipurpose_agent_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026041600, 'aipurpose', 'agent');
     }
 
+    if ($oldversion < 2026072200) {
+        // Overwrite the setting with the new default and notify all site admins with their old value, so a
+        // change to the prompt structure cannot leave a broken customized prompt behind. Admins can re-apply
+        // their customizations from the notification if needed.
+        $oldprompt = get_config('aipurpose_agent', 'agentprompt');
+        $newprompt = \aipurpose_agent\purpose::get_default_agentprompt();
+        if (!empty($oldprompt) && $oldprompt !== $newprompt) {
+            // The message provider is introduced in this same version, so register it before using it.
+            message_update_providers('aipurpose_agent');
+            foreach (get_admins() as $admin) {
+                $message = new \core\message\message();
+                $message->component = 'aipurpose_agent';
+                $message->name = 'promptoverwritten';
+                $message->courseid = SITEID;
+                $message->userfrom = \core_user::get_noreply_user();
+                $message->userto = $admin;
+                $message->subject = get_string('promptoverwrittensubject', 'aipurpose_agent');
+                $message->fullmessage = get_string('promptoverwrittenmessage', 'aipurpose_agent', $oldprompt);
+                $message->fullmessageformat = FORMAT_PLAIN;
+                $message->fullmessagehtml = '';
+                $message->smallmessage = get_string('promptoverwrittensubject', 'aipurpose_agent');
+                $message->notification = 1;
+                message_send($message);
+            }
+        }
+        set_config('agentprompt', $newprompt, 'aipurpose_agent');
+        upgrade_plugin_savepoint(true, 2026072200, 'aipurpose', 'agent');
+    }
+
     return true;
 }

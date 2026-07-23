@@ -199,7 +199,8 @@ class purpose extends base_purpose {
                 'chatoutput' => [
                     [
                         'type' => 'intro',
-                        'text' => format_text($output, FORMAT_MARKDOWN, ['filter' => false]),
+                        // Non-JSON answers still go through the formatting pipeline so math and HTML render.
+                        'text' => $this->format_ai_markdown_output($output, ['filter' => false]),
                     ],
                     [
                         'type' => 'outro',
@@ -237,19 +238,14 @@ class purpose extends base_purpose {
             if (isset($formelement['id'])) {
                 $outputrecord['formelements'][$key]['id'] = strip_tags($formelement['id']);
             }
-            // Format explanation with Markdown.
-            // We use format_ai_markdown_output() (same as for newValue) to properly escape
-            // raw HTML tags in the AI output before Markdown conversion.
-            // Using format_text() with FORMAT_MARKDOWN directly would mangle raw HTML tags
-            // like <pre> that the AI mentions in explanations.
+            // Explanations may mention raw HTML tags like <pre> that must be escaped before Markdown conversion.
             if (isset($formelement['explanation'])) {
                 $outputrecord['formelements'][$key]['explanation'] = $this->format_ai_markdown_output(
                     $formelement['explanation'],
                     ['filter' => false]
                 );
             }
-            // Note: newValue is intentionally NOT formatted as it needs to be injected into form fields as-is.
-            // Convert Markdown to sanitized HTML for display.
+            // The newValue must reach the form field as-is; only this separate display copy is formatted.
             if (isset($formelement['newValue'])) {
                 $outputrecord['formelements'][$key]['suggestiondisplayvalue'] = $this->format_ai_markdown_output(
                     $formelement['newValue'],
@@ -286,14 +282,29 @@ class purpose extends base_purpose {
         }
         $depth = 0;
         $jsonstring = '';
+        $instring = false;
+        $escaped = false;
         for ($i = $start, $len = strlen($text); $i < $len; $i++) {
-            if ($text[$i] === '{') {
+            $char = $text[$i];
+            // Braces inside JSON string values (e.g. "text": "closing } brace") must not
+            // affect the depth counting, so the string state is tracked including escapes.
+            if (!$instring && $char === '{') {
                 $depth++;
             }
             if ($depth > 0) {
-                $jsonstring .= $text[$i];
+                $jsonstring .= $char;
             }
-            if ($text[$i] === '}') {
+            if ($instring) {
+                if ($escaped) {
+                    $escaped = false;
+                } else if ($char === '\\') {
+                    $escaped = true;
+                } else if ($char === '"') {
+                    $instring = false;
+                }
+            } else if ($char === '"') {
+                $instring = true;
+            } else if ($char === '}') {
                 $depth--;
                 if ($depth === 0) {
                     break;
@@ -305,8 +316,54 @@ class purpose extends base_purpose {
             if (json_last_error() === JSON_ERROR_NONE) {
                 return $decoded;
             }
+            // The most common LLM noncompliance is a single (unescaped) backslash from LaTeX
+            // content, which makes the whole JSON object unparseable. Retry exactly once with
+            // repaired backslash escapes before falling back to plain text output.
+            $decoded = json_decode($this->repair_json_backslash_escapes($jsonstring), true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $decoded;
+            }
         }
         return null;
+    }
+
+    /**
+     * Repairs unescaped backslashes in an invalid JSON string returned by the LLM.
+     *
+     * LaTeX content consists almost entirely of single backslashes which are invalid JSON
+     * escapes. A blanket doubling of all backslashes would destroy legitimate escapes like
+     * "\n" used for line breaks in prose fields. Therefore recognizable math segments
+     * (where every backslash must be doubled, including valid-looking escapes like \frac
+     * or \times) are masked first, and outside of them only clearly invalid escape
+     * sequences are repaired while all valid JSON escapes are kept untouched.
+     *
+     * The math masking reuses base_purpose::mask_math_segments(); here every backslash inside a masked
+     * segment is doubled so it survives as a valid JSON escape.
+     *
+     * @param string $json the JSON string that failed to decode
+     * @return string the repaired JSON string (may still be invalid)
+     */
+    private function repair_json_backslash_escapes(string $json): string {
+        // Mask math segments, doubling every backslash inside them.
+        $segments = [];
+        $json = self::mask_math_segments($json, fn($segment) => str_replace('\\', '\\\\', $segment), $segments);
+
+        // Outside math segments: keep valid JSON escapes, double the backslash of invalid ones.
+        // The callback consumes valid escapes completely, so an already escaped backslash
+        // followed by a letter (e.g. "\\underline") can never be matched a second time.
+        $json = preg_replace_callback(
+            '/\\\\(u[0-9a-fA-F]{4}|["\\\\\/bfnrt])|\\\\(.)/s',
+            function ($matches) {
+                if (isset($matches[2])) {
+                    return '\\\\' . $matches[2];
+                }
+                return $matches[0];
+            },
+            $json
+        );
+
+        // Restore the repaired math segments.
+        return str_replace(array_keys($segments), array_values($segments), $json);
     }
 
     /**
@@ -324,24 +381,32 @@ class purpose extends base_purpose {
             $text = str_replace('\\n', "\n", $text);
         }
 
-        // Double only isolated single newlines so Markdown renders lists and paragraphs correctly.
-        // Using \n instead of \R avoids variable-length lookbehind issues in older PCRE versions.
-        $normalized = preg_replace('/(?<!\n)\n(?!\n)/', "\n\n", $text);
-        if ($normalized === null) {
-            return $text;
+        // Double isolated single newlines so Markdown renders lists and paragraphs correctly, but skip
+        // fenced code blocks (even indices are outside fences): doubling inside a fence injects blank
+        // lines and makes MarkdownExtra emit literal <br /> tags into the code.
+        $parts = preg_split('/(\x60{3}.*?\x60{3})/s', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+        foreach ($parts as $index => $part) {
+            if ($index % 2 === 0) {
+                $doubled = preg_replace('/(?<!\n)\n(?!\n)/', "\n\n", $part);
+                if ($doubled !== null) {
+                    $parts[$index] = $doubled;
+                }
+            }
         }
 
-        return $normalized;
+        return implode('', $parts);
     }
 
     /**
      * Returns the default value for the agentprompt setting.
      *
-     * This is only being used on install to inject into the admin setting. After that the admin setting is being used.
+     * Used to seed the admin setting on install and to overwrite it on upgrade when the default changes.
+     * After install/upgrade the admin setting is authoritative.
      *
      * @return string The default agent prompt.
      */
     public static function get_default_agentprompt(): string {
+        $formattingprompt = self::get_default_formatting_prompt();
         return <<<EOF
 This system prompt has the following structure:
 
@@ -393,6 +458,30 @@ In addition to formelements, the JSON has another key called "chatoutput". All y
  include some explanation of the settings that are already set according to your suggestion instead of including them in the
  object of the formfields attribute in the JSON.
 "outrotext" is what you are outputting after the formelements, for example, for a helpful followup question.
+
+{$formattingprompt}
+
+Exception: The "newValue" field is inserted directly into the target form field, it is not
+rendered through the normal chat display pipeline. Never wrap "newValue" content in fenced
+code blocks, regardless of format - the target form field would show the fence markers literally.
+
+Check the "editorFormat" property of the corresponding form element in the form structure JSON:
+- editorFormat "html": "newValue" must contain the raw, directly usable HTML exactly as it
+  should appear in the rich text editor. Do not use Markdown syntax here.
+  When it contains a code block, write it as <pre class="language-xxx"><code>...</code></pre>
+  with the language class on the <pre> element (e.g. language-python), so it gets syntax
+  highlighting after saving.
+- any other editorFormat (or if missing): "newValue" must contain plain text or Markdown syntax
+  as appropriate for the field, and must never contain raw HTML tags.
+
+Because your entire answer is a single JSON object, all string values must use valid JSON
+escaping: every literal backslash must be written as a double backslash. This is especially
+important for LaTeX/MathJax content where every delimiter and command starts with a backslash.
+Correct example:
+
+"newValue": "The area is \\\\(A = \\\\frac{1}{2} \\\\cdot g \\\\cdot h\\\\)."
+
+Never write a single backslash before characters like ( ) [ ] { } or letters inside JSON strings.
 
 All of your output MUST ALWAYS be inside the JSON structure.
 DO ONLY RETURN A VALID JSON OBJECT.
