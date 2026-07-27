@@ -595,27 +595,25 @@ class ai_manager_utils {
                 continue;
             }
 
-            if (
-                $userusage->get_currentusage() >=
-                $configmanager->get_max_requests($purposeinstance, $userinfo->get_role())
-            ) {
-                $purposes[] = [
-                    'purpose' => $purpose,
-                    'available' => self::AVAILABILITY_DISABLED,
-                    'errormessage' => get_string('error_limitreached', 'local_ai_manager'),
-                ];
-                continue;
-            }
-
-            if ($configmanager->get_max_requests($purposeinstance, $userinfo->get_role()) === 0) {
+            $maxrequests = $configmanager->get_max_requests($purposeinstance, $userinfo->get_role());
+            if ($maxrequests === 0) {
                 $purposes[] = [
                     'purpose' => $purpose,
                     'available' => self::AVAILABILITY_DISABLED,
                     'errormessage' => get_string(
-                        'error_purposenotconfigured',
+                        'error_http403usertype',
                         'local_ai_manager',
                         get_string('pluginname', 'aipurpose_' . $purpose)
                     ),
+                ];
+                continue;
+            }
+
+            if ($userusage->get_currentusage() >= $maxrequests) {
+                $purposes[] = [
+                    'purpose' => $purpose,
+                    'available' => self::AVAILABILITY_DISABLED,
+                    'errormessage' => get_string('error_limitreached', 'local_ai_manager'),
                 ];
                 continue;
             }
