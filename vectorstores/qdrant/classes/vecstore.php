@@ -77,16 +77,24 @@ class vecstore extends base_vecstore {
             if (!is_array($vector) || empty($vector)) {
                 continue;
             }
+            $payload = [
+                'content' => $embedding->get_content(),
+                'sourceid' => $embedding->get_sourceid(),
+                'chunk' => $embedding->get_chunk(),
+                'maxchunks' => $embedding->get_maxchunks(),
+            ];
+            // Vector-level citation metadata is only stored when present, to keep the payload minimal.
+            if ($embedding->get_locator() !== '') {
+                $payload['locator'] = $embedding->get_locator();
+            }
+            if ($embedding->get_url() !== '') {
+                $payload['url'] = $embedding->get_url();
+            }
             $points[] = [
                 // Qdrant requires a point id; we generate a UUID as callers do not manage record references.
                 'id' => \core\uuid::generate(),
                 'vector' => array_values($vector),
-                'payload' => [
-                    'content' => $embedding->get_content(),
-                    'sourceid' => $embedding->get_sourceid(),
-                    'chunk' => $embedding->get_chunk(),
-                    'maxchunks' => $embedding->get_maxchunks(),
-                ],
+                'payload' => $payload,
             ];
         }
         return $this->with_existing_collection(function () use ($points): vecstore_response {
@@ -133,13 +141,9 @@ class vecstore extends base_vecstore {
             }
             $matches = [];
             foreach ($response['data']['result'] as $hit) {
-                $payload = $hit['payload'] ?? [];
-                $matches[] = enriched_vector::create(
+                $matches[] = $this->payload_to_enriched_vector(
                     isset($hit['vector']) ? json_encode(array_values($hit['vector'])) : '',
-                    (string) ($payload['content'] ?? ''),
-                    (int) ($payload['sourceid'] ?? 0),
-                    (int) ($payload['chunk'] ?? 0),
-                    (int) ($payload['maxchunks'] ?? 0)
+                    $hit['payload'] ?? []
                 );
             }
             return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($matches));
@@ -163,13 +167,9 @@ class vecstore extends base_vecstore {
                 break;
             }
             foreach ($response['data']['result']['points'] as $point) {
-                $payload = $point['payload'] ?? [];
-                $vectors[] = enriched_vector::create(
+                $vectors[] = $this->payload_to_enriched_vector(
                     isset($point['vector']) ? json_encode(array_values($point['vector'])) : '',
-                    (string) ($payload['content'] ?? ''),
-                    (int) ($payload['sourceid'] ?? 0),
-                    (int) ($payload['chunk'] ?? 0),
-                    (int) ($payload['maxchunks'] ?? 0)
+                    $point['payload'] ?? []
                 );
             }
             $offset = $response['data']['result']['next_page_offset'] ?? null;
@@ -192,6 +192,25 @@ class vecstore extends base_vecstore {
             return vecstore_response::create_from_result();
         }
         return $this->create_error_response($response, 'Could not delete embeddings from qdrant collection.');
+    }
+
+    /**
+     * Builds an enriched vector object from a raw backend vector string and its stored payload.
+     *
+     * @param string $vector the (string representation of the) embedding vector
+     * @param array $payload the stored payload
+     * @return enriched_vector the reconstructed enriched vector
+     */
+    protected function payload_to_enriched_vector(string $vector, array $payload): enriched_vector {
+        return enriched_vector::create(
+            $vector,
+            (string) ($payload['content'] ?? ''),
+            (int) ($payload['sourceid'] ?? 0),
+            (int) ($payload['chunk'] ?? 0),
+            (int) ($payload['maxchunks'] ?? 0),
+            (string) ($payload['locator'] ?? ''),
+            (string) ($payload['url'] ?? '')
+        );
     }
 
     /**
