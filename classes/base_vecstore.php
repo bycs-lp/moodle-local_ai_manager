@@ -183,7 +183,7 @@ abstract class base_vecstore {
      * @param int $topk the maximum number of nearest neighbours to return
      * @param array $filters optional payload filters keyed by payload field. A scalar value matches that field
      *  exactly; an array value matches any of the given values (IN semantics), e.g.
-     *  ['contextid' => [12, 34]] restricts the search to those context ids
+     *  ['sourceid' => [12, 34]] restricts the search to those source ids
      * @return vecstore_response structured response containing operation status and a query payload
      */
     abstract public function query(array $vector, int $topk = 5, array $filters = []): vecstore_response;
