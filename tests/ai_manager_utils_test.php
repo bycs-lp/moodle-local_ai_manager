@@ -438,6 +438,7 @@ final class ai_manager_utils_test extends \advanced_testcase {
      * @covers \local_ai_manager\ai_manager_utils::determine_purposes_availability
      */
     public function test_determine_purposes_availability(): void {
+        global $DB;
         $this->resetAfterTest();
         $user = $this->getDataGenerator()->create_user(['institution' => '1234']);
         $course = $this->getDataGenerator()->create_course();
@@ -520,6 +521,20 @@ final class ai_manager_utils_test extends \advanced_testcase {
         $chatpurposeconfig = ai_manager_utils::get_ai_config($user, $blockcontextid, null, ['chat'])['purposes'][0];
         $this->assertEquals($chatpurposeconfig['available'], ai_manager_utils::AVAILABILITY_DISABLED);
         \local_ai_manager\plugininfo\aitool::enable_plugin('chatgpt', true);
+        \core\di::set(connector_factory::class, new connector_factory($configmanager));
+
+        // Test that a non-existent connector class (plugin removed from disk) results in AVAILABILITY_DISABLED.
+        // Simulate by changing the connector field in the DB record to a non-existent plugin name.
+        $DB->set_field('local_ai_manager_instance', 'connector', 'nonexistentplugin', ['id' => $instance->get_id()]);
+        \core\di::set(connector_factory::class, new connector_factory($configmanager));
+        $chatpurposeconfig = ai_manager_utils::get_ai_config($user, $blockcontextid, null, ['chat'])['purposes'][0];
+        $this->assertEquals(ai_manager_utils::AVAILABILITY_DISABLED, $chatpurposeconfig['available']);
+        $this->assertStringContainsString(
+            get_string('exception_purposeconnectorinvalid', 'local_ai_manager', get_string('pluginname', 'aipurpose_chat')),
+            $chatpurposeconfig['errormessage']
+        );
+        // Restore the valid connector name.
+        $DB->set_field('local_ai_manager_instance', 'connector', 'chatgpt', ['id' => $instance->get_id()]);
         \core\di::set(connector_factory::class, new connector_factory($configmanager));
 
         $userusage->set_currentusage(100);
