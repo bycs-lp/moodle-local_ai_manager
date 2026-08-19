@@ -143,8 +143,8 @@ class model_management_table extends table_sql implements dynamic {
             }
         }
 
-        $groupby = ' GROUP BY m.id, m.name, m.displayname, m.description, m.mimetypes, m.vision, m.imggen, "
-            . "m.tts, m.stt, m.temperature, m.deprecated';
+        $groupby = ' GROUP BY m.id, m.name, m.displayname, m.description, m.mimetypes, m.vision, m.imggen, '
+            . 'm.tts, m.stt, m.temperature, m.deprecated';
 
         $this->set_sql($fields, $from, $where . $filtersql . $groupby, array_merge($params, $filterparams));
 
