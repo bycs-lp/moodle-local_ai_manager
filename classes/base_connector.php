@@ -16,6 +16,7 @@
 
 namespace local_ai_manager;
 
+use core\exception\moodle_exception;
 use core\http_client;
 use core_plugin_manager;
 use GuzzleHttp\Psr7\Response;

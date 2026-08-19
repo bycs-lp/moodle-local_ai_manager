@@ -94,7 +94,7 @@ class statistics_overview_table extends table_sql {
         try {
             $connector =
                 \core\di::get(connector_factory::class)->get_connector_by_connectorname_and_model($row->connector, $row->model);
-        } catch (\coding_exception $e) {
+        } catch (\coding_exception | \moodle_exception $e) {
             return intval($row->userusage) . " " . get_string('unknownunit', 'local_ai_manager');
         }
         // Currently there are only requests and tokens as units, so we can use intval for the moment.

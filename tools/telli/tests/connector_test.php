@@ -46,10 +46,8 @@ final class connector_test extends \advanced_testcase {
         $connector = $connectorfactory->get_connector_by_connectorname('telli');
         // If we come to here, it at least worked, which is what we want to test.
         // Accessing methods that require the wrapped connector to be initialized will fail, though.
-        $this->expectException(\Error::class);
-        $this->expectExceptionMessage(
-            'Typed property aitool_telli\connector::$wrappedconnector must not be accessed before initialization'
-        );
+        $this->expectException(\moodle_exception::class);
+        $this->expectExceptionMessage(get_string('err_modelnotavailable', 'aitool_telli'));
         $connector->get_unit();
     }
 
