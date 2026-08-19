@@ -256,6 +256,7 @@
         "imggen": 0,
         "tts": 0,
         "stt": 0,
+        "deprecated": 1,
         "connectors": [
             "chatgpt",
             "telli"
@@ -374,7 +375,8 @@
         "tts": 0,
         "stt": 0,
         "connectors": [
-            "dalle"
+            "dalle",
+            "telli"
         ]
     },
     {
@@ -724,6 +726,7 @@
         "imggen": 1,
         "tts": 0,
         "stt": 0,
+        "deprecated": 1,
         "connectors": [
             "imagen",
             "telli"
@@ -1202,6 +1205,35 @@
             "ollama"
         ],
         "temperature": "0.0-1.0"
+    },
+    {
+        "name": "anthropic/claude-sonnet-4-6",
+        "displayname": "Claude Sonnet 4.6",
+        "description": "Anthropic Claude Sonnet 4.6 model with vision support",
+        "mimetypes": "image/png,image/jpeg,image/webp,image/gif",
+        "vision": 1,
+        "imggen": 0,
+        "tts": 0,
+        "stt": 0,
+        "connectors": [
+            "telli"
+        ],
+        "temperature": "0.0-2.0"
+    },
+    {
+        "name": "gemini-3.1-flash-lite",
+        "displayname": "Gemini 3.1 Flash Lite",
+        "description": "Google Gemini 3.1 Flash Lite model (temporarily disabled for telli due to missing vision support)",
+        "mimetypes": "",
+        "vision": 0,
+        "imggen": 0,
+        "tts": 0,
+        "stt": 0,
+        "deprecated": 1,
+        "connectors": [
+            "telli"
+        ],
+        "temperature": "0.0-2.0"
     },
     {
         "name": "meta-llama/Meta-Llama-3.1-405B-Instruct-FP8",
