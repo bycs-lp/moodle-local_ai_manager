@@ -82,7 +82,7 @@ class model_management_table_filter extends \core\output\datafilter {
             get_string('model_connectors', 'local_ai_manager'),
             false,
             true,
-            null,
+            'local_ai_manager/datafilter/filtertypes/connector',
             $options,
             false,
             null,
