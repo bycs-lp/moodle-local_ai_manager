@@ -18,6 +18,8 @@ namespace local_ai_manager;
 
 use core_plugin_manager;
 use local_ai_manager\local\connector_factory;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Test class for the base_connector class.
@@ -27,13 +29,12 @@ use local_ai_manager\local\connector_factory;
  * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+#[CoversClass(base_connector::class)]
 final class base_connector_test extends \advanced_testcase {
     /**
      * Test if all connector plugins implement a model definition for each existing purpose.
-     *
-     * @covers \local_ai_manager\base_purpose::get_models_by_purpose
-     * @dataProvider get_models_by_purpose_all_purposes_exist_provider
      */
+    #[DataProvider('get_models_by_purpose_all_purposes_exist_provider')]
     public function test_get_models_by_purpose_all_purposes_exist(string $purpose): void {
         $connectorfactory = \core\di::get(connector_factory::class);
         foreach (core_plugin_manager::instance()->get_installed_plugins('aitool') as $connector => $version) {
@@ -49,8 +50,6 @@ final class base_connector_test extends \advanced_testcase {
 
     /**
      * Test if connector plugins do not implement a definition for a non-existing purpose.
-     *
-     * @covers \local_ai_manager\base_purpose::get_models_by_purpose
      */
     public function test_get_models_by_purpose_no_wrong_purposes(): void {
         $existingpurposes = array_keys(core_plugin_manager::instance()->get_installed_plugins('aipurpose'));
@@ -85,43 +84,68 @@ final class base_connector_test extends \advanced_testcase {
     }
 
     /**
-     * Test that pure imggen and tts models are excluded from text purposes.
-     *
-     * @covers \local_ai_manager\base_connector::get_models_by_purpose
+     * Test that models are assigned to purposes based on their capability attributes.
      */
-    public function test_get_models_by_purpose_excludes_imggen_tts_from_text(): void {
+    public function test_get_models_by_purpose(): void {
         $this->resetAfterTest();
 
         /** @var \local_ai_manager_generator $generator */
         $generator = $this->getDataGenerator()->get_plugin_generator('local_ai_manager');
 
-        // Create a text model, an imggen-only model, and a tts-only model.
-        $textrecord = $generator->create_model(['name' => 'text-model', 'vision' => 0, 'imggen' => 0, 'tts' => 0]);
-        $imggenrecord = $generator->create_model(['name' => 'imggen-model', 'vision' => 0, 'imggen' => 1, 'tts' => 0]);
-        $ttsrecord = $generator->create_model(['name' => 'tts-model', 'vision' => 0, 'imggen' => 0, 'tts' => 1]);
-        // A vision model should still be a text model.
-        $visionrecord = $generator->create_model(['name' => 'vision-model', 'vision' => 1, 'imggen' => 0, 'tts' => 0]);
+        $records = [
+            'text-model' => $generator->create_model([
+                'name' => 'text-model',
+                'textgeneration' => 1,
+                'vision' => 0,
+                'imggen' => 0,
+                'tts' => 0,
+                'stt' => 0,
+            ]),
+            'vision-model' => $generator->create_model([
+                'name' => 'vision-model',
+                'textgeneration' => 1,
+                'vision' => 1,
+                'imggen' => 0,
+                'tts' => 0,
+                'stt' => 0,
+            ]),
+            'imggen-model' => $generator->create_model([
+                'name' => 'imggen-model',
+                'textgeneration' => 0,
+                'vision' => 0,
+                'imggen' => 1,
+                'tts' => 0,
+                'stt' => 0,
+            ]),
+            'tts-model' => $generator->create_model([
+                'name' => 'tts-model',
+                'textgeneration' => 0,
+                'vision' => 0,
+                'imggen' => 0,
+                'tts' => 1,
+                'stt' => 0,
+            ]),
+            'stt-model' => $generator->create_model([
+                'name' => 'stt-model',
+                'textgeneration' => 0,
+                'vision' => 0,
+                'imggen' => 0,
+                'tts' => 0,
+                'stt' => 1,
+            ]),
+        ];
 
-        // Assign all to a connector.
-        $textmodel = new \local_ai_manager\local\model((int) $textrecord->id);
-        $textmodel->add_connector('chatgpt');
-        $imggenmodel = new \local_ai_manager\local\model((int) $imggenrecord->id);
-        $imggenmodel->add_connector('chatgpt');
-        $ttsmodel = new \local_ai_manager\local\model((int) $ttsrecord->id);
-        $ttsmodel->add_connector('chatgpt');
-        $visionmodel = new \local_ai_manager\local\model((int) $visionrecord->id);
-        $visionmodel->add_connector('chatgpt');
+        foreach ($records as $record) {
+            $model = new \local_ai_manager\local\model((int) $record->id);
+            $model->add_connector('chatgpt');
+        }
 
         $connectorfactory = \core\di::get(connector_factory::class);
         $connector = $connectorfactory->get_connector_by_connectorname('chatgpt');
         $modelsbypurpose = $connector->get_models_by_purpose();
 
-        // Text purposes (chat, feedback etc.) should contain text-model and vision-model but NOT imggen/tts.
-        $purposes = base_purpose::get_installed_purposes_array();
-        foreach (array_keys($purposes) as $purpose) {
-            if (in_array($purpose, ['imggen', 'tts', 'itt'])) {
-                continue;
-            }
+        $textpurposes = array_diff(array_keys(base_purpose::get_installed_purposes_array()), ['imggen', 'tts', 'stt', 'itt']);
+        foreach ($textpurposes as $purpose) {
             $this->assertContains(
                 'text-model',
                 $modelsbypurpose[$purpose],
@@ -142,11 +166,19 @@ final class base_connector_test extends \advanced_testcase {
                 $modelsbypurpose[$purpose],
                 "tts-model should NOT be in text purpose '$purpose'"
             );
+            $this->assertNotContains(
+                'stt-model',
+                $modelsbypurpose[$purpose],
+                "stt-model should NOT be in text purpose '$purpose'"
+            );
         }
 
         // Verify specialized purposes.
         $this->assertContains('imggen-model', $modelsbypurpose['imggen']);
         $this->assertContains('tts-model', $modelsbypurpose['tts']);
         $this->assertContains('vision-model', $modelsbypurpose['itt']);
+        if (array_key_exists('stt', $modelsbypurpose)) {
+            $this->assertContains('stt-model', $modelsbypurpose['stt']);
+        }
     }
 }

@@ -45,6 +45,9 @@ class model {
     /** @var ?string Comma-separated list of supported mimetypes. */
     private ?string $mimetypes = null;
 
+    /** @var int Whether the model supports text generation. */
+    private int $textgeneration = 1;
+
     /** @var int Whether the model supports vision. */
     private int $vision = 0;
 
@@ -91,6 +94,7 @@ class model {
         $this->displayname = $record->displayname;
         $this->description = $record->description;
         $this->mimetypes = $record->mimetypes;
+        $this->textgeneration = (int) $record->textgeneration;
         $this->vision = (int) $record->vision;
         $this->imggen = (int) $record->imggen;
         $this->tts = (int) $record->tts;
@@ -113,6 +117,7 @@ class model {
         $record->displayname = $this->displayname;
         $record->description = $this->description;
         $record->mimetypes = $this->mimetypes;
+        $record->textgeneration = $this->textgeneration;
         $record->vision = $this->vision;
         $record->imggen = $this->imggen;
         $record->tts = $this->tts;
@@ -242,6 +247,24 @@ class model {
      */
     public function set_mimetypes(?string $mimetypes): void {
         $this->mimetypes = $mimetypes;
+    }
+
+    /**
+     * Returns whether the model supports text generation.
+     *
+     * @return bool true if text generation is supported
+     */
+    public function supports_textgeneration(): bool {
+        return (bool) $this->textgeneration;
+    }
+
+    /**
+     * Sets whether the model supports text generation.
+     *
+     * @param bool $textgeneration true if text generation is supported
+     */
+    public function set_textgeneration(bool $textgeneration): void {
+        $this->textgeneration = (int) $textgeneration;
     }
 
     /**

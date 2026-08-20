@@ -60,6 +60,10 @@ class model_edit_form extends dynamic_form {
 
         $mform->addElement('header', 'capabilitiesheader', get_string('model_capabilities', 'local_ai_manager'));
 
+        $mform->addElement('advcheckbox', 'textgeneration', get_string('model_textgeneration', 'local_ai_manager'));
+        $mform->setType('textgeneration', PARAM_BOOL);
+        $mform->setDefault('textgeneration', 1);
+
         $mform->addElement('advcheckbox', 'vision', get_string('model_vision', 'local_ai_manager'));
         $mform->setType('vision', PARAM_BOOL);
 
@@ -143,6 +147,7 @@ class model_edit_form extends dynamic_form {
             return $v !== '';
         });
         $modelobj->set_mimetypes(!empty($mimetypelines) ? implode(',', $mimetypelines) : null);
+        $modelobj->set_textgeneration((bool) $data->textgeneration);
         $modelobj->set_vision((bool) $data->vision);
         $modelobj->set_imggen((bool) $data->imggen);
         $modelobj->set_tts((bool) $data->tts);
@@ -189,6 +194,7 @@ class model_edit_form extends dynamic_form {
             $data['displayname'] = $modelobj->get_displayname() ?? '';
             $data['description'] = $modelobj->get_description() ?? '';
             $data['mimetypes'] = implode("\n", array_map('trim', explode(',', $modelobj->get_mimetypes() ?? '')));
+            $data['textgeneration'] = (int) $modelobj->supports_textgeneration();
             $data['vision'] = (int) $modelobj->supports_vision();
             $data['imggen'] = (int) $modelobj->supports_imggen();
             $data['tts'] = (int) $modelobj->supports_tts();

@@ -362,6 +362,7 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         $table->add_field('displayname', XMLDB_TYPE_CHAR, '255', null, null, null, null);
         $table->add_field('description', XMLDB_TYPE_TEXT, null, null, null, null, null);
         $table->add_field('mimetypes', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('textgeneration', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1');
         $table->add_field('vision', XMLDB_TYPE_INTEGER, '1', null, null, null, null);
         $table->add_field('imggen', XMLDB_TYPE_INTEGER, '1', null, null, null, null);
         $table->add_field('tts', XMLDB_TYPE_INTEGER, '1', null, null, null, null);
@@ -382,6 +383,12 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         $index = new xmldb_index('name', XMLDB_INDEX_UNIQUE, ['name']);
         if (!$dbman->index_exists($table, $index)) {
             $dbman->add_index($table, $index);
+        }
+
+        // Ensure textgeneration exists if the table was created by an earlier variant of this step.
+        $field = new xmldb_field('textgeneration', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'mimetypes');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
         }
 
         // Step 2: Create the local_ai_manager_model_connector table.

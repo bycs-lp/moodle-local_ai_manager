@@ -94,6 +94,7 @@ function local_ai_manager_migrate_instance_model_to_id(): void {
             $newmodel->displayname = $modelname;
             $newmodel->description = 'Auto-created during migration';
             $newmodel->mimetypes = '';
+            $newmodel->textgeneration = 1;
             $newmodel->vision = 0;
             $newmodel->imggen = 0;
             $newmodel->tts = 0;

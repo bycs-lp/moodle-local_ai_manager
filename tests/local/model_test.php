@@ -50,6 +50,7 @@ final class model_test extends \advanced_testcase {
         $model->set_displayname('GPT-4o');
         $model->set_description('A multimodal model');
         $model->set_mimetypes('image/png,image/jpeg');
+        $model->set_textgeneration(true);
         $model->set_vision(true);
         $model->set_imggen(false);
         $model->set_tts(false);
@@ -66,6 +67,7 @@ final class model_test extends \advanced_testcase {
         $this->assertEquals('GPT-4o', $loaded->get_displayname());
         $this->assertEquals('A multimodal model', $loaded->get_description());
         $this->assertEquals('image/png,image/jpeg', $loaded->get_mimetypes());
+        $this->assertTrue($loaded->supports_textgeneration());
         $this->assertTrue($loaded->supports_vision());
         $this->assertFalse($loaded->supports_imggen());
         $this->assertFalse($loaded->supports_tts());

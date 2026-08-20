@@ -59,12 +59,16 @@ abstract class base_connector {
     }
 
     /**
-     * Returns the available models grouped by purpose based on the model management database.
+     * Returns the available models grouped by purpose based on the model management table.
      *
-     * All models assigned to this connector are available for all purposes, except:
-     * - 'tts': only models with the tts attribute
-     * - 'imggen': only models with the imggen attribute
-     * - 'itt': only models with the vision attribute
+     * Purpose-to-capability mapping is based on model capability attributes:
+     * - 'agent', 'chat', 'feedback', 'questiongeneration', 'singleprompt', 'translate': textgeneration
+     * - 'tts': tts
+     * - 'stt': stt
+     * - 'imggen': imggen
+     * - 'itt': vision
+     *
+     * Installed purposes without explicit mapping return an empty model list.
      *
      * Subclasses may override this method if they need custom logic.
      *
@@ -77,48 +81,41 @@ abstract class base_connector {
 
         $models = model::get_all_models($connectorname);
 
-        $allmodels = [];
-        $visionmodels = [];
-        $imggenmodels = [];
-        $ttsmodels = [];
+        $result = array_fill_keys(array_keys(base_purpose::get_installed_purposes_array()), []);
+        $textpurposes = ['agent', 'chat', 'feedback', 'questiongeneration', 'singleprompt', 'translate'];
 
         foreach ($models as $model) {
             $name = $model->get_name();
-            $allmodels[] = $name;
-            if ($model->supports_vision()) {
-                $visionmodels[] = $name;
+            if (empty($name)) {
+                continue;
             }
-            if ($model->supports_imggen()) {
-                $imggenmodels[] = $name;
+
+            if ($model->supports_textgeneration()) {
+                foreach ($textpurposes as $purpose) {
+                    if (array_key_exists($purpose, $result)) {
+                        $result[$purpose][] = $name;
+                    }
+                }
             }
-            if ($model->supports_tts()) {
-                $ttsmodels[] = $name;
+
+            if ($model->supports_tts() && array_key_exists('tts', $result)) {
+                $result['tts'][] = $name;
+            }
+
+            if ($model->supports_stt() && array_key_exists('stt', $result)) {
+                $result['stt'][] = $name;
+            }
+
+            if ($model->supports_imggen() && array_key_exists('imggen', $result)) {
+                $result['imggen'][] = $name;
+            }
+
+            if ($model->supports_vision() && array_key_exists('itt', $result)) {
+                $result['itt'][] = $name;
             }
         }
 
-        // Text models are all models that are not pure imggen or tts models.
-        $textmodels = array_values(array_filter($allmodels, function ($name) use ($imggenmodels, $ttsmodels) {
-            return !in_array($name, $imggenmodels) && !in_array($name, $ttsmodels);
-        }));
-
-        $purposes = base_purpose::get_installed_purposes_array();
-        foreach (array_keys($purposes) as $purpose) {
-            switch ($purpose) {
-                case 'tts':
-                    $purposes[$purpose] = $ttsmodels;
-                    break;
-                case 'imggen':
-                    $purposes[$purpose] = $imggenmodels;
-                    break;
-                case 'itt':
-                    $purposes[$purpose] = $visionmodels;
-                    break;
-                default:
-                    $purposes[$purpose] = $textmodels;
-                    break;
-            }
-        }
-        return $purposes;
+        return $result;
     }
 
     /**

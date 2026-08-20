@@ -113,6 +113,7 @@
         <FIELD NAME="displayname" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Human-readable display name"/>
         <FIELD NAME="description" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Description of the model"/>
         <FIELD NAME="mimetypes" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Comma-separated list of supported mimetypes"/>
+        <FIELD NAME="textgeneration" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Whether the model supports text generation"/>
         <FIELD NAME="vision" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Whether the model supports vision"/>
         <FIELD NAME="imggen" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Whether the model supports image generation"/>
         <FIELD NAME="tts" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Whether the model supports text-to-speech"/>

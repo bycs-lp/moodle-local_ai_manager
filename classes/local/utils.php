@@ -49,21 +49,13 @@ class utils {
         foreach ($models as $modeldata) {
             // Check if model already exists (by name).
             $existing = $DB->get_record('local_ai_manager_model', ['name' => $modeldata['name']]);
-            if ($existing) {
-                $modelid = $existing->id;
-                // Update deprecated flag if it has changed.
-                $deprecated = (int) ($modeldata['deprecated'] ?? 0);
-                if ((int) $existing->deprecated !== $deprecated) {
-                    $existing->deprecated = $deprecated;
-                    $existing->timemodified = $now;
-                    $DB->update_record('local_ai_manager_model', $existing);
-                }
-            } else {
+            if (!$existing) {
                 $record = new \stdClass();
                 $record->name = $modeldata['name'];
                 $record->displayname = $modeldata['displayname'] ?? $modeldata['name'];
                 $record->description = $modeldata['description'] ?? '';
                 $record->mimetypes = $modeldata['mimetypes'] ?? '';
+                $record->textgeneration = (int) ($modeldata['textgeneration'] ?? 1);
                 $record->vision = (int) ($modeldata['vision'] ?? 0);
                 $record->imggen = (int) ($modeldata['imggen'] ?? 0);
                 $record->tts = (int) ($modeldata['tts'] ?? 0);
@@ -73,6 +65,8 @@ class utils {
                 $record->timecreated = $now;
                 $record->timemodified = $now;
                 $modelid = $DB->insert_record('local_ai_manager_model', $record);
+            } else {
+                $modelid = $existing->id;
             }
 
             // Insert connector assignments.
@@ -80,8 +74,8 @@ class utils {
                 foreach ($modeldata['connectors'] as $connector) {
                     if (
                         !$DB->record_exists('local_ai_manager_model_connector', [
-                        'modelid' => $modelid,
-                        'connector' => $connector,
+                            'modelid' => $modelid,
+                            'connector' => $connector,
                         ])
                     ) {
                         $purposerecord = new \stdClass();

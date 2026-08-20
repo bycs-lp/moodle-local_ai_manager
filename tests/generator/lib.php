@@ -82,6 +82,7 @@ class local_ai_manager_generator extends component_generator_base {
             'displayname' => 'Test Model',
             'description' => '',
             'mimetypes' => '',
+            'textgeneration' => 1,
             'vision' => 0,
             'imggen' => 0,
             'tts' => 0,

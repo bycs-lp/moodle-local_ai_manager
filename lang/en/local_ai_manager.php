@@ -221,6 +221,7 @@ $string['model_temperature_max_negative'] = 'Maximum temperature must not be neg
 $string['model_temperature_min'] = 'Minimum temperature';
 $string['model_temperature_min_negative'] = 'Minimum temperature must not be negative.';
 $string['model_temperature_range'] = 'Temperature range';
+$string['model_textgeneration'] = 'Text generation';
 $string['model_tts'] = 'Text-to-speech';
 $string['model_vision'] = 'Vision support';
 $string['modeldetailed'] = 'Detailed model string';

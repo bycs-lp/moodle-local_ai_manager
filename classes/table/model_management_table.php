@@ -50,7 +50,7 @@ class model_management_table extends table_sql implements dynamic {
         $this->define_baseurl(new moodle_url('/local/ai_manager/manage_models.php'));
 
         $columns = [
-            'name', 'displayname', 'description', 'mimetypes', 'vision', 'imggen', 'tts', 'stt',
+            'name', 'displayname', 'description', 'mimetypes', 'textgeneration', 'vision', 'imggen', 'tts', 'stt',
             'temperature', 'connectors', 'deprecated', 'actions',
         ];
         $headers = [
@@ -58,6 +58,7 @@ class model_management_table extends table_sql implements dynamic {
             get_string('model_displayname', 'local_ai_manager'),
             get_string('description'),
             get_string('model_mimetypes', 'local_ai_manager'),
+            get_string('model_textgeneration', 'local_ai_manager'),
             get_string('model_vision', 'local_ai_manager'),
             get_string('model_imggen', 'local_ai_manager'),
             get_string('model_tts', 'local_ai_manager'),
@@ -91,7 +92,7 @@ class model_management_table extends table_sql implements dynamic {
         global $DB;
 
         $concat = $DB->sql_group_concat('mp.connector', ', ');
-        $fields = "m.id, m.name, m.displayname, m.description, m.mimetypes, m.vision, m.imggen, "
+        $fields = "m.id, m.name, m.displayname, m.description, m.mimetypes, m.textgeneration, m.vision, m.imggen, "
             . "m.tts, m.stt, m.temperature, m.deprecated, "
             . $concat . " AS connectors";
         $from = '{local_ai_manager_model} m LEFT JOIN {local_ai_manager_model_connector} mp ON mp.modelid = m.id';
@@ -143,7 +144,7 @@ class model_management_table extends table_sql implements dynamic {
             }
         }
 
-        $groupby = ' GROUP BY m.id, m.name, m.displayname, m.description, m.mimetypes, m.vision, m.imggen, '
+        $groupby = ' GROUP BY m.id, m.name, m.displayname, m.description, m.mimetypes, m.textgeneration, m.vision, m.imggen, '
             . 'm.tts, m.stt, m.temperature, m.deprecated';
 
         $this->set_sql($fields, $from, $where . $filtersql . $groupby, array_merge($params, $filterparams));
@@ -193,6 +194,16 @@ class model_management_table extends table_sql implements dynamic {
             return '<i class="fa fa-check text-success" aria-label="' . get_string('yes') . '"></i>';
         }
         return '<i class="fa fa-times text-muted" aria-label="' . get_string('no') . '"></i>';
+    }
+
+    /**
+     * Render the textgeneration column.
+     *
+     * @param stdClass $row The current row data
+     * @return string The textgeneration icon
+     */
+    public function col_textgeneration(stdClass $row): string {
+        return $this->render_boolean_icon(!empty($row->textgeneration));
     }
 
     /**
