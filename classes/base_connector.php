@@ -176,11 +176,7 @@ abstract class base_connector {
      * @return array array of int model IDs
      */
     final public function get_model_ids(): array {
-        $ids = [];
-        foreach ($this->get_model_ids_by_purpose() as $idarray) {
-            $ids = array_merge($ids, $idarray);
-        }
-        return array_unique($ids);
+        return array_unique(array_merge(...array_values($this->get_model_ids_by_purpose())));
     }
 
     /**
