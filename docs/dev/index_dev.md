@@ -21,3 +21,20 @@ See [purposes.md](purposes.md) for more information.
 
 See [tools.md](tools.md) for more information.
 
+
+# 4 Model management
+
+Model definitions are managed centrally in the model management UI and stored in DB tables used by connectors and the configuration UI.
+
+Navigation path: *Site administration* -> *Plugins* -> *Local plugins* -> *AI manager* -> *Manage models*.
+
+The JSON file `local/ai_manager/db/models.json` is primarily used for bootstrapping/import convenience.
+
+Import happens automatically on install/upgrade and can also be triggered manually:
+```bash
+php local/ai_manager/cli/import_models.php
+```
+
+Repeated imports are idempotent regarding duplicates: existing models and existing model/connector assignments are not inserted again.
+
+Important: re-import does not update existing model fields; it only adds missing models and missing connector assignments.

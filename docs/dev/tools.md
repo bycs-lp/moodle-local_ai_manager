@@ -13,7 +13,7 @@ Currently available aitool subplugins (connectors) are:
 
 You can define different connector *instances* (referred to "AI tool" in the frontend) which basically are configurations of a connector. For example, you can define a "chatgpt 4o precise" instance which uses the chatgpt connector, sets the model to use "gpt-4o" and is configured to use a very low value for the temperature parameter. Besides that you can just define another instance "chatgpt 4o creative" that also uses "gpt-4o" as model, but with a higher temperature parameter. You then can define which instance should be used for which purpose, for example purpose *feedback* should use "chatgpt 4o precise", purpose *chat* should use "chatgpt 4o creative".
 
-The connector plugins basically define which models can be used, which parameters are being passed to the external AI systems, take care of the API responses and return the output back to the purpose which then hands it back to the manager. Switching the AI system is as easy as changing which instance should be used by a purpose.
+The connector plugins define how requests are sent to external AI systems and how responses are interpreted. Available models are centrally managed in the model management UI. Switching the AI system is as easy as changing which instance should be used by a purpose.
 
 ## 3.2 Write your own aitool subplugin ("connector subplugin")
 
@@ -33,7 +33,31 @@ Besides that, you basically need to implement two classes:
 ### 3.2.2 Required lang strings:
 - `'adddescription'`: Put the description of your AI tool in this string. It will be shown as description of your connector in the connector selection modal when adding a new AI tool.
 
-### 3.2.3 The connector class
+### 3.2.3 Model catalog integration
+
+Model availability is managed centrally. Day-to-day model maintenance is done via the model management page.
+
+Navigation path: *Site administration* -> *Plugins* -> *Local plugins* -> *AI manager* -> *Manage models*.
+
+To make models available for your connector:
+- create or update model entries in the model management page,
+- assign your connector in the model's connector selection,
+- set capability flags (`textgeneration`, `vision`, `imggen`, `tts`, `stt`) according to what the model supports.
+
+This information is stored in `local_ai_manager_model` and `local_ai_manager_model_connector`.
+
+For initial or bulk bootstrapping, you can also import model definitions from `local/ai_manager/db/models.json`.
+
+You can trigger import manually with:
+```bash
+php local/ai_manager/cli/import_models.php
+```
+
+Repeated imports are safe: existing models and existing connector assignments are not duplicated.
+
+Important: import is not a full synchronization for existing models. Existing model fields are not updated during re-import; only missing models and missing connector assignments are added.
+
+### 3.2.4 The connector class
 
 This is the main class of the connector plugin implementing how the API of the external AI system is being accessed.
 
@@ -45,13 +69,13 @@ Which methods need to be overwritten depends on how the API of your external AI 
 
 To understand what methods need to be overwritten, here comes a description of each method:
 
-- `get_models_by_purpose(): array` (**abstract function, needs to be implemented**)
+- `get_models_by_purpose(): array`
 
-  Each connector plugin needs to declare which models are available and usable for which purposes and which purposes this connector plugin supports. It has to return an associative array where the key is the purpose (e.g., 'imggen') and the value is an array of model names supported for that purpose, see the other connectors for examples.
+  This method is implemented in `\local_ai_manager\base_connector` and usually does not need to be overridden. It derives the model list from the central model catalog (`models.json` -> DB import) and groups models by purpose based on capability flags.
 
-  The information given here is for example needed for the configuration interface: An instance with a model "dall-e-3" (an image generation model) for example won't be assignable to the purpose *singleprompt* in the purpose configuration page if the array part for *singleprompt' does not contain "dall-e-3": `'singleprompt' => ['gpt-4o']`.
+  The information is used by the configuration interface. Example: a model flagged for image generation is available for image generation purposes, but not automatically for text-only purposes.
 
-  **Important note: You MUST have a key for every purpose available! If you do not want your connector to be available for a purpose, declare this by using `'singleprompt' => []` for example.** A unit test in local_ai_manager makes sure all connector plugins implement all purposes in the described way.
+  Override this method only if your connector needs non-standard behavior beyond the central catalog mapping.
 
 - `get_prompt_data(string $prompttext, \local_ai_manager\request_options $requestoptions): array` (**abstract function, needs to be implemented**)
 
@@ -95,7 +119,7 @@ Other methods of `\local_ai_manager\base_connector`:
 
   Helper function that just returns a list of all available model names without any grouping by purposes. It extracts the information out of `get_models_by_purpose()`.
 
-### 3.2.4 The instance class
+### 3.2.5 The instance class
 
 The instance class is basically a wrapper class for the configuration data and on the one hand, handles the corresponding record in `local_ai_manager_instance` while on the other hand, provides customization options for the frontend moodle form. It represents the *configuration instance* of a connector class. You can imagine this as a set of parameter values for the connector to use. That's also why a connector object will always have an instance object attached to it where it gets its configuration parameters from (API key, endpoint, etc.).
 
@@ -111,7 +135,7 @@ If you do not need to provide any extra configuration parameters, you can just i
 
 For further information have a look at the examples in the existing aitool plugins and the PhpDocs of the `\local_ai_manager\base_instance` class.
 
-### 3.2.5 Settings
+### 3.2.6 Settings
 
 You can define a setting with the name 'globalapikey' in the settings.php of the aitool plugin. If it is present and contains a value
 the instance edit form will automatically add a checkbox 'use global api key'. If checked the global api key which has been inserted
@@ -119,7 +143,7 @@ in the admin setting 'aitool_youraitoolpluginname | globalapikey' will be used i
 
 See aitool_openaitts for an example usage.
 
-### 3.2.6 General recommendations
+### 3.2.7 General recommendations
 
 AI tools tend to provide OpenAI compatible APIs. In this case you probably want to create a separate connector plugin, but of course **you want to avoid code duplication as hard as possible*.
 
