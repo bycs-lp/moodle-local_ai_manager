@@ -106,12 +106,12 @@ function local_ai_manager_migrate_instance_model_to_id(): void {
 
             // Also create the connector assignment if we have a connector.
             if (!empty($record->connector)) {
-                $purposerecord = new \stdClass();
-                $purposerecord->modelid = $modelid;
-                $purposerecord->connector = $record->connector;
-                $purposerecord->timecreated = $now;
-                $purposerecord->timemodified = $now;
-                $DB->insert_record('local_ai_manager_model_connector', $purposerecord);
+                $connectorrecord = new \stdClass();
+                $connectorrecord->modelid = $modelid;
+                $connectorrecord->connector = $record->connector;
+                $connectorrecord->timecreated = $now;
+                $connectorrecord->timemodified = $now;
+                $DB->insert_record('local_ai_manager_model_connector', $connectorrecord);
             }
         }
 
