@@ -13,7 +13,7 @@
         <FIELD NAME="endpoint" TYPE="char" LENGTH="1000" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="apikey" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="useglobalapikey" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="model" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="model" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="infolink" TYPE="char" LENGTH="1000" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="customfield1" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="customfield2" TYPE="text" NOTNULL="false" SEQUENCE="false"/>

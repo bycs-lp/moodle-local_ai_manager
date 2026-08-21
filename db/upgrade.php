@@ -412,6 +412,14 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         // Step 4: Migrate instance model field from name string to model ID.
         local_ai_manager_migrate_instance_model_to_id();
 
+        // In theory there should not be empty values, but if, convert it to null so the type field change works properly.
+        $DB->set_field('local_ai_manager_instance', 'model', null, ['model' => '']);
+
+        // Step 5: Change model field type from char to integer now that data stores model IDs.
+        $table = new xmldb_table('local_ai_manager_instance');
+        $field = new xmldb_field('model', XMLDB_TYPE_INTEGER, '10', null, null, null, null, 'useglobalapikey');
+        $dbman->change_field_type($table, $field);
+
         // AI manager savepoint reached.
         upgrade_plugin_savepoint(true, 2026102301, 'local', 'ai_manager');
     }
