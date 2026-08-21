@@ -92,7 +92,7 @@ if ($hassiteconfig) {
             new admin_setting_configcheckbox(
                 'local_ai_manager/restricttenants',
                 new lang_string('restricttenants', 'local_ai_manager'),
-                new lang_string('restricttenants', 'local_ai_manager'),
+                new lang_string('restricttenantsdesc', 'local_ai_manager'),
                 0
             )
         );
