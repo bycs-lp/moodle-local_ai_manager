@@ -19,7 +19,7 @@
  *
  * @package    local_ai_manager
  * @copyright  2026 ISB Bayern
- * @author     Thomas Schönlein
+ * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

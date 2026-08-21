@@ -20,6 +20,7 @@
  * @package    aipurpose_agent
  * @category   message
  * @copyright  2026 ISB Bayern
+ * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

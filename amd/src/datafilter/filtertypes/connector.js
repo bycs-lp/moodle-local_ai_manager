@@ -20,6 +20,7 @@
  *
  * @module      local_ai_manager/datafilter/filtertypes/connector
  * @copyright   2026 ISB Bayern
+ * @author      Philipp Memmel
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

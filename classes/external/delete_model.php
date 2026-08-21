@@ -28,6 +28,7 @@ use local_ai_manager\local\model;
  *
  * @package    local_ai_manager
  * @copyright  2026 ISB Bayern
+ * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class delete_model extends external_api {
