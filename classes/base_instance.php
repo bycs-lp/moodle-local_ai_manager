@@ -637,33 +637,21 @@ class base_instance {
             }
         }
 
-        // If the instance already has a model assigned that is deprecated, still show it in the dropdown
-        // so the form works correctly, but mark it as deprecated.
-        $currentmodelid = $this->get_model_id();
-        if (!empty($currentmodelid) && !isset($availablemodels[$currentmodelid])) {
-            $currentmodelobject = new \local_ai_manager\local\model($currentmodelid);
-            if ($currentmodelobject->record_exists()) {
-                $availablemodels[$currentmodelid] = $currentmodelobject->get_name();
-            }
-        }
-
         $mform->addElement('select', 'model', get_string('model', 'local_ai_manager'), $availablemodels, $textelementparams);
         $mform->addElement('static', 'modeldescription', '', '');
 
-        // Show a warning if the currently selected model is deprecated.
-        if (!empty($currentmodelid)) {
-            $currentmodelobject = $currentmodelobject ?? new \local_ai_manager\local\model($currentmodelid);
-            if ($currentmodelobject->record_exists() && $currentmodelobject->is_deprecated()) {
-                $mform->addElement(
-                    'static',
-                    'model_deprecated_warning',
-                    '',
-                    \html_writer::div(
-                        get_string('deprecated_model_warning', 'local_ai_manager'),
-                        'alert alert-warning'
-                    )
-                );
-            }
+        $currentmodelid = $this->get_model_id();
+        // Show a warning if the currently saved model is no longer selectable.
+        if (!empty($currentmodelid) && !isset($availablemodels[$currentmodelid])) {
+            $mform->addElement(
+                'static',
+                'model_not_available_anymore_warning',
+                '',
+                \html_writer::div(
+                    get_string('model_not_available_anymore_warning', 'local_ai_manager'),
+                    'alert alert-warning'
+                )
+            );
         }
 
         $mform->addElement('text', 'infolink', get_string('infolink', 'local_ai_manager'), $textelementparams);
