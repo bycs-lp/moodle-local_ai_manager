@@ -100,6 +100,7 @@ final class base_connector_test extends \advanced_testcase {
                 'imggen' => 0,
                 'tts' => 0,
                 'stt' => 0,
+                'embedding' => 0,
             ]),
             'vision-model' => $generator->create_model([
                 'name' => 'vision-model',
@@ -108,6 +109,7 @@ final class base_connector_test extends \advanced_testcase {
                 'imggen' => 0,
                 'tts' => 0,
                 'stt' => 0,
+                'embedding' => 0,
             ]),
             'imggen-model' => $generator->create_model([
                 'name' => 'imggen-model',
@@ -116,6 +118,7 @@ final class base_connector_test extends \advanced_testcase {
                 'imggen' => 1,
                 'tts' => 0,
                 'stt' => 0,
+                'embedding' => 0,
             ]),
             'tts-model' => $generator->create_model([
                 'name' => 'tts-model',
@@ -124,6 +127,7 @@ final class base_connector_test extends \advanced_testcase {
                 'imggen' => 0,
                 'tts' => 1,
                 'stt' => 0,
+                'embedding' => 0,
             ]),
             'stt-model' => $generator->create_model([
                 'name' => 'stt-model',
@@ -132,6 +136,16 @@ final class base_connector_test extends \advanced_testcase {
                 'imggen' => 0,
                 'tts' => 0,
                 'stt' => 1,
+                'embedding' => 0,
+            ]),
+            'embedding-model' => $generator->create_model([
+                'name' => 'embedding-model',
+                'textgeneration' => 0,
+                'vision' => 0,
+                'imggen' => 0,
+                'tts' => 0,
+                'stt' => 1,
+                'embedding' => 1,
             ]),
         ];
 
@@ -144,7 +158,7 @@ final class base_connector_test extends \advanced_testcase {
         $connector = $connectorfactory->get_connector_by_connectorname('chatgpt');
         $modelsbypurpose = $connector->get_models_by_purpose();
 
-        $textpurposes = array_diff(array_keys(base_purpose::get_installed_purposes_array()), ['imggen', 'tts', 'stt', 'itt']);
+        $textpurposes = ['chat', 'agent', 'feedback', 'questiongeneration', 'singleprompt', 'translate'];
         foreach ($textpurposes as $purpose) {
             $this->assertContains(
                 'text-model',
@@ -171,14 +185,21 @@ final class base_connector_test extends \advanced_testcase {
                 $modelsbypurpose[$purpose],
                 "stt-model should NOT be in text purpose '$purpose'"
             );
+            $this->assertNotContains(
+                'embedding-model',
+                $modelsbypurpose[$purpose],
+                "embedding-model should NOT be in text purpose '$purpose'"
+            );
         }
 
         // Verify specialized purposes.
         $this->assertContains('imggen-model', $modelsbypurpose['imggen']);
         $this->assertContains('tts-model', $modelsbypurpose['tts']);
         $this->assertContains('vision-model', $modelsbypurpose['itt']);
+        // TODO Remove the if check here once we have an stt purpose.
         if (array_key_exists('stt', $modelsbypurpose)) {
             $this->assertContains('stt-model', $modelsbypurpose['stt']);
         }
+        $this->assertContains('embedding-model', $modelsbypurpose['embedding']);
     }
 }
