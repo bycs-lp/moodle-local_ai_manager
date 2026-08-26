@@ -85,6 +85,7 @@ class purpose extends base_purpose {
     public function get_additional_purpose_options(): array {
         return [
             'conversationcontext' => base_purpose::PARAM_ARRAY,
+            'ragresult' => base_purpose::PARAM_ARRAY,
             'sourceids' => PARAM_SEQUENCE,
         ];
     }
@@ -102,12 +103,13 @@ class purpose extends base_purpose {
 
         // Retrieve the RAG content for the current user prompt.
         $ragmanager = \core\di::get(rag_manager::class);
-        $ragcontent = $ragmanager->get_rag_content(
+        $ragresult = $ragmanager->get_rag_content(
             $prompttext,
             $sourceids,
             $requestoptions->get_component(),
             $requestoptions->get_context()->id
         );
+        $ragcontent = $ragresult->get_retrieved_text();
         if ($ragcontent === '') {
             return $prompttext;
         }
@@ -127,6 +129,7 @@ class purpose extends base_purpose {
             array_unshift($conversationcontext, ['sender' => 'system', 'message' => $ragsystemprompt]);
         }
         $options['conversationcontext'] = $conversationcontext;
+        $options['ragresult'] = $ragresult->to_array();
         $requestoptions->set_options($options);
 
         return $prompttext;
