@@ -424,7 +424,7 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026102301, 'local', 'ai_manager');
     }
 
-    if ($oldversion < 2026063000) {
+    if ($oldversion < 2026102302) {
         // Add the embedding capability field to the model table.
         $table = new xmldb_table('local_ai_manager_model');
         $field = new xmldb_field('embedding', XMLDB_TYPE_INTEGER, '1', null, null, null, null, 'stt');
@@ -437,10 +437,10 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         \local_ai_manager\local\utils::import_models_from_json();
 
         // AI manager savepoint reached.
-        upgrade_plugin_savepoint(true, 2026063000, 'local', 'ai_manager');
+        upgrade_plugin_savepoint(true, 2026102302, 'local', 'ai_manager');
     }
 
-    if ($oldversion < 2026070100) {
+    if ($oldversion < 2026102303) {
         // Create the local_ai_manager_vecstore table storing vector database connection instances.
         $table = new xmldb_table('local_ai_manager_vecstore');
         $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
@@ -463,7 +463,7 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         }
 
         // AI manager savepoint reached.
-        upgrade_plugin_savepoint(true, 2026070100, 'local', 'ai_manager');
+        upgrade_plugin_savepoint(true, 2026102303, 'local', 'ai_manager');
     }
 
     return true;
