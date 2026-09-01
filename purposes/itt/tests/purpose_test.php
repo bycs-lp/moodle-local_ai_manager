@@ -137,7 +137,7 @@ final class purpose_test extends \advanced_testcase {
                 $empty = true;
                 // We check that the connector returns at least for one of the models a non-empty list of allowed mimetypes.
                 foreach ($newconnector->get_models_by_purpose()['itt'] as $model) {
-                    $newinstance->set_model($model);
+                    $newinstance->set_model_id_from_name($model);
                     $newinstance->store();
                     $configmanager = \core\di::get(config_manager::class);
                     $configmanager->set_config(

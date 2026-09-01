@@ -18,6 +18,8 @@ namespace local_ai_manager;
 
 use core_plugin_manager;
 use local_ai_manager\local\connector_factory;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Test class for the base_connector class.
@@ -27,13 +29,12 @@ use local_ai_manager\local\connector_factory;
  * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+#[CoversClass(base_connector::class)]
 final class base_connector_test extends \advanced_testcase {
     /**
      * Test if all connector plugins implement a model definition for each existing purpose.
-     *
-     * @covers \local_ai_manager\base_purpose::get_models_by_purpose
-     * @dataProvider get_models_by_purpose_all_purposes_exist_provider
      */
+    #[DataProvider('get_models_by_purpose_all_purposes_exist_provider')]
     public function test_get_models_by_purpose_all_purposes_exist(string $purpose): void {
         $connectorfactory = \core\di::get(connector_factory::class);
         foreach (core_plugin_manager::instance()->get_installed_plugins('aitool') as $connector => $version) {
@@ -49,8 +50,6 @@ final class base_connector_test extends \advanced_testcase {
 
     /**
      * Test if connector plugins do not implement a definition for a non-existing purpose.
-     *
-     * @covers \local_ai_manager\base_purpose::get_models_by_purpose
      */
     public function test_get_models_by_purpose_no_wrong_purposes(): void {
         $existingpurposes = array_keys(core_plugin_manager::instance()->get_installed_plugins('aipurpose'));
@@ -82,5 +81,104 @@ final class base_connector_test extends \advanced_testcase {
             $purposes[] = ['purpose' => $purposeplugin];
         }
         return $purposes;
+    }
+
+    /**
+     * Test that models are assigned to purposes based on their capability attributes.
+     */
+    public function test_get_models_by_purpose(): void {
+        $this->resetAfterTest();
+
+        /** @var \local_ai_manager_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('local_ai_manager');
+
+        $records = [
+            'text-model' => $generator->create_model([
+                'name' => 'text-model',
+                'textgeneration' => 1,
+                'vision' => 0,
+                'imggen' => 0,
+                'tts' => 0,
+                'stt' => 0,
+            ]),
+            'vision-model' => $generator->create_model([
+                'name' => 'vision-model',
+                'textgeneration' => 1,
+                'vision' => 1,
+                'imggen' => 0,
+                'tts' => 0,
+                'stt' => 0,
+            ]),
+            'imggen-model' => $generator->create_model([
+                'name' => 'imggen-model',
+                'textgeneration' => 0,
+                'vision' => 0,
+                'imggen' => 1,
+                'tts' => 0,
+                'stt' => 0,
+            ]),
+            'tts-model' => $generator->create_model([
+                'name' => 'tts-model',
+                'textgeneration' => 0,
+                'vision' => 0,
+                'imggen' => 0,
+                'tts' => 1,
+                'stt' => 0,
+            ]),
+            'stt-model' => $generator->create_model([
+                'name' => 'stt-model',
+                'textgeneration' => 0,
+                'vision' => 0,
+                'imggen' => 0,
+                'tts' => 0,
+                'stt' => 1,
+            ]),
+        ];
+
+        foreach ($records as $record) {
+            $model = new \local_ai_manager\local\model((int) $record->id);
+            $model->add_connector('chatgpt');
+        }
+
+        $connectorfactory = \core\di::get(connector_factory::class);
+        $connector = $connectorfactory->get_connector_by_connectorname('chatgpt');
+        $modelsbypurpose = $connector->get_models_by_purpose();
+
+        $textpurposes = array_diff(array_keys(base_purpose::get_installed_purposes_array()), ['imggen', 'tts', 'stt', 'itt']);
+        foreach ($textpurposes as $purpose) {
+            $this->assertContains(
+                'text-model',
+                $modelsbypurpose[$purpose],
+                "text-model should be in purpose '$purpose'"
+            );
+            $this->assertContains(
+                'vision-model',
+                $modelsbypurpose[$purpose],
+                "vision-model should be in purpose '$purpose'"
+            );
+            $this->assertNotContains(
+                'imggen-model',
+                $modelsbypurpose[$purpose],
+                "imggen-model should NOT be in text purpose '$purpose'"
+            );
+            $this->assertNotContains(
+                'tts-model',
+                $modelsbypurpose[$purpose],
+                "tts-model should NOT be in text purpose '$purpose'"
+            );
+            $this->assertNotContains(
+                'stt-model',
+                $modelsbypurpose[$purpose],
+                "stt-model should NOT be in text purpose '$purpose'"
+            );
+        }
+
+        // Verify specialized purposes.
+        $this->assertContains('imggen-model', $modelsbypurpose['imggen']);
+        $this->assertContains('tts-model', $modelsbypurpose['tts']);
+        $this->assertContains('vision-model', $modelsbypurpose['itt']);
+        if (array_key_exists('stt', $modelsbypurpose)) {
+            $this->assertContains('stt-model', $modelsbypurpose['stt']);
+        }
     }
 }

@@ -48,7 +48,42 @@ The AI manager provides different connectors for different API endpoints. The te
 There are a lot of different types of AI interactions, starting from generating text output over analyzing or extracting information/text from images to generating audio or images. For each kind of this different types of interactions the AI manager has a separate purpose that the frontend plugins can make us of. For example, there is a purpose "Single prompt" for generating text based on a single prompt. Further purposes for example are "Image generation", "Text to speech" or "Question generation". Each purpose can be configured differently to use a different AI tool.
 
 
-## 2.4 User management (including roles)
+## 2.4 Model management and import
+
+Models are managed in a dedicated model management page.
+
+Navigation path: *Site administration* -> *Plugins* -> *Local plugins* -> *AI manager* -> *Manage models*.
+
+On this page, admins with capability `local/ai_manager:managemodels` can:
+- add and edit models,
+- delete models,
+- mark models as deprecated,
+- assign/unassign connectors,
+- define model capabilities (`textgeneration`, `vision`, `imggen`, `tts`, `stt`),
+- configure temperature support and ranges.
+
+Model data is stored in `local_ai_manager_model` and `local_ai_manager_model_connector`.
+
+The file `local/ai_manager/db/models.json` is an optional convenience source for initial or bulk bootstrapping. During import, entries are written to the model tables. Import is triggered automatically:
+- on plugin installation,
+- on plugin upgrade (including migrations),
+- and manually via CLI.
+
+Manual import command:
+```bash
+php local/ai_manager/cli/import_models.php
+```
+
+Behavior on repeated imports:
+- Existing models are detected by model name and are not inserted again.
+- Existing model/connector assignments are detected and are not inserted again.
+- New models and new model/connector assignments from `models.json` are added.
+- Existing model fields are not overwritten by re-import.
+
+In practice this means running the import multiple times is safe and idempotent regarding duplicates, but it is not a sync/update mechanism for existing models.
+
+
+## 2.5 User management (including roles)
 
 Each tenant manager has control over the users of his tenant. On the AI tools administration navigation under "User configuration" -> "Rights configuration" the tenant manager can see all the users belonging to his tenant as well as certain information of the users:
 - *Role*: The AI manager internal role. Possible values: basic, extended, unlimited.
@@ -59,7 +94,7 @@ Each tenant manager has control over the users of his tenant. On the AI tools ad
 Each of the given information about the users can be changed by the tenant manager. Just select the checkboxes besides the users, scroll at the end of the table and choose the desired action. The filter at the top of the table can help select the desired users. Especially roles can be assigned and unassigned. For example if a "trusted" user needs to use a lot of AI tools in a given timeframe, he can be assigned the role "unlimited" and will not have any quota at all.
 
 
-## 2.5 Limits
+## 2.6 Limits
 
 In the AI tools administration navigation under "User configuration" -> "Limits configuration" the tenant manager can see and configure the limits of the roles for each purpose. The numbers are always "request counts". At the top of the page the tenant manager can configure for which duration the limits should be applied.
 
@@ -72,7 +107,7 @@ This means that a user with the base role can send 50 chat requests in 2 hours. 
 
 Setting a limit to 0 means that the purpose is completely locked for users with this role.
 
-## 2.6 Statistics
+## 2.7 Statistics
 
 In the AI tools administration navigation under "Statistics" you find some usage statistics allowing you to keep control of AI costs and general usage. All statistics are only for the current tenant. Have a look at the section about *Capabilities*, because what is being shown to a tenant manager is being heavily controlled by capabilities to find the perfect balance between allowing the tenant manager to have access to neccessary information while at the same time keeping the highest possible level of data protection.
 
@@ -90,6 +125,7 @@ Each user that wants to use the *local_ai_manager* has to have the capability `l
 For capabilities for tenant managers, see section "Tenant support".
 
 Tenant managers can have additional capabilities:
+- `local/ai_manager:managemodels`: Allows managing system-wide model definitions in "Manage models".
 - `local/ai_manager:viewstatistics`: Allows the tenant manager to view aggregated statistics of his tenant.
 - `local/ai_manager:viewuserstatistics`: Allows the tenant manager to view user-specific statistics of users in his tenant.
 - `local/ai_manager:viewusernames`: Allows the tenant manager to view the users' names in the user-specific statistics in his tenant.

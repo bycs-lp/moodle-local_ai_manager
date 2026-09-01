@@ -206,7 +206,18 @@ class manager {
         // Give the purpose a chance to manipulate the prompt text.
         $prompttext = $this->purpose->format_prompt_text($prompttext, $requestoptions);
 
-        $promptdata = $this->connector->get_prompt_data($prompttext, $requestoptions);
+        try {
+            $promptdata = $this->connector->get_prompt_data($prompttext, $requestoptions);
+        } catch (\moodle_exception $exception) {
+            $errormessage = $exception->getMessage();
+            $debuginfo = $exception->getMessage() . "\n" . $exception->getTraceAsString();
+            return prompt_response::create_from_error(500, $errormessage, $debuginfo);
+        } catch (\Exception $exception) {
+            // In particular, will catch coding_exception.
+            $errormessage = get_string('error_sendingrequestfailed', 'local_ai_manager');
+            $debuginfo = $exception->getMessage() . "\n" . $exception->getTraceAsString();
+            return prompt_response::create_from_error(500, $errormessage, $debuginfo);
+        }
         $starttime = microtime(true);
         try {
             $requestresult = $this->connector->make_request($promptdata, $requestoptions);
@@ -230,7 +241,21 @@ class manager {
             get_ai_response_failed::create_from_prompt_response($promptdata, $promptresponse, $duration)->trigger();
             return $promptresponse;
         }
-        $promptcompletion = $this->connector->execute_prompt_completion($requestresult->get_response(), $requestoptions);
+        try {
+            $promptcompletion = $this->connector->execute_prompt_completion($requestresult->get_response(), $requestoptions);
+        } catch (\moodle_exception $exception) {
+            $errormessage = $exception->getMessage();
+            $debuginfo = $exception->getMessage() . "\n" . $exception->getTraceAsString();
+            $promptresponse = prompt_response::create_from_error(500, $errormessage, $debuginfo);
+            get_ai_response_failed::create_from_prompt_response($promptdata, $promptresponse, $duration)->trigger();
+            return $promptresponse;
+        } catch (\Exception $exception) {
+            $errormessage = get_string('error_sendingrequestfailed', 'local_ai_manager');
+            $debuginfo = $exception->getMessage() . "\n" . $exception->getTraceAsString();
+            $promptresponse = prompt_response::create_from_error(500, $errormessage, $debuginfo);
+            get_ai_response_failed::create_from_prompt_response($promptdata, $promptresponse, $duration)->trigger();
+            return $promptresponse;
+        }
         if (!empty($promptcompletion->get_errormessage())) {
             get_ai_response_failed::create_from_prompt_response($promptdata, $promptcompletion, $duration)->trigger();
             return $promptcompletion;
@@ -300,7 +325,7 @@ class manager {
             $data->customvalue2 = $promptcompletion->get_usage()->customvalue2;
         }
         $data->purpose = $this->purpose->get_plugin_name();
-        $data->model = $this->connector->get_instance()->get_model();
+        $data->model = $this->connector->get_instance()->get_model_name();
         $data->modelinfo = $promptcompletion->get_modelinfo();
         $data->prompttext = $prompttext;
         $data->promptcompletion = $promptcompletion->get_content();

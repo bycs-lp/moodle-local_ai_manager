@@ -16,6 +16,9 @@
 
 namespace local_ai_manager;
 
+use PHPUnit\Framework\Attributes\CoversFunction;
+use PHPUnit\Framework\Attributes\Group;
+
 /**
  * Tests for local_ai_manager upgrade helpers.
  *
@@ -23,20 +26,24 @@ namespace local_ai_manager;
  * @copyright 2026 ISB Bayern
  * @author    Thomas Schönlein
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers    ::local_ai_manager_cleanup_legacy_azure_instance_data
  */
+#[Group('baseline')]
+#[CoversFunction('local_ai_manager_cleanup_legacy_azure_instance_data')]
+#[CoversFunction('local_ai_manager_migrate_instance_model_to_id')]
 final class upgradelib_test extends \advanced_testcase {
+    /** @var \local_ai_manager_generator Data generator instance. */
+    private \local_ai_manager_generator $generator;
+
     #[\Override]
     protected function setUp(): void {
         global $CFG;
         parent::setUp();
         require_once($CFG->dirroot . '/local/ai_manager/db/upgradelib.php');
+        $this->generator = $this->getDataGenerator()->get_plugin_generator('local_ai_manager');
     }
 
     /**
      * Tests that the cleanup removes Azure legacy data from chatgpt instances while preserving Gemini's customfield3.
-     *
-     * @covers ::local_ai_manager_cleanup_legacy_azure_instance_data
      */
     public function test_cleanup_legacy_azure_instance_data_keeps_gemini_customfield3(): void {
         global $DB;
@@ -49,7 +56,7 @@ final class upgradelib_test extends \advanced_testcase {
             'endpoint' => null,
             'apikey' => null,
             'useglobalapikey' => 0,
-            'model' => 'chatgpt_preconfigured_azure',
+            'model' => 1,
             'infolink' => null,
             'customfield1' => null,
             'customfield2' => '1',
@@ -68,7 +75,7 @@ final class upgradelib_test extends \advanced_testcase {
             'endpoint' => null,
             'apikey' => null,
             'useglobalapikey' => 0,
-            'model' => 'gemini-2.0-flash',
+            'model' => 2,
             'infolink' => null,
             'customfield1' => null,
             'customfield2' => 'vertexai',
@@ -86,7 +93,7 @@ final class upgradelib_test extends \advanced_testcase {
             'endpoint' => 'https://myTool.example.com:11434/api',
             'apikey' => 'abc123',
             'useglobalapikey' => 0,
-            'model' => 'gemma3',
+            'model' => 3,
             'infolink' => null,
             'customfield1' => null,
             'customfield2' => '1',

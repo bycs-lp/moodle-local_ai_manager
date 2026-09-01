@@ -22,6 +22,7 @@ use local_ai_manager\local\connector_factory;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\unit;
 use local_ai_manager\request_options;
+use moodle_exception;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Message\StreamInterface;
 
@@ -48,61 +49,25 @@ class connector extends base_connector {
     }
 
     #[\Override]
-    public function get_models_by_purpose(): array {
-        $models = [];
-        $visionmodels = [];
-        $imggenmodels = [];
-        $availablemodelssetting = get_config('aitool_telli', 'availablemodels');
-        foreach (explode("\n", $availablemodelssetting) as $model) {
-            $model = trim($model);
-            if (str_ends_with($model, '#IMGGEN')) {
-                $model = trim(preg_replace('/#IMGGEN$/', '', $model));
-                $imggenmodels[] = $model;
-            } else if (str_ends_with($model, '#VISION')) {
-                $model = trim(preg_replace('/#VISION$/', '', $model));
-                $visionmodels[] = $model;
-                $models[] = $model;
-            } else {
-                $models[] = $model;
-            }
-        }
-
-        asort($models);
-        asort($visionmodels);
-
-        return [
-            'chat' => $models,
-            'feedback' => $models,
-            'singleprompt' => $models,
-            'translate' => $models,
-            'tts' => [],
-            'itt' => $visionmodels,
-            'imggen' => $imggenmodels,
-            'questiongeneration' => $models,
-            'agent' => $models,
-        ];
-    }
-
-    #[\Override]
     public function get_unit(): unit {
-        return $this->wrappedconnector->get_unit();
+        return $this->get_wrapped_connector()->get_unit();
     }
 
     #[\Override]
     protected function get_api_key(): string {
         // We intentionally override the default behavior and also handle the use of "globalapikey" admin setting differently,
         // see self::setup_wrapped_connector.
-        return $this->wrappedconnector->instance->get_apikey();
+        return $this->get_wrapped_connector()->instance->get_apikey();
     }
 
     #[\Override]
     protected function get_endpoint_url(): string {
-        return $this->wrappedconnector->get_endpoint_url();
+        return $this->get_wrapped_connector()->get_endpoint_url();
     }
 
     #[\Override]
     public function has_customvalue1(): bool {
-        if (in_array($this->instance->get_model(), $this->get_models_by_purpose()['imggen'])) {
+        if (in_array($this->instance->get_model_id(), $this->get_model_ids_by_purpose()['imggen'])) {
             return false;
         } else {
             return true;
@@ -111,12 +76,12 @@ class connector extends base_connector {
 
     #[\Override]
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
-        return $this->wrappedconnector->get_prompt_data($prompttext, $requestoptions);
+        return $this->get_wrapped_connector()->get_prompt_data($prompttext, $requestoptions);
     }
 
     #[\Override]
     public function execute_prompt_completion(StreamInterface $result, request_options $requestoptions): prompt_response {
-        return $this->wrappedconnector->execute_prompt_completion($result, $requestoptions);
+        return $this->get_wrapped_connector()->execute_prompt_completion($result, $requestoptions);
     }
 
     #[\Override]
@@ -210,8 +175,33 @@ class connector extends base_connector {
     }
 
     #[\Override]
+    public function get_selectable_model_ids(): array {
+        $selectableids = parent::get_selectable_model_ids();
+        $disabledmodels = get_config('aitool_telli', 'disabledmodels');
+        if (empty($disabledmodels)) {
+            return $selectableids;
+        }
+        $disabledids = array_map('intval', explode(',', $disabledmodels));
+        return array_values(array_diff($selectableids, $disabledids));
+    }
+
+    #[\Override]
     public function allowed_mimetypes(): array {
-        return $this->wrappedconnector->allowed_mimetypes();
+        return $this->get_wrapped_connector()->allowed_mimetypes();
+    }
+
+    /**
+     * Returns the wrapped connector if it is initialized.
+     *
+     * @return base_connector
+     * @throws moodle_exception if wrapped connector has not been initialized
+     */
+    public function get_wrapped_connector(): base_connector {
+        if (!isset($this->wrappedconnector)) {
+            throw new moodle_exception('err_modelnotavailable', 'aitool_telli');
+        }
+
+        return $this->wrappedconnector;
     }
 
     /**
@@ -235,10 +225,10 @@ class connector extends base_connector {
         // We have to be very careful. The connector should also basically work when we only have a model set and
         // - besides that - are working with a fake instance.
         $connectorfactory = \core\di::get(connector_factory::class);
-        if (is_null($instance->get_model()) || !in_array($instance->get_model(), $this->get_models())) {
+        if (is_null($instance->get_model_id()) || !in_array($instance->get_model_id(), $this->get_model_ids())) {
             return;
         }
-        if (in_array($instance->get_model(), $this->get_models_by_purpose()['imggen'])) {
+        if (in_array($instance->get_model_id(), $this->get_model_ids_by_purpose()['imggen'])) {
             $this->wrappedconnector = $connectorfactory->get_connector_by_connectorname('dalle');
             $endpointsuffix = 'v1/images/generations';
         } else {
@@ -251,7 +241,7 @@ class connector extends base_connector {
             }
         }
         // Pass the model to the wrapped instance.
-        $this->wrappedconnector->instance->set_model($instance->get_model());
+        $this->wrappedconnector->instance->set_model_id($instance->get_model_id());
         // Set the endpoint.
         $baseurl = get_config('aitool_telli', 'baseurl');
         if (!empty($baseurl)) {

@@ -117,7 +117,7 @@ class connector_factory {
     }
 
     /**
-     * Returns a connector object based on the connector name and a given model.
+     * Returns a connector object based on the connector name and a given model name.
      *
      * @param string $connectorname the connector name
      * @param string $model the model name
@@ -126,13 +126,31 @@ class connector_factory {
     public function get_connector_by_connectorname_and_model(string $connectorname, string $model): base_connector {
         $connectorclassname = '\\aitool_' . $connectorname . '\\connector';
         $instance = $this->get_new_instance($connectorname);
-        $instance->set_model($model);
+        $instance->set_model_id_from_name($model);
         $this->connector = new $connectorclassname($instance);
         // We needed to set the model before the creation of the connector to allow the connector to spin itself up
         // properly, including having information about the model to use.
         // So we need to do the model check here afterwards, even if it feels odd.
-        if (!in_array($model, $this->connector->get_models())) {
+        if (!in_array($instance->get_model_id(), $this->connector->get_model_ids())) {
             throw new \coding_exception('Model ' . $model . ' is not supported by connector ' . $connectorname);
+        }
+        return $this->connector;
+    }
+
+    /**
+     * Returns a connector object based on the connector name and a given model ID.
+     *
+     * @param string $connectorname the connector name
+     * @param int $modelid the model ID from local_ai_manager_model table
+     * @return base_connector the corresponding connector object
+     */
+    public function get_connector_by_connectorname_and_model_id(string $connectorname, int $modelid): base_connector {
+        $connectorclassname = '\\aitool_' . $connectorname . '\\connector';
+        $instance = $this->get_new_instance($connectorname);
+        $instance->set_model_id($modelid);
+        $this->connector = new $connectorclassname($instance);
+        if (!in_array($modelid, $this->connector->get_model_ids())) {
+            throw new \coding_exception('Model ID ' . $modelid . ' is not supported by connector ' . $connectorname);
         }
         return $this->connector;
     }

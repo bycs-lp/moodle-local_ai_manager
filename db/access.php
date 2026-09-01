@@ -62,6 +62,18 @@ $capabilities = [
                         'manager' => CAP_PREVENT,
                 ],
         ],
+        'local/ai_manager:managemodels' => [
+                'captype' => 'write',
+                'contextlevel' => CONTEXT_SYSTEM,
+                'archetypes' => [
+                        'user' => CAP_PREVENT,
+                        'guest' => CAP_PREVENT,
+                        'student' => CAP_PREVENT,
+                        'teacher' => CAP_PREVENT,
+                        'editingteacher' => CAP_PREVENT,
+                        'manager' => CAP_PREVENT,
+                ],
+        ],
         'local/ai_manager:viewstatistics' => [
                 'captype' => 'write',
                 'contextlevel' => CONTEXT_SYSTEM,

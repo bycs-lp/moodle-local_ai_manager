@@ -21,6 +21,7 @@ use aitool_chatgpt\instance;
 use context_system;
 use GuzzleHttp\Psr7\Stream;
 use local_ai_manager\local\config_manager;
+use local_ai_manager\ai_manager_utils;
 use local_ai_manager\local\connector_factory;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\request_response;
@@ -126,7 +127,7 @@ final class manager_test extends \advanced_testcase {
         $userusage->store();
 
         $chatgptinstance = new instance();
-        $chatgptinstance->set_model('gpt-4o');
+        $chatgptinstance->set_model_id_from_name('gpt-4o');
         $chatgptinstance->set_connector('chatgpt');
 
         // Fake a stream object, because we will mock the method that access it anyway.
@@ -140,8 +141,14 @@ final class manager_test extends \advanced_testcase {
 
         $chatgptconnector =
             $this->getMockBuilder('\aitool_chatgpt\connector')->setConstructorArgs([$chatgptinstance])->getMock();
-        $chatgptconnector->expects($this->any())->method('make_request')->willReturn($requestresponse);
-        $chatgptconnector->expects($this->any())->method('execute_prompt_completion')->willReturn($promptresponse);
+        if ($configuration['modelnotavailable']) {
+            $chatgptconnector->expects($this->any())
+                ->method('get_prompt_data')
+                ->willThrowException(new \moodle_exception('err_modelnotavailable', 'aitool_telli'));
+        } else {
+            $chatgptconnector->expects($this->any())->method('make_request')->willReturn($requestresponse);
+            $chatgptconnector->expects($this->any())->method('execute_prompt_completion')->willReturn($promptresponse);
+        }
         $connectorfactory =
             $this->getMockBuilder(connector_factory::class)->setConstructorArgs([$configmanager])->getMock();
         $connectorfactory->expects($this->any())->method('get_connector_by_purpose')->willReturn($chatgptconnector);
@@ -203,6 +210,7 @@ final class manager_test extends \advanced_testcase {
             'currentusage' => 5,
             'instanceconfigured' => true,
             'instanceconnectorenabled' => true,
+            'modelnotavailable' => false,
         ];
         return [
             'everythingok' => [
@@ -297,6 +305,11 @@ final class manager_test extends \advanced_testcase {
                 'configuration' => [...$defaultoptions, 'instanceconnectorenabled' => false],
                 'expectedcode' => 403,
                 'message' => get_string('exception_instanceunavailable', 'local_ai_manager'),
+            ],
+            'model_not_available' => [
+                'configuration' => [...$defaultoptions, 'modelnotavailable' => true],
+                'expectedcode' => 500,
+                'message' => get_string('err_modelnotavailable', 'aitool_telli'),
             ],
         ];
     }

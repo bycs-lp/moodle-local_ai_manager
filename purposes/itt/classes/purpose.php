@@ -21,6 +21,7 @@ use local_ai_manager\base_connector;
 use local_ai_manager\base_purpose;
 use local_ai_manager\local\connector_factory;
 use local_ai_manager\local\userinfo;
+use moodle_exception;
 
 /**
  * Purpose itt methods.
@@ -62,7 +63,14 @@ class purpose extends base_purpose {
             return [];
         }
 
-        return ['image' => PARAM_RAW, 'allowedmimetypes' => $this->get_allowed_mimetypes()];
+        try {
+            $allowedmimetypes = $this->get_allowed_mimetypes();
+        } catch (coding_exception | moodle_exception) {
+            // If the connector/model is currently invalid for ITT, do not expose image upload options.
+            return [];
+        }
+
+        return ['image' => PARAM_RAW, 'allowedmimetypes' => $allowedmimetypes];
     }
 
     /**
@@ -70,15 +78,17 @@ class purpose extends base_purpose {
      *
      * @return array array of allowed mimetypes, for example ['image/jpg', 'image/png']
      * @throws coding_exception if the connector does not declare any allowed mimetypes
+     * @throws moodle_exception if the underlying connector cannot resolve the currently configured model
      */
     public function get_allowed_mimetypes(): array {
         global $USER;
         $userinfo = new userinfo($USER->id);
         $factory = \core\di::get(connector_factory::class);
         $connector = $factory->get_connector_by_purpose($this->get_plugin_name(), $userinfo->get_role());
-        if (!method_exists($connector, 'allowed_mimetypes') || empty($connector->allowed_mimetypes())) {
+        $allowedmimetypes = $connector->allowed_mimetypes();
+        if (empty($allowedmimetypes)) {
             throw new coding_exception('Connector does not declare allowed mimetypes. Cannot be used for image to text');
         }
-        return $connector->allowed_mimetypes();
+        return $allowedmimetypes;
     }
 }

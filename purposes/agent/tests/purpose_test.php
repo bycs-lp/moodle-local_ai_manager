@@ -1019,7 +1019,7 @@ final class purpose_test extends \advanced_testcase {
 
         // Setup the AI Manager.
         $chatgptinstance = new instance();
-        $chatgptinstance->set_model('gpt-4o');
+        $chatgptinstance->set_model_id_from_name('gpt-4o');
         $chatgptinstance->set_connector('chatgpt');
 
         // Fake a stream object, because we will mock the method that accesses it anyway.

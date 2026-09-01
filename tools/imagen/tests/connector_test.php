@@ -46,7 +46,8 @@ final class connector_test extends \advanced_testcase {
             ->getMock();
         $instance->method('get_endpoint')->willReturn($endpoint);
         $instance->method('get_customfield1')->willReturn($serviceaccountjson);
-        $instance->method('get_model')->willReturn('imagen-3.0-generate-002');
+        $instance->method('get_model_name')->willReturn('imagen-3.0-generate-002');
+        $instance->method('get_model_id')->willReturn(1);
         return new connector($instance);
     }
 
