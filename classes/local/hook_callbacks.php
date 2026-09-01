@@ -36,6 +36,16 @@ class hook_callbacks {
      * @param primary_extend $hook the primary_extend hook object
      */
     public static function extend_primary_navigation(primary_extend $hook): void {
+        // Do not extend the primary navigation while core unit tests are running.
+        // Core tests such as core\navigation\views\primary_test assert an exact node
+        // list and do not expect plugins to contribute nodes (MBS-10922).
+        if (
+            class_exists('\local_mbs\hack\mbs_hack')
+            && \local_mbs\hack\mbs_hack::is_running_core_test()
+        ) {
+            return;
+        }
+
         if (empty(get_config('local_ai_manager', 'addnavigationentry'))) {
             return;
         }
