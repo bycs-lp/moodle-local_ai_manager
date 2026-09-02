@@ -2,11 +2,11 @@ name: Moodle Plugin Release
 
 on:
   release:
-    types: [ published ]
+    types: [published]
 
 jobs:
-  call-moodle-release-workflow:
-    uses: bycs-lp/moodle-workflows/.github/workflows/moodle-release.yml@main
+  release:
+    uses: bycs-lp/moodle-ci-workflows/.github/workflows/moodle-release.yml@main
     with:
-      plugin-name: 'local_ai_manager'
+      tag: ${{ github.event.release.tag_name }}
     secrets: inherit
