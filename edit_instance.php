@@ -97,7 +97,7 @@ if ($editinstanceform->is_cancelled()) {
     );
 } else {
     echo $OUTPUT->header();
-    echo html_writer::start_div('w-75 d-flex flex-column align-items-center ml-auto mr-auto');
+    echo html_writer::start_div('w-75 d-flex flex-column align-items-center ms-auto me-auto');
     echo $OUTPUT->render_from_template(
         'local_ai_manager/edit_instance_heading',
         [

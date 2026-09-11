@@ -27,16 +27,16 @@
 }}
 <div id="local_ai_manager-vertexcachestatus-{{uniqid}}" class="local_ai_manager-vertexcachestatus d-flex flex-row justify-content-between mt-0 mb-2">
     {{#noStatus}}
-        <div class="alert-info mr-3" data-status="nostatus">{{#str}}vertex_nocachestatus, local_ai_manager{{/str}}</div>
+        <div class="alert-info me-3" data-status="nostatus">{{#str}}vertex_nocachestatus, local_ai_manager{{/str}}</div>
     {{/noStatus}}
     {{^noStatus}}
         <div class="flex-row d-flex align-items-center">
         {{#cachingEnabled}}
-            <div class="local_ai_manager-caching_enabled mr-3 p-2 rounded border border-danger" data-status="cachingenabled">{{#str}}vertex_cachingenabled, local_ai_manager{{/str}}</div>
+            <div class="local_ai_manager-caching_enabled me-3 p-2 rounded border border-danger" data-status="cachingenabled">{{#str}}vertex_cachingenabled, local_ai_manager{{/str}}</div>
             <button class="btn btn-primary" data-action="disablecaching">{{#str}}vertex_disablecaching, local_ai_manager{{/str}}</button>
         {{/cachingEnabled}}
         {{^cachingEnabled}}
-            <div class="local_ai_manager-caching_disabled mr-3 p-2 rounded border border-success" data-status="cachingdisabled">{{#str}}vertex_cachingdisabled, local_ai_manager{{/str}}</div>
+            <div class="local_ai_manager-caching_disabled me-3 p-2 rounded border border-success" data-status="cachingdisabled">{{#str}}vertex_cachingdisabled, local_ai_manager{{/str}}</div>
             <button class="btn btn-primary" data-action="enablecaching">{{#str}}vertex_enablecaching, local_ai_manager{{/str}}</button>
         {{/cachingEnabled}}
         </div>
