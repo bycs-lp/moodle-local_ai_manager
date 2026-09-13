@@ -52,11 +52,11 @@ class tenantenable implements renderable, \templatable {
                 get_string('tenantdisabled', 'local_ai_manager'),
             'targetwhenchecked' => (new moodle_url(
                 '/local/ai_manager/tenant_config.php',
-                ['tenant' => $tenant->get_identifier(), 'enabletenant' => 0]
+                ['tenant' => $tenant->get_identifier(), 'enabletenant' => 0, 'sesskey' => sesskey()]
             ))->out(false),
             'targetwhennotchecked' => (new moodle_url(
                 '/local/ai_manager/tenant_config.php',
-                ['tenant' => $tenant->get_identifier(), 'enabletenant' => 1]
+                ['tenant' => $tenant->get_identifier(), 'enabletenant' => 1, 'sesskey' => sesskey()]
             ))->out(false),
             'tenantfullname' => $tenant->get_fullname(),
             'rightsconfiglink' => $rightsconfiglink,
