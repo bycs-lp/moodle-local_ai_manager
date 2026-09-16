@@ -30,5 +30,9 @@ $messageproviders = [
     // Notifies site admins when an upgrade had to overwrite a customized agent prompt with the new default.
     'promptoverwritten' => [
         'capability' => 'moodle/site:config',
+        'defaults' => [
+            'popup' => MESSAGE_FORCED,
+            'email' => MESSAGE_FORCED,
+        ],
     ],
 ];
