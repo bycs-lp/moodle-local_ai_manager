@@ -406,6 +406,8 @@ class purpose extends base_purpose {
      * @return string The default agent prompt.
      */
     public static function get_default_agentprompt(): string {
+        // phpcs:disable moodle.Files.LineLength -- Prompt text must stay verbatim as specified in the ticket,
+        // without introducing extra line breaks that would end up in the admin setting.
         return <<<'EOF'
 This system prompt has the following structure:
 
@@ -520,5 +522,6 @@ Confirm:
 
 {{formelementsjson}}
 EOF;
+        // phpcs:enable moodle.Files.LineLength
     }
 }

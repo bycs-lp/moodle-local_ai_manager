@@ -72,12 +72,12 @@ function aipurpose_agent_force_promptoverwritten_processors() {
 
     $enabled = get_config('message', 'message_provider_aipurpose_agent_promptoverwritten_enabled');
 
-    $channels = array();
+    $channels = [];
     if ($enabled) {
         $channels = explode(',', $enabled);
     }
 
-    $providers = array('popup', 'email');
+    $providers = ['popup', 'email'];
     for ($i = 0; $i < count($providers); $i++) {
         $required = $providers[$i];
 
