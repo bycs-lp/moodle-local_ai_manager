@@ -30,8 +30,6 @@
  * receive their previous value, so they can re-apply their customizations. Calling this more than once
  * during the same upgrade run notifies only once, because the setting already contains the default from
  * the second call on.
- *
- * @return void
  */
 function aipurpose_agent_reset_agentprompt_to_default(): void {
     $newprompt = \aipurpose_agent\purpose::get_default_agentprompt();
@@ -65,8 +63,6 @@ function aipurpose_agent_reset_agentprompt_to_default(): void {
 /**
  * Forces the popup and email channels to be enabled and locked for the promptoverwritten message provider,
  * so admins can no longer disable this notification.
- *
- * @return void
  */
 function aipurpose_agent_force_promptoverwritten_processors() {
 
