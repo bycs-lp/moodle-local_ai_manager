@@ -45,6 +45,7 @@ try {
     $configmanager = \core\di::get(\local_ai_manager\local\config_manager::class);
     $istenantenabled = $configmanager->is_tenant_enabled();
     if ($enabletenant !== 'not_set') {
+        require_sesskey();
         $configmanager->set_config('tenantenabled', !empty($enabletenant) ? 1 : 0);
         redirect($PAGE->url);
     }
