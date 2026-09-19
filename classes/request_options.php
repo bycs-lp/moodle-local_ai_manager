@@ -30,6 +30,11 @@ use context;
 class request_options {
     /**
      * Create the request_options object.
+     *
+     * @param base_purpose $purpose The purpose the request should use
+     * @param context $context The context in which the request is being performed
+     * @param string $component The name of the component from which the request is being performed
+     * @param array $options Additional request options for the AI request
      */
     public function __construct(
         /** @var base_purpose The purpose the request should use */

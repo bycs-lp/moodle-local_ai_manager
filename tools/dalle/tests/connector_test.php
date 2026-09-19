@@ -28,6 +28,9 @@ namespace aitool_dalle;
 final class connector_test extends \advanced_testcase {
     /**
      * Helper to invoke the protected get_endpoint_url() method.
+     *
+     * @param connector $connector The connector object to return the endpoint URL for
+     * @return string The endpoint URL
      */
     private function call_get_endpoint_url(connector $connector): string {
         return (new \ReflectionMethod($connector, 'get_endpoint_url'))->invoke($connector);
@@ -35,6 +38,9 @@ final class connector_test extends \advanced_testcase {
 
     /**
      * Creates a connector with a mocked instance returning the given endpoint value.
+     *
+     * @param string $endpoint the endpoint of this instance
+     * @return connector
      */
     private function make_connector(string $endpoint): connector {
         $instance = $this->getMockBuilder(\local_ai_manager\base_instance::class)

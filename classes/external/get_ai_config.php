@@ -70,6 +70,8 @@ class get_ai_config extends external_api {
      * Retrieve the purpose config.
      *
      * @param ?string $tenant the tenant to use, only useful for accounts which can access/manage more than their own tenant
+     * @param int $contextid the contextid for which the config should be retrieved, if 0 the system context is used
+     * @param ?array $purposes if set, only the config for the given purposes
      * @return array associative array containing the result of the request
      */
     public static function execute(?string $tenant = null, int $contextid = 0, ?array $purposes = null): array {
