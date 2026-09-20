@@ -50,7 +50,7 @@ class connector extends \local_ai_manager\base_connector {
         $content = json_decode($result->getContents(), true);
 
         return prompt_response::create_from_result(
-            $content['model'],
+            $content['model'] ?? '',
             new usage(
                 (float) $content['usage']['total_tokens'],
                 (float) $content['usage']['prompt_tokens'],
