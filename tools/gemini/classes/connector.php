@@ -100,16 +100,26 @@ class connector extends \local_ai_manager\base_connector {
                 ],
             ];
         } else if (array_key_exists('image', $options)) {
+            // Stream wrappers are resolved by mime_content_type(), so the value must never reach it: split it here.
+            $commaposition = strpos($options['image'], ',');
+            $header = $commaposition === false ? '' : substr($options['image'], 0, $commaposition);
+            if (!str_starts_with($header, 'data:') || !str_ends_with($header, ';base64')) {
+                throw new \moodle_exception('exception_badmessageformat', 'local_ai_manager');
+            }
+            $mimetype = strtolower(substr($header, strlen('data:'), -strlen(';base64')));
+            if (!in_array($mimetype, array_map('strtolower', $this->allowed_mimetypes()), true)) {
+                throw new \moodle_exception('exception_badmessageformat', 'local_ai_manager');
+            }
             $messages[] = [
                 'role' => 'user',
                 'parts' => [
                     ['text' => $prompttext],
                     [
                         'inline_data' => [
-                            'mime_type' => mime_content_type($options['image']),
+                            'mime_type' => $mimetype,
                             // Gemini API expects the plain base64 encoded string,
                             // without the leading data url metadata.
-                            'data' => explode(',', $options['image'])[1],
+                            'data' => substr($options['image'], $commaposition + 1),
                         ],
                     ],
                 ],
