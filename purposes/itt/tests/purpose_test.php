@@ -154,4 +154,41 @@ final class purpose_test extends \advanced_testcase {
             }
         }
     }
+
+    #[\PHPUnit\Framework\Attributes\Group('baseline')]
+    /**
+     * The image option is declared PARAM_RAW, so its shape must be rejected here when it is not a data url
+     * of an allowed mimetype, while a well formed value passes through unchanged.
+     *
+     * @covers \aipurpose_itt\purpose::get_additional_request_options
+     */
+    public function test_get_additional_request_options_validates_image(): void {
+        $this->resetAfterTest();
+
+        $purpose = $this->getMockBuilder(purpose::class)
+            ->onlyMethods(['get_allowed_mimetypes'])
+            ->getMock();
+        $purpose->method('get_allowed_mimetypes')->willReturn(['image/png', 'image/jpeg']);
+
+        $images = [
+            'http://169.254.169.254/latest/meta-data/',
+            'file:///etc/passwd',
+            'php://filter/convert.base64-encode/resource=/etc/passwd',
+            '/var/www/html/config.php',
+            'data:text/html;base64,PHNjcmlwdD4=',
+        ];
+        foreach ($images as $image) {
+            try {
+                $purpose->get_additional_request_options(['image' => $image]);
+                $this->fail('Expected rejection of image value: ' . $image);
+            } catch (\moodle_exception $e) {
+                $this->assertEquals('exception_badmessageformat', $e->errorcode);
+            }
+        }
+
+        $valid = ['image' => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg=='];
+        $this->assertEquals($valid, $purpose->get_additional_request_options($valid));
+        // Requests without an image option are untouched.
+        $this->assertEquals(['itemid' => 5], $purpose->get_additional_request_options(['itemid' => 5]));
+    }
 }
