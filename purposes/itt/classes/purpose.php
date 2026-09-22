@@ -51,6 +51,31 @@ class purpose extends base_purpose {
         return $output;
     }
 
+    /**
+     * Rejects an image option that is not a base64 data url of an allowed mimetype.
+     *
+     * PARAM_RAW is unavoidable for a multi-megabyte base64 payload, so the shape has to be checked here.
+     *
+     * @param array $options the submitted request options
+     * @return array the unchanged options
+     * @throws moodle_exception if the image option is not a data url of an allowed mimetype
+     */
+    #[\Override]
+    public function get_additional_request_options(array $options): array {
+        if (array_key_exists('image', $options)) {
+            $commaposition = strpos($options['image'], ',');
+            $header = $commaposition === false ? '' : substr($options['image'], 0, $commaposition);
+            if (!str_starts_with($header, 'data:') || !str_ends_with($header, ';base64')) {
+                throw new moodle_exception('exception_badmessageformat', 'local_ai_manager');
+            }
+            $mimetype = strtolower(substr($header, strlen('data:'), -strlen(';base64')));
+            if (!in_array($mimetype, array_map('strtolower', $this->get_allowed_mimetypes()), true)) {
+                throw new moodle_exception('exception_badmessageformat', 'local_ai_manager');
+            }
+        }
+        return $options;
+    }
+
     #[\Override]
     public function get_additional_purpose_options(): array {
         global $USER;
