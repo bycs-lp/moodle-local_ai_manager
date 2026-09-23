@@ -250,9 +250,11 @@ class connector extends base_connector {
             }
             $this->wrappedconnector->instance->set_endpoint($baseurl . $endpointsuffix);
         } else {
-            $currentendpoint = $this->instance->get_endpoint();
-            if (!empty($currentendpoint)) {
-                $this->wrappedconnector->instance->set_endpoint($currentendpoint);
+            if (empty(get_config('aitool_telli', 'globalapikey'))) {
+                $currentendpoint = $this->instance->get_endpoint();
+                if (!empty($currentendpoint)) {
+                    $this->wrappedconnector->instance->set_endpoint($currentendpoint);
+                }
             }
         }
         // Set the api key.
