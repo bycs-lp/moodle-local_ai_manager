@@ -192,7 +192,11 @@ class connector_factory {
      * @throws \coding_exception if there is no purpose with this name or the purpose subplugin is not enabled
      */
     public function get_purpose_by_purpose_string(string $purpose): base_purpose {
-        if (empty($purpose) || !in_array($purpose, \local_ai_manager\plugininfo\aipurpose::get_enabled_plugins())) {
+        $enabledpurposes = \local_ai_manager\plugininfo\aipurpose::get_enabled_plugins();
+        if (
+            (empty($purpose) || !in_array($purpose, $enabledpurposes))
+            && !($purpose === 'chat' && in_array('agent', $enabledpurposes))
+        ) {
             throw new \coding_exception('Purpose ' . $purpose . ' does not exist or is not enabled');
         }
         $purposeclassname = '\\aipurpose_' . $purpose . '\\purpose';
