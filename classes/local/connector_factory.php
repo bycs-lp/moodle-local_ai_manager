@@ -188,12 +188,18 @@ class connector_factory {
      * Returns the purpose object for the given purpose name.
      *
      * @param string $purpose the purpose name
+     * @param bool $ignoredisabled if true, the function will return the purpose object even if the purpose is not enabled. Use this
+     *  only, if you need a purpose internally, not by the user (for example, for internal checks).
+     *  If you want to use a purpose for a user-facing action, you should not ignore disabled purposes.
      * @return base_purpose the corresponding purpose object
      * @throws \coding_exception if there is no purpose with this name or the purpose subplugin is not enabled
      */
-    public function get_purpose_by_purpose_string(string $purpose): base_purpose {
-        if (empty($purpose) || !in_array($purpose, \local_ai_manager\plugininfo\aipurpose::get_enabled_plugins())) {
-            throw new \coding_exception('Purpose ' . $purpose . ' does not exist or is not enabled');
+    public function get_purpose_by_purpose_string(string $purpose, bool $ignoredisabled = false): base_purpose {
+        if (empty($purpose)) {
+            throw new \coding_exception('No purpose string passed');
+        }
+        if (!$ignoredisabled && !in_array($purpose, \local_ai_manager\plugininfo\aipurpose::get_enabled_plugins())) {
+            throw new \coding_exception('Purpose ' . $purpose . ' is not enabled');
         }
         $purposeclassname = '\\aipurpose_' . $purpose . '\\purpose';
         $this->purpose = new $purposeclassname();
