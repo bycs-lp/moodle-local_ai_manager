@@ -424,7 +424,7 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026102301, 'local', 'ai_manager');
     }
 
-    if ($oldversion < 2026102303) {
+    if ($oldversion < 2026102305) {
         // Add the embedding capability field to the model table.
         $table = new xmldb_table('local_ai_manager_model');
         $field = new xmldb_field('embedding', XMLDB_TYPE_INTEGER, '1', null, null, null, null, 'stt');
@@ -458,7 +458,7 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         }
 
         // AI manager savepoint reached.
-        upgrade_plugin_savepoint(true, 2026102303, 'local', 'ai_manager');
+        upgrade_plugin_savepoint(true, 2026102305, 'local', 'ai_manager');
     }
 
     return true;
