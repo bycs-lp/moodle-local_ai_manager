@@ -51,11 +51,12 @@ final class connector_test extends \advanced_testcase {
         $connector->get_unit();
     }
 
+    #[\PHPUnit\Framework\Attributes\Group('baseline')]
+    #[\PHPUnit\Framework\Attributes\DataProvider('setup_wrapped_connector_uses_baseurl_when_configured_provider')]
     /**
      * Test that a configured baseurl is used as endpoint, with the model specific suffix appended.
      *
-     * @covers       \aitool_telli\connector::setup_wrapped_connector
-     * @dataProvider setup_wrapped_connector_uses_baseurl_when_configured_provider
+     * @covers \aitool_telli\connector::setup_wrapped_connector
      * @param string $model The model name to use.
      * @param string $expectedsuffix The expected endpoint suffix for that model's purpose.
      */
@@ -91,6 +92,7 @@ final class connector_test extends \advanced_testcase {
         ];
     }
 
+    #[\PHPUnit\Framework\Attributes\Group('baseline')]
     /**
      * Test that a configured global API key wins over the instance endpoint and API key, without baseurl set.
      *
@@ -117,6 +119,7 @@ final class connector_test extends \advanced_testcase {
         $this->assertEquals('globalapikeyvalue', $connector->get_wrapped_connector()->get_instance()->get_apikey());
     }
 
+    #[\PHPUnit\Framework\Attributes\Group('baseline')]
     /**
      * Test that baseurl and global API key both take precedence over the instance's own endpoint and API key,
      * even when both admin settings and instance-specific values are configured at the same time.
@@ -148,6 +151,7 @@ final class connector_test extends \advanced_testcase {
         $this->assertEquals('globalapikeyvalue', $connector->get_wrapped_connector()->get_instance()->get_apikey());
     }
 
+    #[\PHPUnit\Framework\Attributes\Group('baseline')]
     /**
      * Test that the instance's own endpoint and API key are used when neither baseurl nor global API key are set.
      *
