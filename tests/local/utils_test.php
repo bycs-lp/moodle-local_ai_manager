@@ -17,7 +17,6 @@
 namespace local_ai_manager\local;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests for local_ai_manager\local\utils.
@@ -27,7 +26,6 @@ use PHPUnit\Framework\Attributes\Group;
  * @author    Philipp Memmel
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-#[Group('baseline')]
 #[CoversClass(utils::class)]
 final class utils_test extends \advanced_testcase {
     #[\Override]
