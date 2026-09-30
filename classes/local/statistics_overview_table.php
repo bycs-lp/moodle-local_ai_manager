@@ -85,6 +85,18 @@ class statistics_overview_table extends table_sql {
     }
 
     /**
+     * Renders the detailed model information column.
+     *
+     * The value originates from the response of the configured AI endpoint, so it must not reach the page unescaped.
+     *
+     * @param stdClass $row the data object of the current row
+     * @return string the string representation of the modelinfo column
+     */
+    public function col_modelinfo(stdClass $row): string {
+        return s($row->modelinfo);
+    }
+
+    /**
      * Get the icon representing the lockes state.
      *
      * @param stdClass $row the data object of the current row
