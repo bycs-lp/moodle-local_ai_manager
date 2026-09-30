@@ -51,7 +51,24 @@ final class connector_test extends \advanced_testcase {
         $connector->get_unit();
     }
 
-    #[\PHPUnit\Framework\Attributes\Group('baseline')]
+    /**
+     * Data provider for test_setup_wrapped_connector_uses_baseurl_when_configured.
+     *
+     * @return array Test cases.
+     */
+    public static function setup_wrapped_connector_uses_baseurl_when_configured_provider(): array {
+        return [
+            'chatgpt_model' => [
+                'model' => 'gpt-4o',
+                'expectedsuffix' => 'v1/chat/completions',
+            ],
+            'dalle_model' => [
+                'model' => 'imagen-4.0-generate-001',
+                'expectedsuffix' => 'v1/images/generations',
+            ],
+        ];
+    }
+
     #[\PHPUnit\Framework\Attributes\DataProvider('setup_wrapped_connector_uses_baseurl_when_configured_provider')]
     /**
      * Test that a configured baseurl is used as endpoint, with the model specific suffix appended.
@@ -74,25 +91,6 @@ final class connector_test extends \advanced_testcase {
         );
     }
 
-    /**
-     * Data provider for test_setup_wrapped_connector_uses_baseurl_when_configured.
-     *
-     * @return array Test cases.
-     */
-    public static function setup_wrapped_connector_uses_baseurl_when_configured_provider(): array {
-        return [
-            'chatgpt_model' => [
-                'model' => 'gpt-4o',
-                'expectedsuffix' => 'v1/chat/completions',
-            ],
-            'dalle_model' => [
-                'model' => 'imagen-4.0-generate-001',
-                'expectedsuffix' => 'v1/images/generations',
-            ],
-        ];
-    }
-
-    #[\PHPUnit\Framework\Attributes\Group('baseline')]
     /**
      * Test that a configured global API key wins over the instance endpoint and API key, without baseurl set.
      *
@@ -119,7 +117,6 @@ final class connector_test extends \advanced_testcase {
         $this->assertEquals('globalapikeyvalue', $connector->get_wrapped_connector()->get_instance()->get_apikey());
     }
 
-    #[\PHPUnit\Framework\Attributes\Group('baseline')]
     /**
      * Test that baseurl and global API key both take precedence over the instance's own endpoint and API key,
      * even when both admin settings and instance-specific values are configured at the same time.
@@ -151,7 +148,6 @@ final class connector_test extends \advanced_testcase {
         $this->assertEquals('globalapikeyvalue', $connector->get_wrapped_connector()->get_instance()->get_apikey());
     }
 
-    #[\PHPUnit\Framework\Attributes\Group('baseline')]
     /**
      * Test that the instance's own endpoint and API key are used when neither baseurl nor global API key are set.
      *
