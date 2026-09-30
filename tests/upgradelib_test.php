@@ -17,7 +17,6 @@
 namespace local_ai_manager;
 
 use PHPUnit\Framework\Attributes\CoversFunction;
-use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Tests for local_ai_manager upgrade helpers.
@@ -27,7 +26,6 @@ use PHPUnit\Framework\Attributes\Group;
  * @author    Thomas Schönlein
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-#[Group('baseline')]
 #[CoversFunction('local_ai_manager_cleanup_legacy_azure_instance_data')]
 #[CoversFunction('local_ai_manager_migrate_instance_model_to_id')]
 final class upgradelib_test extends \advanced_testcase {

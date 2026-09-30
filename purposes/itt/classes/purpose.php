@@ -63,6 +63,9 @@ class purpose extends base_purpose {
     #[\Override]
     public function get_additional_request_options(array $options): array {
         if (array_key_exists('image', $options)) {
+            if (!is_string($options['image'])) {
+                throw new moodle_exception('exception_badmessageformat', 'local_ai_manager');
+            }
             $commaposition = strpos($options['image'], ',');
             $header = $commaposition === false ? '' : substr($options['image'], 0, $commaposition);
             if (!str_starts_with($header, 'data:') || !str_ends_with($header, ';base64')) {

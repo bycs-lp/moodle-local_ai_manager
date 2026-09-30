@@ -155,7 +155,6 @@ final class purpose_test extends \advanced_testcase {
         }
     }
 
-    #[\PHPUnit\Framework\Attributes\Group('baseline')]
     /**
      * The image option is declared PARAM_RAW, so its shape must be rejected here when it is not a data url
      * of an allowed mimetype, while a well formed value passes through unchanged.
@@ -176,11 +175,13 @@ final class purpose_test extends \advanced_testcase {
             'php://filter/convert.base64-encode/resource=/etc/passwd',
             '/var/www/html/config.php',
             'data:text/html;base64,PHNjcmlwdD4=',
+            ['data:image/png;base64,iVBORw0KGgoAAAANSUhEUg=='],
+            null,
         ];
         foreach ($images as $image) {
             try {
                 $purpose->get_additional_request_options(['image' => $image]);
-                $this->fail('Expected rejection of image value: ' . $image);
+                $this->fail('Expected rejection of image value: ' . json_encode($image));
             } catch (\moodle_exception $e) {
                 $this->assertEquals('exception_badmessageformat', $e->errorcode);
             }

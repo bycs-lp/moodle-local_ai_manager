@@ -118,20 +118,8 @@ class manager {
                 $exception->getMessage()
             );
         }
-        $requestoptions = new request_options($this->purpose, $context, $component, $options);
-
         if (!has_capability('local/ai_manager:use', $context)) {
             return prompt_response::create_from_error(403, get_string('error_http403nocapability', 'local_ai_manager'), '');
-        }
-
-        try {
-            $requestoptions->sanitize_options();
-        } catch (\Exception $exception) {
-            return prompt_response::create_from_error(
-                400,
-                get_string('error_http400', 'local_ai_manager'),
-                $exception->getMessage()
-            );
         }
 
         if (!$this->configmanager->is_tenant_enabled()) {
@@ -200,6 +188,17 @@ class manager {
                         'period' => $period]
                 ),
                 ''
+            );
+        }
+
+        try {
+            $requestoptions = new request_options($this->purpose, $context, $component, $options);
+            $requestoptions->sanitize_options();
+        } catch (\Exception $exception) {
+            return prompt_response::create_from_error(
+                400,
+                get_string('error_http400', 'local_ai_manager'),
+                $exception->getMessage()
             );
         }
 
