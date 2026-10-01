@@ -19,7 +19,10 @@ namespace local_ai_manager;
 use aitool_chatgpt\instance;
 use local_ai_manager\hook\additional_user_restriction;
 use local_ai_manager\hook\purpose_usage;
+use local_ai_manager\local\access_manager;
+use local_ai_manager\local\config_manager;
 use local_ai_manager\local\connector_factory;
+use local_ai_manager\local\tenant;
 use local_ai_manager\local\userinfo;
 use local_ai_manager\local\userusage;
 use local_ai_manager\plugininfo\aipurpose;
@@ -637,5 +640,176 @@ final class ai_manager_utils_test extends \advanced_testcase {
         }
 
         $this->assertEquals($expected, ai_manager_utils::get_purposes_usage_info());
+    }
+
+    /**
+     * Creates a user of the given tenant, logs the user in and starts with a fresh DI container.
+     *
+     * @param string $institution the institution field of the user, used as the tenant identifier
+     * @param bool $managetenants whether the user gets the local/ai_manager:managetenants capability
+     * @return stdClass the created user
+     */
+    private function setup_tenant_user(string $institution, bool $managetenants = false): stdClass {
+        $user = $this->getDataGenerator()->create_user(['institution' => $institution]);
+        $roleid = $this->getDataGenerator()->create_role();
+        assign_capability('local/ai_manager:use', CAP_ALLOW, $roleid, SYSCONTEXTID);
+        if ($managetenants) {
+            assign_capability('local/ai_manager:managetenants', CAP_ALLOW, $roleid, SYSCONTEXTID);
+        }
+        role_assign($roleid, $user->id, SYSCONTEXTID);
+        $this->setUser($user);
+        \core\di::reset_container();
+        return $user;
+    }
+
+    /**
+     * Tests that a user cannot request the general info of a tenant the user does not belong to or manage.
+     *
+     * @covers \local_ai_manager\ai_manager_utils::get_ai_info
+     */
+    public function test_get_ai_info_denies_foreign_tenant(): void {
+        $this->resetAfterTest();
+        $this->setup_tenant_user('schoola');
+        $tenantbefore = \core\di::get(tenant::class);
+
+        $exceptionthrown = false;
+        try {
+            ai_manager_utils::get_ai_info('schoolb');
+        } catch (\moodle_exception $exception) {
+            $exceptionthrown = true;
+            $expectedmessage = get_string('exception_tenantaccessdenied', 'local_ai_manager', 'schoolb');
+            $this->assertEquals($expectedmessage, $exception->getMessage());
+        }
+        $this->assertTrue($exceptionthrown);
+        $this->assertSame($tenantbefore, \core\di::get(tenant::class));
+    }
+
+    /**
+     * Tests that the own tenant and no tenant at all are accepted and that the tenant of the current user stays bound.
+     *
+     * @covers \local_ai_manager\ai_manager_utils::get_ai_info
+     * @covers \local_ai_manager\ai_manager_utils::get_ai_config
+     */
+    public function test_own_tenant_is_accepted(): void {
+        $this->resetAfterTest();
+        $user = $this->setup_tenant_user('schoola');
+        $tenantbefore = \core\di::get(tenant::class);
+
+        $this->assertEquals(ai_manager_utils::get_ai_info(), ai_manager_utils::get_ai_info('schoola'));
+        $this->assertEquals(
+            ai_manager_utils::get_ai_config($user, SYSCONTEXTID, null, ['chat']),
+            ai_manager_utils::get_ai_config($user, SYSCONTEXTID, 'schoola', ['chat'])
+        );
+        $this->assertSame($tenantbefore, \core\di::get(tenant::class));
+    }
+
+    /**
+     * Tests that a user cannot request the config of a foreign tenant and that no tenant dependent binding is changed.
+     *
+     * @covers \local_ai_manager\ai_manager_utils::get_ai_config
+     */
+    public function test_get_ai_config_denies_foreign_tenant(): void {
+        $this->resetAfterTest();
+        $user = $this->setup_tenant_user('schoola');
+        $bindingsbefore = $this->get_tenant_bindings();
+
+        try {
+            ai_manager_utils::get_ai_config($user, SYSCONTEXTID, 'schoolb', ['chat']);
+            $this->fail('Accessing a foreign tenant must not be possible');
+        } catch (\moodle_exception $exception) {
+            $this->assertEquals('exception_tenantaccessdenied', $exception->errorcode);
+        }
+        $this->assertSame($bindingsbefore, $this->get_tenant_bindings());
+    }
+
+    /**
+     * Tests that users managing all tenants get the config of the requested tenant and that afterwards the bindings of the
+     * own tenant are in place again, so later web services of the same request are not served with the foreign tenant.
+     *
+     * @covers \local_ai_manager\ai_manager_utils::get_ai_config
+     * @covers \local_ai_manager\ai_manager_utils::get_ai_info
+     */
+    public function test_managetenants_user_can_access_foreign_tenant(): void {
+        $this->resetAfterTest();
+        $user = $this->setup_tenant_user('schoola', true);
+        // Only the foreign tenant is enabled, so the availability shows which tenant configuration has been used.
+        (new config_manager(new tenant('schoolb')))->set_config('tenantenabled', 1);
+        $bindingsbefore = $this->get_tenant_bindings();
+
+        $availability = ai_manager_utils::get_ai_config($user, SYSCONTEXTID, 'schoolb', ['chat'])['availability'];
+        $this->assertNotEquals(ai_manager_utils::AVAILABILITY_HIDDEN, $availability['available']);
+        $this->assertSame($bindingsbefore, $this->get_tenant_bindings());
+        // The own tenant is not enabled.
+        $availability = ai_manager_utils::get_ai_config($user, SYSCONTEXTID, null, ['chat'])['availability'];
+        $this->assertEquals(ai_manager_utils::AVAILABILITY_HIDDEN, $availability['available']);
+
+        $info = ai_manager_utils::get_ai_info('schoolb');
+        $this->assertArrayHasKey('tools', $info);
+        $this->assertSame($bindingsbefore, $this->get_tenant_bindings());
+    }
+
+    /**
+     * Tests that users managing all tenants are not locked out by a malformed tenant field value of their own profile.
+     *
+     * @covers \local_ai_manager\ai_manager_utils::get_ai_info
+     * @covers \local_ai_manager\ai_manager_utils::get_ai_config
+     */
+    public function test_managetenants_user_with_malformed_own_tenant(): void {
+        $this->resetAfterTest();
+        $user = $this->setup_tenant_user(' malformed tenant!', true);
+
+        $this->assertArrayHasKey('tools', ai_manager_utils::get_ai_info('schoolb'));
+
+        // The tenant of the current user is needed for restoring the bindings afterwards, so this case fails deliberately.
+        $this->expectException(\invalid_parameter_exception::class);
+        ai_manager_utils::get_ai_config($user, SYSCONTEXTID, 'schoolb', ['chat']);
+    }
+
+    /**
+     * Tests that users who may manage a tenant because of the tenant context provided by a plugin get access to this tenant,
+     * even if they do not belong to it.
+     *
+     * @covers \local_ai_manager\ai_manager_utils::get_ai_info
+     */
+    public function test_tenant_manager_by_tenant_context_can_access_tenant(): void {
+        $this->resetAfterTest();
+        $category = $this->getDataGenerator()->create_category();
+        $categorycontext = \context_coursecat::instance($category->id);
+        $this->redirectHook(
+            \local_ai_manager\hook\custom_tenant::class,
+            function (\local_ai_manager\hook\custom_tenant $customtenant) use ($categorycontext) {
+                $customtenant->set_tenant_context($categorycontext);
+            }
+        );
+        $roleid = $this->getDataGenerator()->create_role();
+        assign_capability('local/ai_manager:manage', CAP_ALLOW, $roleid, SYSCONTEXTID);
+
+        // A user without the manager role in the tenant context is denied.
+        $this->setup_tenant_user('schoola');
+        try {
+            ai_manager_utils::get_ai_info('schoolb');
+            $this->fail('Accessing a foreign tenant must not be possible');
+        } catch (\moodle_exception $exception) {
+            $this->assertEquals('exception_tenantaccessdenied', $exception->errorcode);
+        }
+
+        $manager = $this->setup_tenant_user('schoola');
+        role_assign($roleid, $manager->id, $categorycontext->id);
+        \core\di::reset_container();
+        $this->assertArrayHasKey('tools', ai_manager_utils::get_ai_info('schoolb'));
+    }
+
+    /**
+     * Returns the currently bound tenant dependent objects of the DI container.
+     *
+     * @return array the bound objects, keyed by their class name
+     */
+    private function get_tenant_bindings(): array {
+        return [
+            tenant::class => \core\di::get(tenant::class),
+            config_manager::class => \core\di::get(config_manager::class),
+            connector_factory::class => \core\di::get(connector_factory::class),
+            access_manager::class => \core\di::get(access_manager::class),
+        ];
     }
 }

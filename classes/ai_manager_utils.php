@@ -21,6 +21,8 @@ use core\exception\invalid_parameter_exception;
 use core_plugin_manager;
 use local_ai_manager\hook\additional_user_restriction;
 use local_ai_manager\hook\purpose_usage;
+use local_ai_manager\local\access_manager;
+use local_ai_manager\local\config_manager;
 use local_ai_manager\local\connector_factory;
 use local_ai_manager\local\tenant;
 use local_ai_manager\local\userinfo;
@@ -321,12 +323,13 @@ class ai_manager_utils {
         ?string $tenant = null,
         ?array $selectedpurposes = []
     ): array {
+        $tenantrequested = !is_null($tenant);
         try {
-            if (!is_null($tenant)) {
-                $tenant = new tenant($tenant);
-                \core\di::set(tenant::class, $tenant);
-            }
+            if ($tenantrequested) {
+                $tenant = self::resolve_requested_tenant($tenant);
+            } else {
                 $tenant = \core\di::get(tenant::class);
+            }
         } catch (invalid_parameter_exception) {
             return [
                 'availability' => [
@@ -336,6 +339,26 @@ class ai_manager_utils {
                 'purposes' => [],
             ];
         }
+
+        if ($tenantrequested) {
+            // Create the tenant dependent objects for the requested tenant.
+            $configmanager = new config_manager($tenant);
+            $connectorfactory = new connector_factory($configmanager);
+            $accessmanager = new access_manager($tenant);
+
+            // Remember the objects of the own tenant, so we can put them back after the calculation.
+            $previoustenant = \core\di::get(tenant::class);
+            $previousconfigmanager = \core\di::get(config_manager::class);
+            $previousconnectorfactory = \core\di::get(connector_factory::class);
+            $previousaccessmanager = \core\di::get(access_manager::class);
+
+            // Replace the objects in the DI container, because the calculation below gets them from there.
+            \core\di::set(tenant::class, $tenant);
+            \core\di::set(config_manager::class, $configmanager);
+            \core\di::set(connector_factory::class, $connectorfactory);
+            \core\di::set(access_manager::class, $accessmanager);
+        }
+
         $installedpurposes = array_keys(core_plugin_manager::instance()->get_installed_plugins('aipurpose'));
         if (empty($selectedpurposes)) {
             // If no purpose is specified, we return the config for all purposes.
@@ -345,10 +368,46 @@ class ai_manager_utils {
         $availability = self::determine_availability($user, $tenant, $contextid);
         $purposes = self::determine_purposes_availability($user, $contextid, $selectedpurposes);
 
+        if ($tenantrequested) {
+            // Put the objects of the own tenant back. All web services of a batch run in the same process and the container
+            // caches these objects, so later web services of the batch must not keep working with the requested tenant.
+            \core\di::set(tenant::class, $previoustenant);
+            \core\di::set(config_manager::class, $previousconfigmanager);
+            \core\di::set(connector_factory::class, $previousconnectorfactory);
+            \core\di::set(access_manager::class, $previousaccessmanager);
+        }
+
         return [
             'availability' => $availability,
             'purposes' => $purposes,
         ];
+    }
+
+    /**
+     * Returns the tenant for an identifier passed by a caller, but only if the current user is allowed to use this tenant.
+     *
+     * The current user is allowed to use the tenant if the user is a manager of the requested tenant or if it is the own
+     * tenant of the user. The access manager is created manually instead of using the DI container, because the container
+     * must not be changed before the access check has passed.
+     *
+     * @param string $identifier the identifier of the requested tenant
+     * @return tenant the tenant object of the requested tenant
+     * @throws invalid_parameter_exception if the identifier is not a valid tenant identifier
+     * @throws \moodle_exception if the current user is not allowed to use the requested tenant
+     */
+    private static function resolve_requested_tenant(string $identifier): tenant {
+        $requestedtenant = new tenant($identifier);
+        // The manager check comes first: Creating the tenant of the current user throws for malformed tenant field values,
+        // which must not lock out tenant managers.
+        $accessmanager = new access_manager($requestedtenant);
+        if ($accessmanager->is_tenant_manager()) {
+            return $requestedtenant;
+        }
+        $owntenant = new tenant();
+        if ($requestedtenant->get_identifier() === $owntenant->get_identifier()) {
+            return $requestedtenant;
+        }
+        throw new \moodle_exception('exception_tenantaccessdenied', 'local_ai_manager', '', $identifier);
     }
 
     /**
@@ -359,10 +418,10 @@ class ai_manager_utils {
      */
     public static function get_ai_info(?string $tenant = null): array {
         if (!is_null($tenant)) {
-            $tenant = new tenant($tenant);
-            \core\di::set(tenant::class, $tenant);
+            $tenant = self::resolve_requested_tenant($tenant);
+        } else {
+            $tenant = \core\di::get(tenant::class);
         }
-        $tenant = \core\di::get(tenant::class);
 
         $tools = [];
         foreach (\local_ai_manager\plugininfo\aitool::get_enabled_plugins() as $toolname) {
