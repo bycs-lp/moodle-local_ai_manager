@@ -65,4 +65,29 @@ final class userstats_table_test extends \advanced_testcase {
         $result = ob_get_clean();
         $this->assertStringContainsString(get_string('combinedanonymizedusers', 'local_ai_manager'), $result);
     }
+
+    #[\PHPUnit\Framework\Attributes\Group('baseline')]
+    /**
+     * The dynamic table requires the same capability as the pages rendering it.
+     *
+     * @covers \local_ai_manager\table\userstats_table::has_capability
+     */
+    public function test_has_capability_requires_viewuserstatistics(): void {
+        global $SESSION;
+        $this->resetAfterTest();
+        $user = $this->getDataGenerator()->create_user();
+        $this->setUser($user);
+        $tenant = \core\di::get(\local_ai_manager\local\tenant::class);
+        $SESSION->local_ai_manager_tenant = $tenant;
+        $context = $tenant->get_context();
+        $roleid = $this->getDataGenerator()->create_role();
+        assign_capability('local/ai_manager:manage', CAP_ALLOW, $roleid, $context->id);
+        role_assign($roleid, $user->id, $context->id);
+        $table = new \local_ai_manager\table\userstats_table('userstats');
+
+        $this->assertFalse($table->has_capability());
+
+        assign_capability('local/ai_manager:viewuserstatistics', CAP_ALLOW, $roleid, $context->id);
+        $this->assertTrue($table->has_capability());
+    }
 }
