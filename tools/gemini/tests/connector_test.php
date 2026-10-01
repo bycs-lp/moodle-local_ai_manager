@@ -100,4 +100,78 @@ final class connector_test extends \advanced_testcase {
             $this->call_get_endpoint_url($this->make_connector('', instance::GOOGLE_BACKEND_VERTEXAI, '{'))
         );
     }
+
+    /**
+     * Builds a connector whose allowed mimetypes are fixed, plus matching request options.
+     *
+     * @param string $image value of the image request option
+     * @return array [connector, request_options]
+     */
+    private function make_image_request(string $image): array {
+        $instance = $this->getMockBuilder(\local_ai_manager\base_instance::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $instance->method('get_endpoint')->willReturn('');
+        $instance->method('get_customfield2')->willReturn(instance::GOOGLE_BACKEND_GOOGLEAI);
+        $instance->method('get_model_name')->willReturn('gemini-2.0-flash');
+        $instance->method('get_model_id')->willReturn(1);
+        $instance->method('get_model_object')->willReturn(null);
+
+        $connector = $this->getMockBuilder(connector::class)
+            ->setConstructorArgs([$instance])
+            ->onlyMethods(['allowed_mimetypes'])
+            ->getMock();
+        $connector->method('allowed_mimetypes')->willReturn(['image/png', 'image/jpeg']);
+
+        $requestoptions = $this->getMockBuilder(\local_ai_manager\request_options::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $requestoptions->method('get_options')->willReturn(['image' => $image]);
+
+        return [$connector, $requestoptions];
+    }
+
+    /**
+     * The image option must never be handed to a stream-opening function, and must match the allowlist.
+     *
+     * @covers \aitool_gemini\connector::get_prompt_data
+     */
+    #[\PHPUnit\Framework\Attributes\Group('baseline')]
+    public function test_get_prompt_data_rejects_non_data_url_image(): void {
+        $this->resetAfterTest();
+
+        $images = [
+            'http://127.0.0.1:18099/latest/meta-data/',
+            'file:///etc/passwd',
+            'php://filter/convert.base64-encode/resource=/etc/passwd',
+            'data:text/html;base64,PHNjcmlwdD4=',
+        ];
+        foreach ($images as $image) {
+            [$connector, $requestoptions] = $this->make_image_request($image);
+            try {
+                $connector->get_prompt_data('describe', $requestoptions);
+                $this->fail('Expected rejection of image value: ' . $image);
+            } catch (\moodle_exception $e) {
+                $this->assertEquals('exception_badmessageformat', $e->errorcode);
+            }
+        }
+    }
+
+    /**
+     * A well formed data URL of an allowed mimetype must still be forwarded unchanged.
+     *
+     * @covers \aitool_gemini\connector::get_prompt_data
+     */
+    #[\PHPUnit\Framework\Attributes\Group('baseline')]
+    public function test_get_prompt_data_accepts_allowed_data_url(): void {
+        $this->resetAfterTest();
+
+        $base64 = 'iVBORw0KGgoAAAANSUhEUg==';
+        [$connector, $requestoptions] = $this->make_image_request('data:image/png;base64,' . $base64);
+        $params = $connector->get_prompt_data('describe', $requestoptions);
+
+        $inlinedata = $params['contents'][0]['parts'][1]['inline_data'];
+        $this->assertEquals('image/png', $inlinedata['mime_type']);
+        $this->assertEquals($base64, $inlinedata['data']);
+    }
 }
