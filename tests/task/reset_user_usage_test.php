@@ -17,6 +17,7 @@
 namespace local_ai_manager\task;
 
 use local_ai_manager\local\config_manager;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\tenant;
 use stdClass;
 
@@ -40,10 +41,14 @@ final class reset_user_usage_test extends \advanced_testcase {
         // Should be the default anyway, but let's be safe here.
         set_config('tenantcolumn', 'institution');
         $tenant = new tenant(1234);
-        $configmanager = new config_manager($tenant);
+        $tenantfactory = new tenant_factory();
+        $tenantfactory->set($tenant);
+        $configmanager = new config_manager($tenantfactory);
         $configmanager->set_config('max_requests_period', 3 * DAYSECS);
         $tenant = new tenant(5678);
-        $configmanager = new config_manager($tenant);
+        $tenantfactory = new tenant_factory();
+        $tenantfactory->set($tenant);
+        $configmanager = new config_manager($tenantfactory);
         $configmanager->set_config('max_requests_period', 4 * DAYSECS);
 
         $currenttime = time();

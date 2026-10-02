@@ -41,7 +41,7 @@ $PAGE->add_body_class('limitcontentwidth');
 
 \local_ai_manager\local\tenant_config_output_utils::setup_tenant_config_page(new moodle_url('/local/ai_manager/quota_config.php'));
 
-$tenant = \core\di::get(\local_ai_manager\local\tenant::class);
+$tenant = \core\di::get(\local_ai_manager\local\tenant_factory::class)->get();
 $returnurl = new moodle_url('/local/ai_manager/tenant_config.php', ['tenant' => $tenant->get_identifier()]);
 
 $quotaconfigform = new quota_config_form(null, ['tenant' => $tenant->get_identifier(), 'returnurl' => $PAGE->url]);

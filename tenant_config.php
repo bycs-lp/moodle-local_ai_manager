@@ -23,6 +23,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\tenant;
 use local_ai_manager\local\tenant_config_output_utils;
 use local_ai_manager\output\instancetable;
@@ -50,7 +51,7 @@ try {
         redirect($PAGE->url);
     }
 
-    $tenant = \core\di::get(tenant::class);
+    $tenant = \core\di::get(tenant_factory::class)->get();
 } catch (\core\exception\invalid_parameter_exception) {
     $defaulttenanturl = new moodle_url('/local/ai_manager/tenant_config.php', ['tenant' => tenant::DEFAULT_IDENTIFIER]);
     redirect(

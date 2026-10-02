@@ -92,7 +92,7 @@ class userinfo {
      */
     public function get_default_role(): int {
         $accessmanager = \core\di::get(access_manager::class);
-        if (\core\di::get(tenant::class)->is_default_tenant()) {
+        if (\core\di::get(tenant_factory::class)->get()->is_default_tenant()) {
             return $accessmanager->is_tenant_manager($this->userid) ? self::ROLE_UNLIMITED : self::ROLE_BASIC;
         }
 
@@ -103,7 +103,7 @@ class userinfo {
         if (!is_null($hookdefaultrole)) {
             return $hookdefaultrole;
         }
-        $tenant = \core\di::get(tenant::class);
+        $tenant = \core\di::get(tenant_factory::class)->get();
         if (
             has_capability('local/ai_manager:manage', $tenant->get_context(), $this->userid)
             || has_capability('local/ai_manager:managetenants', \context_system::instance(), $this->userid)
