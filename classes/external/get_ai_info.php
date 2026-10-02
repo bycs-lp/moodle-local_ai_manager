@@ -23,8 +23,6 @@ use core_external\external_single_structure;
 use core_external\external_value;
 use local_ai_manager\ai_manager_utils;
 use local_ai_manager\local\access_manager;
-use local_ai_manager\local\tenant_factory;
-use local_ai_manager\local\tenant;
 
 /**
  * External function to provide general information.
@@ -72,12 +70,7 @@ class get_ai_info extends external_api {
         self::validate_context($context);
         require_capability('local/ai_manager:use', $context);
         if (!is_null($tenant)) {
-            \core\di::get(tenant_factory::class)->set(new tenant($tenant));
-            $accessmanager = \core\di::get(access_manager::class);
-            if (!$accessmanager->is_tenant_member() && !$accessmanager->is_tenant_manager()) {
-                \core\di::get(tenant_factory::class)->reset();
-                throw new \moodle_exception('exception_tenantaccessdenied', 'local_ai_manager', '', $tenant);
-            }
+            \core\di::get(access_manager::class)->require_tenant_access($tenant);
         }
         return ai_manager_utils::get_ai_info($tenant);
     }

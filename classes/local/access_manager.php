@@ -52,6 +52,32 @@ class access_manager {
     }
 
     /**
+     * Requires the current user to be a member or a manager of the tenant with the given identifier.
+     *
+     * The check is being performed without changing the tenant of this access manager or the current tenant of the request,
+     * so it can be called before switching to the requested tenant.
+     *
+     * Determining the tenant (context) fails for invalid or non-existing tenant identifiers. To not reveal which tenants exist,
+     * every failure results in the same exception as a missing permission.
+     *
+     * @param string $identifier the identifier of the tenant the current user wants to access
+     * @throws \moodle_exception if the current user must not access the tenant
+     */
+    public function require_tenant_access(string $identifier): void {
+        try {
+            $tenantfactory = new tenant_factory();
+            $tenantfactory->set(new tenant($identifier));
+            $accessmanager = new self($tenantfactory);
+            $allowed = $accessmanager->is_tenant_member() || $accessmanager->is_tenant_manager();
+        } catch (\Exception) {
+            $allowed = false;
+        }
+        if (!$allowed) {
+            throw new \moodle_exception('exception_tenantaccessdenied', 'local_ai_manager', '', $identifier);
+        }
+    }
+
+    /**
      * Requires the current user to be a manager of the current tenant.
      *
      * @throws \moodle_exception in case of the current user does not have sufficient permissions for managing the current tenant
