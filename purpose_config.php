@@ -37,7 +37,7 @@ global $CFG, $DB, $OUTPUT, $PAGE, $USER;
 $PAGE->add_body_class('limitcontentwidth');
 
 tenant_config_output_utils::setup_tenant_config_page(new moodle_url('/local/ai_manager/purpose_config.php'));
-$tenant = \core\di::get(\local_ai_manager\local\tenant::class);
+$tenant = \core\di::get(\local_ai_manager\local\tenant_factory::class)->get();
 $returnurl = new moodle_url('/local/ai_manager/tenant_config.php', ['tenant' => $tenant->get_identifier()]);
 $purposeconfigform = new purpose_config_form(null, ['returnurl' => $PAGE->url]);
 // Will return the config manager for the current user.

@@ -34,7 +34,7 @@ $PAGE->add_body_class('limitcontentwidth');
 
 $url = new moodle_url('/local/ai_manager/confirm_ai_usage.php');
 
-$tenant = \core\di::get(\local_ai_manager\local\tenant::class);
+$tenant = \core\di::get(\local_ai_manager\local\tenant_factory::class)->get();
 
 $accessmanager = \core\di::get(\local_ai_manager\local\access_manager::class);
 $accessmanager->require_tenant_member();

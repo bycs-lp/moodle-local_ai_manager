@@ -18,7 +18,7 @@ namespace local_ai_manager\form;
 
 use local_ai_manager\base_purpose;
 use local_ai_manager\local\connector_factory;
-use local_ai_manager\local\tenant;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\userinfo;
 
 defined('MOODLE_INTERNAL') || die;
@@ -42,7 +42,7 @@ class purpose_config_form extends \moodleform {
      */
     public function definition() {
         global $OUTPUT;
-        $tenant = \core\di::get(tenant::class);
+        $tenant = \core\di::get(tenant_factory::class)->get();
         $mform = &$this->_form;
 
         $mform->addElement('hidden', 'tenant', $tenant->get_identifier());

@@ -18,6 +18,7 @@ namespace local_ai_manager;
 
 use local_ai_manager\local\config_manager;
 use local_ai_manager\local\connector_factory;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\tenant;
 use local_ai_manager\local\userinfo;
 use local_ai_manager\plugininfo\aitool;
@@ -181,7 +182,7 @@ class base_instance {
 
         $params = [];
         if (!$allinstances) {
-            $params['tenant'] = \core\di::get(tenant::class)->get_identifier();
+            $params['tenant'] = \core\di::get(tenant_factory::class)->get()->get_identifier();
         }
         $records = $DB->get_records('local_ai_manager_instance', $params, '', 'id');
         $instances = [];
@@ -749,7 +750,9 @@ class base_instance {
         // Before deleting we remove all assignments of purposes to this instance, if there are any.
         // We intentionally do not use dependency injection here to make sure we are using the config manager that belongs
         // to this instance.
-        $configmanager = new config_manager(new tenant($this->get_tenant()));
+        $tenantfactory = new tenant_factory();
+        $tenantfactory->set(new tenant($this->get_tenant()));
+        $configmanager = new config_manager($tenantfactory);
         foreach (base_purpose::get_all_purposes() as $purpose) {
             foreach ([userinfo::ROLE_BASIC, userinfo::ROLE_EXTENDED] as $role) {
                 $configkey = base_purpose::get_purpose_tool_config_key($purpose, $role);

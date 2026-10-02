@@ -27,19 +27,38 @@ use local_ai_manager\base_purpose;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class config_manager {
-    /** @var array $config the array which stores the configuration of the current tenant */
+    /** @var array $config the array which stores the configuration of the tenant {@see $configtenant} */
     private array $config = [];
+
+    /** @var ?string $configtenant the identifier of the tenant whose configuration is currently loaded */
+    private ?string $configtenant = null;
 
     /**
      * Constructor for the config manager.
      *
-     * @param tenant $tenant the tenant for which the config manager should manage the configuration
+     * The config manager always works with the tenant of the passed {@see tenant_factory} object. For the config manager
+     * retrieved from the DI container, this is the current tenant of the request.
+     *
+     * @param tenant_factory $tenantfactory the object providing the tenant the config manager should work with
      */
     public function __construct(
-        /** @var tenant $tenant the tenant for which the config manager should manage the configuration */
-        private readonly tenant $tenant
+        /** @var tenant_factory $tenantfactory the object providing the tenant the config manager should work with */
+        private readonly tenant_factory $tenantfactory
     ) {
-        $this->load_config();
+    }
+
+    /**
+     * Returns the configuration of the tenant this config manager is currently working with.
+     *
+     * The configuration is only being reloaded if the tenant has changed since it has been loaded.
+     *
+     * @return array the configuration as associative array of config keys and values
+     */
+    private function get_current_config(): array {
+        if ($this->configtenant !== $this->get_tenant()->get_identifier()) {
+            $this->load_config();
+        }
+        return $this->config;
     }
 
     /**
@@ -63,11 +82,12 @@ class config_manager {
      */
     private function load_config(): void {
         global $DB;
+        $this->configtenant = $this->get_tenant()->get_identifier();
         $this->config = [];
-        if (empty($this->tenant->get_identifier())) {
+        if (empty($this->configtenant)) {
             return;
         }
-        $records = $DB->get_records('local_ai_manager_config', ['tenant' => $this->tenant->get_identifier()]);
+        $records = $DB->get_records('local_ai_manager_config', ['tenant' => $this->configtenant]);
         foreach ($records as $record) {
             $this->config[$record->configkey] = $record->configvalue;
         }
@@ -84,10 +104,11 @@ class config_manager {
         if (in_array($configkey, $this->get_separate_getter_config_keys())) {
             throw new \coding_exception('You must not access this config key directly. Please use the separate getter function.');
         }
-        if (!array_key_exists($configkey, $this->config)) {
+        $config = $this->get_current_config();
+        if (!array_key_exists($configkey, $config)) {
             return false;
         }
-        return $this->config[$configkey];
+        return $config[$configkey];
     }
 
     /**
@@ -97,13 +118,13 @@ class config_manager {
      */
     public function unset_config(string $configkey): void {
         global $DB;
-        if (empty($this->tenant->get_identifier())) {
+        if (empty($this->get_tenant()->get_identifier())) {
             return;
         }
         $DB->delete_records(
             'local_ai_manager_config',
             [
-                'tenant' => $this->tenant->get_identifier(),
+                'tenant' => $this->get_tenant()->get_identifier(),
                 'configkey' => $configkey,
             ]
         );
@@ -118,10 +139,11 @@ class config_manager {
      *  Value null means that purpose is not configured for the tenant, integer value is the id of the configured connector instance
      */
     public function get_purpose_config(int $role): array {
+        $config = $this->get_current_config();
         $purposeconfig = [];
         foreach (base_purpose::get_all_purposes() as $purpose) {
-            if (array_key_exists(base_purpose::get_purpose_tool_config_key($purpose, $role), $this->config)) {
-                $purposeconfig[$purpose] = $this->config[base_purpose::get_purpose_tool_config_key($purpose, $role)];
+            if (array_key_exists(base_purpose::get_purpose_tool_config_key($purpose, $role), $config)) {
+                $purposeconfig[$purpose] = $config[base_purpose::get_purpose_tool_config_key($purpose, $role)];
             } else {
                 $purposeconfig[$purpose] = null;
             }
@@ -142,7 +164,7 @@ class config_manager {
         // phpcs:enable moodle.Commenting.TodoComment.MissingInfoInline
         $configrecord = $DB->get_record(
             'local_ai_manager_config',
-            ['configkey' => $configkey, 'tenant' => $this->tenant->get_identifier()]
+            ['configkey' => $configkey, 'tenant' => $this->get_tenant()->get_identifier()]
         );
         if ($configrecord) {
             $configrecord->configvalue = $configvalue;
@@ -151,19 +173,19 @@ class config_manager {
             $configrecord = new \stdClass();
             $configrecord->configkey = $configkey;
             $configrecord->configvalue = $configvalue;
-            $configrecord->tenant = $this->tenant->get_identifier();
+            $configrecord->tenant = $this->get_tenant()->get_identifier();
             $DB->insert_record('local_ai_manager_config', $configrecord);
         }
         $this->load_config();
     }
 
     /**
-     * Standard getter.
+     * Returns the tenant this config manager is currently working with.
      *
-     * @return tenant the tenant object
+     * @return tenant the tenant provided by the current tenant object of this config manager
      */
     public function get_tenant(): tenant {
-        return $this->tenant;
+        return $this->tenantfactory->get();
     }
 
     /**
@@ -212,10 +234,11 @@ class config_manager {
                 $rolesuffix = 'extended';
         }
         $configkey = $purpose->get_plugin_name() . '_max_requests_' . $rolesuffix;
-        if (!array_key_exists($configkey, $this->config)) {
+        $config = $this->get_current_config();
+        if (!array_key_exists($configkey, $config)) {
             return false;
         }
-        return intval($this->config[$configkey]);
+        return intval($config[$configkey]);
     }
 
     /**
@@ -224,10 +247,11 @@ class config_manager {
      * @return int the max requests period
      */
     public function get_max_requests_period(): int {
-        if (!array_key_exists('max_requests_period', $this->config)) {
+        $config = $this->get_current_config();
+        if (!array_key_exists('max_requests_period', $config)) {
             return userusage::MAX_REQUESTS_DEFAULT_PERIOD;
         }
-        return $this->config['max_requests_period'];
+        return $config['max_requests_period'];
     }
 
     /**
@@ -236,12 +260,13 @@ class config_manager {
      * @return bool true if the tenant is enabled
      */
     public function is_tenant_enabled(): bool {
-        if (!array_key_exists('tenantenabled', $this->config)) {
+        $config = $this->get_current_config();
+        if (!array_key_exists('tenantenabled', $config)) {
             return false;
         }
-        if (!$this->tenant->is_tenant_allowed()) {
+        if (!$this->get_tenant()->is_tenant_allowed()) {
             return false;
         }
-        return $this->config['tenantenabled'];
+        return $config['tenantenabled'];
     }
 }

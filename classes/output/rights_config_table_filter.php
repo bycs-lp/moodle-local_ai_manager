@@ -18,7 +18,7 @@ namespace local_ai_manager\output;
 
 use core\hook\manager as hook_manager;
 use local_ai_manager\hook\usertable_filter;
-use local_ai_manager\local\tenant;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\userinfo;
 use renderer_base;
 use stdClass;
@@ -101,7 +101,7 @@ class rights_config_table_filter extends \core\output\datafilter {
      * @return stdClass|null the filter object or null
      */
     protected function get_hook_filter(): ?stdClass {
-        $usertablefilterhook = new usertable_filter(\core\di::get(tenant::class));
+        $usertablefilterhook = new usertable_filter(\core\di::get(tenant_factory::class)->get());
         \core\di::get(hook_manager::class)->dispatch($usertablefilterhook);
         $hookfilteroptions = $usertablefilterhook->get_filter_options();
 

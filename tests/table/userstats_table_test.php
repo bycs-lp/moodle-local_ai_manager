@@ -39,7 +39,7 @@ final class userstats_table_test extends \advanced_testcase {
         $this->resetAfterTest();
         $user = $this->getDataGenerator()->create_user();
         $this->setUser($user);
-        $tenant = \core\di::get(\local_ai_manager\local\tenant::class);
+        $tenant = \core\di::get(\local_ai_manager\local\tenant_factory::class)->get();
         $privilegedrole = $this->getDataGenerator()->create_role(['shortname' => 'privilegedrole']);
         role_assign($privilegedrole, $user->id, SYSCONTEXTID);
 

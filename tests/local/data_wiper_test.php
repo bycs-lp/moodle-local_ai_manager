@@ -61,7 +61,9 @@ final class data_wiper_test extends \advanced_testcase {
 
         // Set if the tenant is enabled based on the $configuration.
         // CARE: If the tenant is not allowed this will not have any effect.
-        $configmanager = new config_manager($tenant);
+        $tenantfactory = new tenant_factory();
+        $tenantfactory->set($tenant);
+        $configmanager = new config_manager($tenantfactory);
         $configmanager->set_config('tenantenabled', 1);
 
         // Set locked and confirmed value based on the $configuration.

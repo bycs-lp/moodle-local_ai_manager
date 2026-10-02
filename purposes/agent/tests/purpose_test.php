@@ -22,6 +22,7 @@ use GuzzleHttp\Psr7\Stream;
 use local_ai_manager\ai_manager_utils;
 use local_ai_manager\local\config_manager;
 use local_ai_manager\local\connector_factory;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\request_response;
 use local_ai_manager\local\tenant;
@@ -1001,7 +1002,11 @@ final class purpose_test extends \advanced_testcase {
         role_assign($aiuserrole->id, $user->id, $systemcontext->id);
         assign_capability('local/ai_manager:use', CAP_ALLOW, $aiuserrole->id, $systemcontext->id);
 
-        $configmanager = new config_manager($tenant);
+        $tenantfactory = new tenant_factory();
+
+        $tenantfactory->set($tenant);
+
+        $configmanager = new config_manager($tenantfactory);
         $configmanager->set_config('tenantenabled', 1);
 
         $userinfo = new userinfo($user->id);

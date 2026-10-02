@@ -58,7 +58,7 @@ class rights_config_form extends \moodleform {
      * Form definition.
      */
     public function definition() {
-        $tenant = \core\di::get(\local_ai_manager\local\tenant::class);
+        $tenant = \core\di::get(\local_ai_manager\local\tenant_factory::class)->get();
         $mform = &$this->_form;
 
         $mform->addElement('hidden', 'tenant', $tenant->get_identifier());
