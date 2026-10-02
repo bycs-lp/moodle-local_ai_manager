@@ -181,6 +181,40 @@ final class tenant_parameter_test extends \advanced_testcase {
     }
 
     /**
+     * Tests that the web services cannot be used as an oracle for enumerating existing tenants.
+     *
+     * Plugins providing the tenant context (like local_bycsauth) throw an exception for non-existing tenants. This must not
+     * result in a different answer than for an existing foreign tenant.
+     */
+    public function test_no_oracle_for_existing_tenants(): void {
+        $this->redirectHook(
+            \local_ai_manager\hook\custom_tenant::class,
+            function (\local_ai_manager\hook\custom_tenant $customtenant) {
+                if (!in_array($customtenant->get_tenantidentifier(), ['schoola', 'schoolb'])) {
+                    throw new \moodle_exception('Invalid school id');
+                }
+            }
+        );
+        $this->setup_tenant_user('schoola');
+
+        foreach (['schoolb', 'notexisting', ' invalid identifier!'] as $foreigntenant) {
+            $calls = [
+                fn() => get_ai_info::execute($foreigntenant),
+                fn() => get_ai_config::execute($foreigntenant, SYSCONTEXTID, ['chat']),
+            ];
+            foreach ($calls as $call) {
+                try {
+                    $call();
+                    $this->fail('Accessing a foreign tenant must not be possible');
+                } catch (\moodle_exception $exception) {
+                    $this->assertEquals('exception_tenantaccessdenied', $exception->errorcode);
+                }
+                $this->assertEquals('schoola', $this->get_current_tenant_identifier());
+            }
+        }
+    }
+
+    /**
      * Tests that a tenant set by an external function does not leak into the next external function of the same request.
      *
      * This simulates a batch request via lib/ajax/service.php which executes several external functions in the same process.

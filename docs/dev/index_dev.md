@@ -54,15 +54,13 @@ The tenant dependent objects retrieved from the DI container (`config_manager`, 
 with the current tenant: `config_manager` and `access_manager` get the `tenant_factory` object injected instead of a tenant and ask it
 whenever they need the tenant, so they never have to be rebuilt or rebound.
 
-Entry points (pages, external functions) which want to work with another tenant set it and check the access:
+Entry points (pages, external functions) which want to work with another tenant check the access first and then set the tenant:
 ```PHP
+\core\di::get(\local_ai_manager\local\access_manager::class)->require_tenant_access($tenantid);
 \core\di::get(\local_ai_manager\local\tenant_factory::class)->set(new \local_ai_manager\local\tenant($tenantid));
-$accessmanager = \core\di::get(\local_ai_manager\local\access_manager::class);
-if (!$accessmanager->is_tenant_member() && !$accessmanager->is_tenant_manager()) {
-    \core\di::get(\local_ai_manager\local\tenant_factory::class)->reset();
-    throw new \moodle_exception('exception_tenantaccessdenied', 'local_ai_manager', '', $tenantid);
-}
 ```
+`require_tenant_access()` allows members and managers of the tenant. It throws the same exception for missing permissions and for
+invalid or non-existing tenants, so it cannot be used for finding out which tenants exist.
 The set tenant stays active for the rest of the page request respectively the rest of the external function call. Before each
 external function, the tenant factory is reset (see `local_ai_manager_override_webservice_execution()`), so a tenant set by one
 external function of a batch request (for example via `lib/ajax/service.php`) cannot leak into the following ones.
