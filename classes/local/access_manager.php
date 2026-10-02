@@ -43,15 +43,6 @@ class access_manager {
     }
 
     /**
-     * Returns the tenant this access manager is currently working with.
-     *
-     * @return tenant the tenant provided by the current tenant object of this access manager
-     */
-    private function get_tenant(): tenant {
-        return $this->tenantfactory->get();
-    }
-
-    /**
      * Requires the current user to be a member or a manager of the tenant with the given identifier.
      *
      * The check is being performed without changing the tenant of this access manager or the current tenant of the request,
@@ -108,7 +99,7 @@ class access_manager {
         }
 
         if (is_null($tenant)) {
-            $tenant = $this->get_tenant();
+            $tenant = $this->tenantfactory->get();
         }
 
         $customtenant = new custom_tenant($tenant);
@@ -140,7 +131,7 @@ class access_manager {
         global $USER;
         $tenantfield = get_config('local_ai_manager', 'tenantcolumn');
 
-        return $USER->{$tenantfield} === $this->get_tenant()->get_sql_identifier();
+        return $USER->{$tenantfield} === $this->tenantfactory->get()->get_sql_identifier();
     }
 
     /**
@@ -150,7 +141,7 @@ class access_manager {
      */
     public function require_tenant_member(): void {
         global $USER;
-        $tenant = $this->get_tenant();
+        $tenant = $this->tenantfactory->get();
         if (!$tenant->is_tenant_allowed()) {
             throw new \moodle_exception('exception_tenantnotallowed', 'local_ai_manager');
         }
@@ -179,7 +170,7 @@ class access_manager {
             return true;
         }
         if ($this->is_tenant_manager($USER->id, new tenant($instance->get_tenant()))) {
-            return has_capability('local/ai_manager:manage', $this->get_tenant()->get_context());
+            return has_capability('local/ai_manager:manage', $this->tenantfactory->get()->get_context());
         }
         return false;
     }
