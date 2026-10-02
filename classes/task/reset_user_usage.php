@@ -17,6 +17,7 @@
 namespace local_ai_manager\task;
 
 use local_ai_manager\local\config_manager;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\tenant;
 
 /**
@@ -68,10 +69,12 @@ class reset_user_usage extends \core\task\scheduled_task {
             return;
         }
 
+        $tenantfactory = \core\di::get(tenant_factory::class);
         foreach ($tenants as $tenantidentifier) {
             // We intentionally do not use \core\di here, because we need to reset the objects for each tenant.
             $tenant = new tenant($tenantidentifier);
-            $configmanager = new config_manager($tenant);
+            $tenantfactory->set($tenant);
+            $configmanager = new config_manager($tenantfactory);
             $sql = "SELECT uu.* FROM {local_ai_manager_userusage} uu "
                     . "JOIN {user} u ON uu.userid = u.id WHERE " . $tenantfield . " = :tenantidentifier";
             $rs = $DB->get_recordset_sql($sql, ['tenantidentifier' => $tenantidentifier]);

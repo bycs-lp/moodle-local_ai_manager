@@ -23,6 +23,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\tenant;
 
 require_once(dirname(__FILE__) . '/../../config.php');
@@ -37,7 +38,7 @@ $del = optional_param('del', 0, PARAM_INT);
 \local_ai_manager\local\tenant_config_output_utils::setup_tenant_config_page(new moodle_url('/local/ai_manager/edit_instance.php'));
 
 $factory = \core\di::get(\local_ai_manager\local\connector_factory::class);
-$tenant = \core\di::get(tenant::class);
+$tenant = \core\di::get(tenant_factory::class)->get();
 $returnurl = new moodle_url('/local/ai_manager/tenant_config.php', ['tenant' => $tenant->get_identifier()]);
 $accessmanager = \core\di::get(\local_ai_manager\local\access_manager::class);
 
@@ -50,7 +51,7 @@ if (!empty($del)) {
     $instance = $factory->get_connector_instance_by_id($id);
     if ($instance) {
         $tenant = new tenant($instance->get_tenant());
-        \core\di::set(tenant::class, $tenant);
+        \core\di::get(tenant_factory::class)->set($tenant);
         $returnurl = new moodle_url('/local/ai_manager/tenant_config.php', ['tenant' => $tenant->get_identifier()]);
     }
     if (!$accessmanager->can_manage_connectorinstance($instance)) {

@@ -22,6 +22,7 @@ use core_table\local\filter\filterset;
 use html_writer;
 use local_ai_manager\hook\usertable_extend;
 use local_ai_manager\hook\usertable_filter;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\tenant;
 use local_ai_manager\local\userinfo;
 use moodle_url;
@@ -62,8 +63,8 @@ class rights_config_table extends table_sql implements dynamic {
 
         $this->tenant = $SESSION->local_ai_manager_tenant;
         // Dynamic tables create an object of this class via webservice. This however is a separate request and there is no tenant
-        // object in the di container yet when being called. So we need to set the correct one from the session here.
-        \core\di::set(tenant::class, $this->tenant);
+        // set yet when being called. So we need to set the correct one from the session here.
+        \core\di::get(tenant_factory::class)->set($this->tenant);
 
         $this->set_attribute('id', $this->uniqueid);
         $this->define_baseurl(

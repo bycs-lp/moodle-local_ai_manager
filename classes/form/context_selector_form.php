@@ -38,7 +38,7 @@ class context_selector_form extends \moodleform {
      */
     public function definition() {
         global $USER;
-        $tenant = \core\di::get(\local_ai_manager\local\tenant::class);
+        $tenant = \core\di::get(\local_ai_manager\local\tenant_factory::class)->get();
         $mform = &$this->_form;
         $attributes = $mform->getAttributes();
         $attributes['class'] = $attributes['class'] . ' col-md-12';

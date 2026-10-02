@@ -72,7 +72,7 @@ class statistics_overview_table extends table_sql {
         $fields =
             $uniquefirstcolumn . 'AS id, modelinfo, model, connector, COUNT(modelinfo) AS requestcount, SUM(value) AS userusage';
         $from = '{local_ai_manager_request_log}';
-        $tenant = \core\di::get(tenant::class);
+        $tenant = \core\di::get(tenant_factory::class)->get();
         $where = 'tenant = :tenant GROUP BY modelinfo, model, connector';
         $params = ['tenant' => $tenant->get_sql_identifier()];
         $this->set_sql($fields, $from, $where, $params);

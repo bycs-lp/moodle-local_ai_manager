@@ -36,7 +36,7 @@ $SESSION->local_ai_manager_statistics_purpose = $purpose;
 
 tenant_config_output_utils::setup_tenant_config_page(new moodle_url('/local/ai_manager/purpose_statistics.php'));
 
-$tenant = \core\di::get(\local_ai_manager\local\tenant::class);
+$tenant = \core\di::get(\local_ai_manager\local\tenant_factory::class)->get();
 require_capability('local/ai_manager:viewuserstatistics', $tenant->get_context());
 
 if (!in_array($purpose, \local_ai_manager\base_purpose::get_all_purposes())) {

@@ -51,7 +51,7 @@ class tenantnavbar implements renderable, \templatable {
     #[\Override]
     public function export_for_template(renderer_base $output): stdClass {
         $data = new stdClass();
-        $tenant = \core\di::get(\local_ai_manager\local\tenant::class);
+        $tenant = \core\di::get(\local_ai_manager\local\tenant_factory::class)->get();
         $data->tenantidentifier = $tenant->get_identifier();
 
         $data->homeactive = $this->relativeactiveurl === 'tenant_config.php';

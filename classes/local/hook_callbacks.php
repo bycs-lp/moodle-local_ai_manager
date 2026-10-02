@@ -17,6 +17,7 @@
 namespace local_ai_manager\local;
 
 use core\exception\invalid_parameter_exception;
+use core\hook\di_configuration;
 use core\hook\navigation\primary_extend;
 use moodle_url;
 use navigation_node;
@@ -47,7 +48,7 @@ class hook_callbacks {
 
         try {
             $accessmanager = \core\di::get(access_manager::class);
-            $tenant = \core\di::get(tenant::class);
+            $tenant = \core\di::get(tenant_factory::class)->get();
             if (!$accessmanager->is_tenant_manager() || !$tenant->is_tenant_allowed()) {
                 return;
             }
@@ -59,5 +60,20 @@ class hook_callbacks {
                 return;
             }
         }
+    }
+
+    /**
+     * Hook callback function to configure the DI container.
+     *
+     * The current tenant must only be retrieved via {@see tenant_factory}. Retrieving the tenant directly from the DI container
+     * would return a tenant which does not respect a tenant set via {@see tenant_factory::set()}, so this is being prohibited.
+     *
+     * @param di_configuration $hook the di_configuration hook object
+     */
+    public static function configure_di(di_configuration $hook): void {
+        $hook->add_definition(tenant::class, function (): never {
+            throw new \coding_exception('Do not retrieve the tenant from the DI container, use '
+                . tenant_factory::class . ' instead.');
+        });
     }
 }
