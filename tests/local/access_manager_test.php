@@ -167,6 +167,31 @@ final class access_manager_test extends \advanced_testcase {
     }
 
     /**
+     * Tests that a missing tenant context record results in the access denied exception, but database errors are passed through.
+     */
+    public function test_require_tenant_access_exception_handling(): void {
+        $this->setup_user('schoola');
+        $accessmanager = \core\di::get(access_manager::class);
+
+        $this->redirectHook(custom_tenant::class, function () {
+            throw new \dml_missing_record_exception('context');
+        });
+        try {
+            $accessmanager->require_tenant_access('schoolb');
+            $this->fail('A missing tenant context must result in an exception');
+        } catch (\moodle_exception $exception) {
+            $this->assertNotInstanceOf(\dml_exception::class, $exception);
+            $this->assertEquals('exception_tenantaccessdenied', $exception->errorcode);
+        }
+
+        $this->redirectHook(custom_tenant::class, function () {
+            throw new \dml_read_exception('Simulated database error');
+        });
+        $this->expectException(\dml_read_exception::class);
+        $accessmanager->require_tenant_access('schoolb');
+    }
+
+    /**
      * Tests that checking the access neither changes the current tenant nor the tenant of the access manager.
      */
     public function test_require_tenant_access_does_not_change_tenant(): void {

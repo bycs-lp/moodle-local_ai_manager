@@ -49,10 +49,12 @@ class access_manager {
      * so it can be called before switching to the requested tenant.
      *
      * Determining the tenant (context) fails for invalid or non-existing tenant identifiers. To not reveal which tenants exist,
-     * every failure results in the same exception as a missing permission.
+     * such failures result in the same exception as a missing permission. Database errors (except for missing records) and
+     * other unexpected errors are not being caught, so they are not disguised as a missing permission.
      *
      * @param string $identifier the identifier of the tenant the current user wants to access
      * @throws \moodle_exception if the current user must not access the tenant
+     * @throws \dml_exception in case of a database error
      */
     public function require_tenant_access(string $identifier): void {
         try {
@@ -60,7 +62,14 @@ class access_manager {
             $tenantfactory->set(new tenant($identifier));
             $accessmanager = new self($tenantfactory);
             $allowed = $accessmanager->is_tenant_member() || $accessmanager->is_tenant_manager();
-        } catch (\Exception) {
+        } catch (\moodle_exception $exception) {
+            // The tenant (context) could not be determined, for example because of an invalid identifier
+            // (invalid_parameter_exception) or because a plugin implementing the custom_tenant hook does not know the tenant.
+            // Real database errors must not be disguised as a missing permission. A missing record however just means that
+            // the tenant (context) does not exist.
+            if ($exception instanceof \dml_exception && !$exception instanceof \dml_missing_record_exception) {
+                throw $exception;
+            }
             $allowed = false;
         }
         if (!$allowed) {

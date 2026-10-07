@@ -288,7 +288,11 @@ class ai_manager_utils {
     /**
      * API helper function to get the connector instance of a purpose
      *
-     * If a userid is passed, the tenant of this user will be set as current tenant.
+     * If a userid is passed, the tenant of this user will be set as current tenant via {@see tenant_factory::set()}. This is a
+     * side effect: The tenant stays active for the rest of the PHP process (page request, CLI script, cron run) respectively the
+     * rest of the current external function call and is not being reset automatically outside of web services. This function
+     * does not check if the current user is allowed to access the tenant of the passed user, this is the responsibility of the
+     * caller. Frontend plugins should not pass a userid, so the tenant of the current user is being used.
      *
      * @param string $purpose the purpose to get the connector instance for
      * @param ?int $userid the userid of the user to determine the correct tenant
@@ -309,8 +313,11 @@ class ai_manager_utils {
     /**
      * API function to get all needed information about the AI configuration for a user.
      *
-     * If a tenant is passed, it will be set as current tenant. This function does not check if the current user is allowed to
-     * access the passed tenant, this is the responsibility of the caller.
+     * If a tenant is passed, it will be set as current tenant via {@see tenant_factory::set()}. This is a side effect: The
+     * tenant stays active for the rest of the PHP process (page request, CLI script, cron run) respectively the rest of the
+     * current external function call and is not being reset automatically outside of web services. This function does not
+     * check if the current user is allowed to access the passed tenant, this is the responsibility of the caller. Frontend
+     * plugins should pass null, so the tenant of the current user is being used.
      *
      * @param stdClass $user the user to retrieve the information for
      * @param int $contextid the contextid on which the availability should be determined
@@ -356,8 +363,10 @@ class ai_manager_utils {
     /**
      * API function to get general information about the AI manager.
      *
-     * If a tenant is passed, it will be set as current tenant. This function does not check if the current user is allowed to
-     * access the passed tenant, this is the responsibility of the caller.
+     * If a tenant is passed, it will be set as current tenant via {@see tenant_factory::set()}. This is a side effect: The
+     * tenant stays active for the rest of the PHP process (page request, CLI script, cron run) respectively the rest of the
+     * current external function call and is not being reset automatically outside of web services. This function does not
+     * check if the current user is allowed to access the passed tenant, this is the responsibility of the caller.
      *
      * @param ?string $tenant the tenant to retrieve the information for. If null, the current tenant will be used
      * @return array associative array containing the general info object

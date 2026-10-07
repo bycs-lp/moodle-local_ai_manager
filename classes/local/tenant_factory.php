@@ -30,6 +30,12 @@ namespace local_ai_manager\local;
  * function from leaking into the next one, the tenant is being reset before each external function, see
  * {@see local_ai_manager_override_webservice_execution()}.
  *
+ * Outside of web services the tenant is NOT being reset automatically: A tenant once set stays active for the rest of the PHP
+ * process. This especially affects CLI scripts and cron runs, in which several scheduled and adhoc tasks are being executed one
+ * after another in the same PHP process without the DI container being reset. Code running in such places should not set the
+ * tenant at all (the tenant of the current user, for example set via {@see \core\cron::setup_user()}, is being determined
+ * dynamically) or has to call {@see tenant_factory::reset()} afterwards (for example in a finally block).
+ *
  * If tenant dependent objects are needed for a specific tenant without changing the current tenant of the request, a separate
  * tenant factory instance with the tenant being set can be passed to them.
  *
