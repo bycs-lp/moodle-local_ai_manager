@@ -67,6 +67,7 @@ class get_prompts extends external_api {
      * @return array associative array containing the result of the request
      */
     public static function execute(int $contextid, int $userid, int $time): array {
+        global $USER;
         [
             'contextid' => $contextid,
             'userid' => $userid,
@@ -86,6 +87,17 @@ class get_prompts extends external_api {
             require_capability('local/ai_manager:viewprompts', $context);
         } else {
             require_capability('local/ai_manager:viewtenantprompts', $context);
+        }
+
+        if ($userid != $USER->id) {
+            $privilegedroles = get_config('local_ai_manager', 'privilegedroles');
+            $isprivileged = is_siteadmin($userid);
+            foreach ($privilegedroles ? explode(',', $privilegedroles) : [] as $roleid) {
+                $isprivileged = $isprivileged || user_has_role_assignment($userid, $roleid, SYSCONTEXTID);
+            }
+            if ($isprivileged) {
+                throw new \moodle_exception('nopermissions', 'error', '', 'viewprompts');
+            }
         }
 
         try {
