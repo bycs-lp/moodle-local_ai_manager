@@ -31,12 +31,50 @@ class access_manager {
     /**
      * Creates the access_manager object.
      *
-     * @param tenant $tenant the tenant the access manager should use
+     * The access manager always works with the tenant of the passed {@see tenant_factory} object. For the access manager
+     * retrieved from the DI container, this is the current tenant of the request.
+     *
+     * @param tenant_factory $tenantfactory the object providing the tenant the access manager should work with
      */
     public function __construct(
-        /** @var tenant $tenant the tenant the access manager should use */
-        private readonly tenant $tenant
+        /** @var tenant_factory $tenantfactory the object providing the tenant the access manager should work with */
+        private readonly tenant_factory $tenantfactory
     ) {
+    }
+
+    /**
+     * Requires the current user to be a member or a manager of the tenant with the given identifier.
+     *
+     * The check is being performed without changing the tenant of this access manager or the current tenant of the request,
+     * so it can be called before switching to the requested tenant.
+     *
+     * Determining the tenant (context) fails for invalid or non-existing tenant identifiers. To not reveal which tenants exist,
+     * such failures result in the same exception as a missing permission. Database errors (except for missing records) and
+     * other unexpected errors are not being caught, so they are not disguised as a missing permission.
+     *
+     * @param string $identifier the identifier of the tenant the current user wants to access
+     * @throws \moodle_exception if the current user must not access the tenant
+     * @throws \dml_exception in case of a database error
+     */
+    public function require_tenant_access(string $identifier): void {
+        try {
+            $tenantfactory = new tenant_factory();
+            $tenantfactory->set(new tenant($identifier));
+            $accessmanager = new self($tenantfactory);
+            $allowed = $accessmanager->is_tenant_member() || $accessmanager->is_tenant_manager();
+        } catch (\moodle_exception $exception) {
+            // The tenant (context) could not be determined, for example because of an invalid identifier
+            // (invalid_parameter_exception) or because a plugin implementing the custom_tenant hook does not know the tenant.
+            // Real database errors must not be disguised as a missing permission. A missing record however just means that
+            // the tenant (context) does not exist.
+            if ($exception instanceof \dml_exception && !$exception instanceof \dml_missing_record_exception) {
+                throw $exception;
+            }
+            $allowed = false;
+        }
+        if (!$allowed) {
+            throw new \moodle_exception('exception_tenantaccessdenied', 'local_ai_manager', '', $identifier);
+        }
     }
 
     /**
@@ -70,7 +108,7 @@ class access_manager {
         }
 
         if (is_null($tenant)) {
-            $tenant = $this->tenant;
+            $tenant = $this->tenantfactory->get();
         }
 
         $customtenant = new custom_tenant($tenant);
@@ -102,7 +140,7 @@ class access_manager {
         global $USER;
         $tenantfield = get_config('local_ai_manager', 'tenantcolumn');
 
-        return $USER->{$tenantfield} === $this->tenant->get_sql_identifier();
+        return $USER->{$tenantfield} === $this->tenantfactory->get()->get_sql_identifier();
     }
 
     /**
@@ -112,19 +150,20 @@ class access_manager {
      */
     public function require_tenant_member(): void {
         global $USER;
-        if (!$this->tenant->is_tenant_allowed()) {
+        $tenant = $this->tenantfactory->get();
+        if (!$tenant->is_tenant_allowed()) {
             throw new \moodle_exception('exception_tenantnotallowed', 'local_ai_manager');
         }
-        if ($this->tenant->is_default_tenant() && has_capability('local/ai_manager:use', $this->tenant->get_context())) {
+        if ($tenant->is_default_tenant() && has_capability('local/ai_manager:use', $tenant->get_context())) {
             return;
         }
 
-        $customtenant = new custom_tenant($this->tenant);
+        $customtenant = new custom_tenant($tenant);
         \core\di::get(\core\hook\manager::class)->dispatch($customtenant);
 
         $tenantfield = get_config('local_ai_manager', 'tenantcolumn');
-        if (empty($USER->{$tenantfield}) || $USER->{$tenantfield} !== $this->tenant->get_sql_identifier()) {
-            throw new \moodle_exception('exception_tenantaccessdenied', 'local_ai_manager', '', $this->tenant->get_identifier());
+        if (empty($USER->{$tenantfield}) || $USER->{$tenantfield} !== $tenant->get_sql_identifier()) {
+            throw new \moodle_exception('exception_tenantaccessdenied', 'local_ai_manager', '', $tenant->get_identifier());
         }
     }
 
@@ -140,7 +179,7 @@ class access_manager {
             return true;
         }
         if ($this->is_tenant_manager($USER->id, new tenant($instance->get_tenant()))) {
-            return has_capability('local/ai_manager:manage', $this->tenant->get_context());
+            return has_capability('local/ai_manager:manage', $this->tenantfactory->get()->get_context());
         }
         return false;
     }

@@ -24,7 +24,7 @@
  */
 
 use local_ai_manager\form\rights_config_form;
-use local_ai_manager\local\tenant;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\tenant_config_output_utils;
 use local_ai_manager\local\userinfo;
 use local_ai_manager\output\tenantnavbar;
@@ -37,7 +37,7 @@ global $CFG, $DB, $OUTPUT, $PAGE, $SESSION, $USER;
 
 tenant_config_output_utils::setup_tenant_config_page(new moodle_url('/local/ai_manager/rights_config.php'));
 
-$tenant = \core\di::get(tenant::class);
+$tenant = \core\di::get(tenant_factory::class)->get();
 $returnurl = new moodle_url('/local/ai_manager/tenant_config.php', ['tenant' => $tenant->get_identifier()]);
 
 $rightsconfigform = new rights_config_form(null, ['tenant' => $tenant]);

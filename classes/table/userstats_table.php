@@ -19,7 +19,7 @@ namespace local_ai_manager\table;
 use core\context;
 use core_table\dynamic;
 use local_ai_manager\base_purpose;
-use local_ai_manager\local\tenant;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\unit;
 use moodle_url;
 use stdClass;
@@ -197,20 +197,20 @@ class userstats_table extends table_sql implements dynamic {
 
     #[\Override]
     public function get_context(): context {
-        $tenant = \core\di::get(tenant::class);
+        $tenant = \core\di::get(tenant_factory::class)->get();
         return $tenant->get_context();
     }
 
     #[\Override]
     public function has_capability(): bool {
-        $tenant = \core\di::get(tenant::class);
+        $tenant = \core\di::get(tenant_factory::class)->get();
         return has_capability('local/ai_manager:manage', $tenant->get_context());
     }
 
     #[\Override]
     public function guess_base_url(): void {
         // We already do this in the constructor, but it's required to overwrite this for dynamic table usage.
-        $tenant = \core\di::get(tenant::class);
+        $tenant = \core\di::get(tenant_factory::class)->get();
         $baseurl = empty($purpose)
             ? new moodle_url('/local/ai_manager/user_statisticss.php', ['tenant' => $tenant->get_identifier()])
             : new moodle_url(

@@ -40,9 +40,9 @@ class tenant_config_output_utils {
 
         if (!empty($tenantid)) {
             $tenant = new \local_ai_manager\local\tenant($tenantid);
-            \core\di::set(\local_ai_manager\local\tenant::class, $tenant);
+            \core\di::get(tenant_factory::class)->set($tenant);
         }
-        $tenant = \core\di::get(\local_ai_manager\local\tenant::class);
+        $tenant = \core\di::get(tenant_factory::class)->get();
         $accessmanager = \core\di::get(\local_ai_manager\local\access_manager::class);
         $accessmanager->require_tenant_manager();
         // Dynamic tables external service does not support passing any parameters to the table nor can you pass

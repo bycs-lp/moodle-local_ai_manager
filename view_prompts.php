@@ -25,6 +25,7 @@
 
 use local_ai_manager\ai_manager_utils;
 use local_ai_manager\form\context_selector_form;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\tenant;
 use local_ai_manager\local\view_prompts_table;
 use local_ai_manager\output\tenantnavbar;
@@ -45,9 +46,9 @@ if (!empty($tenantid) && !empty($contextid)) {
 
 if (!empty($tenantid)) {
     $tenant = new tenant($tenantid);
-    \core\di::set(tenant::class, $tenant);
+    \core\di::get(tenant_factory::class)->set($tenant);
 }
-$tenant = \core\di::get(tenant::class);
+$tenant = \core\di::get(tenant_factory::class)->get();
 $accessmanager = \core\di::get(\local_ai_manager\local\access_manager::class);
 $accessmanager->require_tenant_member();
 

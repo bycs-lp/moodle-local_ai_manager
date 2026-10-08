@@ -21,9 +21,8 @@ use core\exception\invalid_parameter_exception;
 use core_plugin_manager;
 use local_ai_manager\hook\additional_user_restriction;
 use local_ai_manager\hook\purpose_usage;
-use local_ai_manager\local\access_manager;
-use local_ai_manager\local\config_manager;
 use local_ai_manager\local\connector_factory;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\tenant;
 use local_ai_manager\local\userinfo;
 use local_ai_manager\local\userusage;
@@ -137,7 +136,7 @@ class ai_manager_utils {
         global $DB;
 
         $maincontext = \context::instance_by_id($contextid);
-        $tenant = \core\di::get(tenant::class);
+        $tenant = \core\di::get(tenant_factory::class)->get();
         if ($tenant->get_context()->id === $maincontext->id) {
             $contextids = $DB->get_fieldset(
                 'local_ai_manager_request_log',
@@ -289,27 +288,36 @@ class ai_manager_utils {
     /**
      * API helper function to get the connector instance of a purpose
      *
+     * If a userid is passed, the tenant of this user will be set as current tenant via {@see tenant_factory::set()}. This is a
+     * side effect: The tenant stays active for the rest of the PHP process (page request, CLI script, cron run) respectively the
+     * rest of the current external function call and is not being reset automatically outside of web services. This function
+     * does not check if the current user is allowed to access the tenant of the passed user, this is the responsibility of the
+     * caller. Frontend plugins should not pass a userid, so the tenant of the current user is being used.
+     *
      * @param string $purpose the purpose to get the connector instance for
      * @param ?int $userid the userid of the user to determine the correct tenant
      * @return base_instance the connector instance object
      */
     public static function get_connector_instance_by_purpose(string $purpose, ?int $userid = null): base_instance {
         global $USER;
-        if (is_null($userid)) {
-            $tenant = \core\di::get(tenant::class);
-        } else {
+        if (!is_null($userid)) {
             $user = \core_user::get_user($userid);
             $tenantfield = get_config('local_ai_manager', 'tenantcolumn');
-            $tenant = new tenant($user->{$tenantfield});
-            \core\di::set(tenant::class, $tenant);
+            \core\di::get(tenant_factory::class)->set(new tenant($user->{$tenantfield}));
         }
         $userinfo = new userinfo(empty($userid) ? $USER->id : $userid);
-        $factory = \core\di::get(\local_ai_manager\local\connector_factory::class);
+        $factory = \core\di::get(connector_factory::class);
         return $factory->get_connector_instance_by_purpose($purpose, $userinfo->get_role());
     }
 
     /**
      * API function to get all needed information about the AI configuration for a user.
+     *
+     * If a tenant is passed, it will be set as current tenant via {@see tenant_factory::set()}. This is a side effect: The
+     * tenant stays active for the rest of the PHP process (page request, CLI script, cron run) respectively the rest of the
+     * current external function call and is not being reset automatically outside of web services. This function does not
+     * check if the current user is allowed to access the passed tenant, this is the responsibility of the caller. Frontend
+     * plugins should pass null, so the tenant of the current user is being used.
      *
      * @param stdClass $user the user to retrieve the information for
      * @param int $contextid the contextid on which the availability should be determined
@@ -323,13 +331,11 @@ class ai_manager_utils {
         ?string $tenant = null,
         ?array $selectedpurposes = []
     ): array {
-        $tenantrequested = !is_null($tenant);
         try {
-            if ($tenantrequested) {
-                $tenant = self::resolve_requested_tenant($tenant);
-            } else {
-                $tenant = \core\di::get(tenant::class);
+            if (!is_null($tenant)) {
+                \core\di::get(tenant_factory::class)->set(new tenant($tenant));
             }
+            $tenant = \core\di::get(tenant_factory::class)->get();
         } catch (invalid_parameter_exception) {
             return [
                 'availability' => [
@@ -339,26 +345,6 @@ class ai_manager_utils {
                 'purposes' => [],
             ];
         }
-
-        if ($tenantrequested) {
-            // Create the tenant dependent objects for the requested tenant.
-            $configmanager = new config_manager($tenant);
-            $connectorfactory = new connector_factory($configmanager);
-            $accessmanager = new access_manager($tenant);
-
-            // Remember the objects of the own tenant, so we can put them back after the calculation.
-            $previoustenant = \core\di::get(tenant::class);
-            $previousconfigmanager = \core\di::get(config_manager::class);
-            $previousconnectorfactory = \core\di::get(connector_factory::class);
-            $previousaccessmanager = \core\di::get(access_manager::class);
-
-            // Replace the objects in the DI container, because the calculation below gets them from there.
-            \core\di::set(tenant::class, $tenant);
-            \core\di::set(config_manager::class, $configmanager);
-            \core\di::set(connector_factory::class, $connectorfactory);
-            \core\di::set(access_manager::class, $accessmanager);
-        }
-
         $installedpurposes = array_keys(core_plugin_manager::instance()->get_installed_plugins('aipurpose'));
         if (empty($selectedpurposes)) {
             // If no purpose is specified, we return the config for all purposes.
@@ -368,15 +354,6 @@ class ai_manager_utils {
         $availability = self::determine_availability($user, $tenant, $contextid);
         $purposes = self::determine_purposes_availability($user, $contextid, $selectedpurposes);
 
-        if ($tenantrequested) {
-            // Put the objects of the own tenant back. All web services of a batch run in the same process and the container
-            // caches these objects, so later web services of the batch must not keep working with the requested tenant.
-            \core\di::set(tenant::class, $previoustenant);
-            \core\di::set(config_manager::class, $previousconfigmanager);
-            \core\di::set(connector_factory::class, $previousconnectorfactory);
-            \core\di::set(access_manager::class, $previousaccessmanager);
-        }
-
         return [
             'availability' => $availability,
             'purposes' => $purposes,
@@ -384,44 +361,21 @@ class ai_manager_utils {
     }
 
     /**
-     * Returns the tenant for an identifier passed by a caller, but only if the current user is allowed to use this tenant.
-     *
-     * The current user is allowed to use the tenant if the user is a manager of the requested tenant or if it is the own
-     * tenant of the user. The access manager is created manually instead of using the DI container, because the container
-     * must not be changed before the access check has passed.
-     *
-     * @param string $identifier the identifier of the requested tenant
-     * @return tenant the tenant object of the requested tenant
-     * @throws invalid_parameter_exception if the identifier is not a valid tenant identifier
-     * @throws \moodle_exception if the current user is not allowed to use the requested tenant
-     */
-    private static function resolve_requested_tenant(string $identifier): tenant {
-        $requestedtenant = new tenant($identifier);
-        // The manager check comes first: Creating the tenant of the current user throws for malformed tenant field values,
-        // which must not lock out tenant managers.
-        $accessmanager = new access_manager($requestedtenant);
-        if ($accessmanager->is_tenant_manager()) {
-            return $requestedtenant;
-        }
-        $owntenant = new tenant();
-        if ($requestedtenant->get_identifier() === $owntenant->get_identifier()) {
-            return $requestedtenant;
-        }
-        throw new \moodle_exception('exception_tenantaccessdenied', 'local_ai_manager', '', $identifier);
-    }
-
-    /**
      * API function to get general information about the AI manager.
+     *
+     * If a tenant is passed, it will be set as current tenant via {@see tenant_factory::set()}. This is a side effect: The
+     * tenant stays active for the rest of the PHP process (page request, CLI script, cron run) respectively the rest of the
+     * current external function call and is not being reset automatically outside of web services. This function does not
+     * check if the current user is allowed to access the passed tenant, this is the responsibility of the caller.
      *
      * @param ?string $tenant the tenant to retrieve the information for. If null, the current tenant will be used
      * @return array associative array containing the general info object
      */
     public static function get_ai_info(?string $tenant = null): array {
         if (!is_null($tenant)) {
-            $tenant = self::resolve_requested_tenant($tenant);
-        } else {
-            $tenant = \core\di::get(tenant::class);
+            \core\di::get(tenant_factory::class)->set(new tenant($tenant));
         }
+        $tenant = \core\di::get(tenant_factory::class)->get();
 
         $tools = [];
         foreach (\local_ai_manager\plugininfo\aitool::get_enabled_plugins() as $toolname) {
@@ -447,6 +401,22 @@ class ai_manager_utils {
             'aiwarningurl' => $aiwarningurl,
             'tools' => $tools,
         ];
+    }
+
+    /**
+     * API function to check if the current tenant is allowed to use the AI manager at all.
+     *
+     * This only checks the site wide tenant restriction (admin settings "restricttenants" and "allowedtenants"), not if the
+     * tenant has been enabled by the tenant manager or if the current user is allowed to use AI tools.
+     *
+     * @return bool true if the current tenant is allowed, false otherwise or if the tenant of the current user is invalid
+     */
+    public static function is_tenant_allowed(): bool {
+        try {
+            return \core\di::get(tenant_factory::class)->get()->is_tenant_allowed();
+        } catch (invalid_parameter_exception) {
+            return false;
+        }
     }
 
     /**

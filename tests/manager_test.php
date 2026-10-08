@@ -23,6 +23,7 @@ use GuzzleHttp\Psr7\Stream;
 use local_ai_manager\local\config_manager;
 use local_ai_manager\ai_manager_utils;
 use local_ai_manager\local\connector_factory;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\request_response;
 use local_ai_manager\local\tenant;
@@ -71,7 +72,9 @@ final class manager_test extends \advanced_testcase {
 
         // Set if the tenant is enabled based on the $configuration.
         // CARE: If the tenant is not allowed this will not have any effect.
-        $configmanager = new config_manager($tenant);
+        $tenantfactory = new tenant_factory();
+        $tenantfactory->set($tenant);
+        $configmanager = new config_manager($tenantfactory);
         $configmanager->set_config('tenantenabled', $configuration['tenantenabled'] ? 1 : 0);
 
         // Set locked and confirmed value based on the $configuration.

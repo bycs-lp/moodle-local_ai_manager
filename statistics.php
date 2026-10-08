@@ -35,7 +35,7 @@ $purpose = optional_param('purpose', '', PARAM_ALPHANUM);
 
 \local_ai_manager\local\tenant_config_output_utils::setup_tenant_config_page(new moodle_url('/local/ai_manager/statistics.php'));
 
-$tenant = \core\di::get(\local_ai_manager\local\tenant::class);
+$tenant = \core\di::get(\local_ai_manager\local\tenant_factory::class)->get();
 
 echo $OUTPUT->header();
 $tenantnavbar = new tenantnavbar('statistics.php');

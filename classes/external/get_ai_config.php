@@ -22,6 +22,7 @@ use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
 use local_ai_manager\ai_manager_utils;
+use local_ai_manager\local\access_manager;
 
 /**
  * Web service to submit a query to an AI tool.
@@ -91,6 +92,9 @@ class get_ai_config extends external_api {
         $context = \context_system::instance();
         self::validate_context($context);
         require_capability('local/ai_manager:use', $context);
+        if (!is_null($tenant)) {
+            \core\di::get(access_manager::class)->require_tenant_access($tenant);
+        }
         return ai_manager_utils::get_ai_config($USER, $contextid, $tenant, $purposes);
     }
 

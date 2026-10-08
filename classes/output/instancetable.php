@@ -19,7 +19,7 @@ namespace local_ai_manager\output;
 use html_writer;
 use local_ai_manager\base_instance;
 use local_ai_manager\local\config_manager;
-use local_ai_manager\local\tenant;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\userinfo;
 use moodle_url;
 use renderable;
@@ -38,7 +38,7 @@ use templatable;
 class instancetable implements renderable, templatable {
     #[\Override]
     public function export_for_template(renderer_base $output): stdClass {
-        $tenant = \core\di::get(tenant::class);
+        $tenant = \core\di::get(tenant_factory::class)->get();
         $configmanager = \core\di::get(config_manager::class);
 
         $instances = [];
