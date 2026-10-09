@@ -77,6 +77,13 @@ class submit_query extends external_api {
         if (!empty($options)) {
             $options = json_decode($options, true);
         }
+        if (!empty($options['conversationcontext']) && is_array($options['conversationcontext'])) {
+            // Only server side code may add system messages, a client may only pass on the conversation itself.
+            $options['conversationcontext'] = array_values(array_filter(
+                $options['conversationcontext'],
+                fn($entry) => is_array($entry) && in_array($entry['sender'] ?? '', ['user', 'ai'], true)
+            ));
+        }
         $context = $contextid === 0 ? \context_system::instance() : \context::instance_by_id($contextid);
         self::validate_context($context);
         // We do not check the 'local/ai_manager:use' capability here, because this is being done inside manager::perform_request.
