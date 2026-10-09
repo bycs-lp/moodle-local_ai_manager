@@ -32,11 +32,10 @@ use local_ai_manager\local\tenant;
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class reset_user_usage extends \core\task\scheduled_task {
-    /**
-     * Clock object injected via \core\di.
-     *
-     * @var \core\clock the clock object
-     */
+    /** @var int Maximum number of records which are being updated by a single UPDATE statement. */
+    public const BATCH_SIZE = 500;
+
+    /** @var \core\clock the clock object */
     private \core\clock $clock;
 
     /**
@@ -46,18 +45,12 @@ class reset_user_usage extends \core\task\scheduled_task {
         $this->clock = \core\di::get(\core\clock::class);
     }
 
-    /**
-     * Returns the name of the task.
-     *
-     * @return string the name of the task
-     */
+    #[\Override]
     public function get_name(): string {
         return get_string('resetuserusagetask', 'local_ai_manager');
     }
 
-    /**
-     * Execute the cleanup.
-     */
+    #[\Override]
     public function execute(): void {
         global $DB;
         $tenantfield = get_config('local_ai_manager', 'tenantcolumn');
@@ -70,24 +63,47 @@ class reset_user_usage extends \core\task\scheduled_task {
         }
 
         $tenantfactory = \core\di::get(tenant_factory::class);
+        $now = $this->clock->time();
         foreach ($tenants as $tenantidentifier) {
             // We intentionally do not use \core\di here, because we need to reset the objects for each tenant.
             $tenant = new tenant($tenantidentifier);
             $tenantfactory->set($tenant);
             $configmanager = new config_manager($tenantfactory);
-            $sql = "SELECT uu.* FROM {local_ai_manager_userusage} uu "
-                    . "JOIN {user} u ON uu.userid = u.id WHERE " . $tenantfield . " = :tenantidentifier";
-            $rs = $DB->get_recordset_sql($sql, ['tenantidentifier' => $tenantidentifier]);
-            foreach ($rs as $record) {
-                $lastreset = !empty($record->lastreset) ? $record->lastreset : 0;
-                if ($this->clock->time() - $lastreset > $configmanager->get_max_requests_period()) {
-                    $record->lastreset = $this->clock->time();
-                    $record->currentusage = 0;
-                    $DB->update_record('local_ai_manager_userusage', $record);
-                }
-                mtrace('Successfully reset user usage of tenant ' . $tenantidentifier);
+            // A record has to be reset if "$now - lastreset > period", which equals "lastreset < $now - period".
+            $threshold = $now - $configmanager->get_max_requests_period();
+
+            // Only fetch the ids of the records which really need to be reset, so we do not write unchanged rows.
+            $sql = "SELECT uu.id
+                      FROM {local_ai_manager_userusage} uu
+                      JOIN {user} u ON uu.userid = u.id
+                     WHERE " . $tenantfield . " = :tenantidentifier
+                           AND (uu.lastreset IS NULL OR uu.lastreset < :threshold)";
+            $ids = $DB->get_fieldset_sql($sql, ['tenantidentifier' => $tenantidentifier, 'threshold' => $threshold]);
+            if (empty($ids)) {
+                continue;
             }
-            $rs->close();
+
+            $this->reset_usage_records($ids, $now);
+            mtrace('Successfully reset user usage of tenant ' . $tenantidentifier . ' (' . count($ids) . ' records)');
+        }
+    }
+
+    /**
+     * Resets the usage of the given records by using batched bulk updates.
+     *
+     * Each batch is being executed as a separate UPDATE statement (and thus a separate transaction/writeset).
+     *
+     * @param array $ids the ids of the local_ai_manager_userusage records to reset
+     * @param int $time the timestamp to store as last reset time
+     */
+    protected function reset_usage_records(array $ids, int $time): void {
+        global $DB;
+        foreach (array_chunk($ids, self::BATCH_SIZE) as $chunk) {
+            [$insql, $inparams] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'uuid');
+            $sql = "UPDATE {local_ai_manager_userusage}
+                       SET currentusage = 0, lastreset = :lastreset
+                     WHERE id " . $insql;
+            $DB->execute($sql, array_merge($inparams, ['lastreset' => $time]));
         }
     }
 }
