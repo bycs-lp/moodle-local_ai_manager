@@ -41,7 +41,7 @@ class instance extends base_instance {
             $mform->removeElement('apikey');
         }
         $globalendpoint = get_config('aitool_telli', 'baseurl');
-        if (!empty($globalendpoint)) {
+        if (!empty($globalendpoint) || !empty($globalapikey)) {
             $mform->removeElement('endpoint');
         }
         aitool_option_temperature::extend_form_definition($mform, $this->selectablemodelsobjects);
