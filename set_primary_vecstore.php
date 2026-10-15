@@ -32,7 +32,6 @@ require_login();
 global $CFG;
 
 $id = required_param('id', PARAM_INT);
-require_sesskey();
 
 $pageurl = new moodle_url('/local/ai_manager/set_primary_vecstore.php');
 \local_ai_manager\local\tenant_config_output_utils::setup_tenant_config_page($pageurl);
@@ -49,11 +48,33 @@ if (!$accessmanager->can_manage_vecstoreinstance($instance)) {
     throw new moodle_exception('exception_editinstancedenied', 'local_ai_manager');
 }
 
-$factory->set_primary($id);
+$successmessage = get_string('vecstoreprimaryset', 'local_ai_manager', $instance->get_name());
+$oldprimary = $factory->get_primary_instance();
+if ($oldprimary === null || $oldprimary->get_id() === $instance->get_id()) {
+    // Without a previous primary vector store no data has to be detached, so there is nothing to confirm.
+    require_sesskey();
+    $factory->change_primary($instance, false);
+    redirect($returnurl, $successmessage, null, \core\output\notification::NOTIFY_SUCCESS);
+}
 
-redirect(
-    $returnurl,
-    get_string('vecstoreprimaryset', 'local_ai_manager', $instance->get_name()),
-    null,
-    \core\output\notification::NOTIFY_SUCCESS
+// Changing the primary vector store always has to be confirmed, because data of other plugins may depend on it.
+$releaseform = new \local_ai_manager\form\vecstore_release_form(
+    new moodle_url('/local/ai_manager/set_primary_vecstore.php', ['id' => $id]),
+    [
+        'vecstorename' => $oldprimary->get_name(),
+        'usages' => $factory->get_usage_descriptions($oldprimary, false),
+        'submitlabel' => get_string('vecstorereleaseconfirm_primary', 'local_ai_manager'),
+    ]
 );
+if ($releaseform->is_cancelled()) {
+    redirect($returnurl);
+}
+if ($data = $releaseform->get_data()) {
+    $factory->change_primary($instance, !empty($data->deletevectors));
+    redirect($returnurl, $successmessage, null, \core\output\notification::NOTIFY_SUCCESS);
+}
+
+echo $OUTPUT->header();
+echo $OUTPUT->heading(get_string('vecstorereleaseheading_primary', 'local_ai_manager', format_string($instance->get_name())));
+$releaseform->display();
+echo $OUTPUT->footer();

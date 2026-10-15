@@ -46,20 +46,40 @@ if (!empty($del)) {
     if (empty($id)) {
         throw new moodle_exception('exception_instanceidmissing', 'local_ai_manager');
     }
-    require_sesskey();
 
     $instance = $factory->get_vecstore_instance_by_id($id);
-    if ($instance) {
-        $tenant = new tenant($instance->get_tenant());
-        \core\di::set(tenant::class, $tenant);
-        $returnurl = new moodle_url('/local/ai_manager/tenant_config.php', ['tenant' => $tenant->get_identifier()]);
-    }
+    $tenant = new tenant($instance->get_tenant());
+    \core\di::set(tenant::class, $tenant);
+    $returnurl = new moodle_url('/local/ai_manager/tenant_config.php', ['tenant' => $tenant->get_identifier()]);
     if (!$accessmanager->can_manage_vecstoreinstance($instance)) {
         throw new moodle_exception('exception_editinstancedenied', 'local_ai_manager');
     }
-    $instance->delete();
 
-    redirect($returnurl, get_string('vecstoredeleted', 'local_ai_manager'));
+    // Deleting always has to be confirmed, because data of other plugins may depend on the instance.
+    $releaseform = new \local_ai_manager\form\vecstore_release_form(
+        new moodle_url(
+            '/local/ai_manager/edit_vecstore.php',
+            ['id' => $id, 'del' => 1, 'tenant' => $tenant->get_identifier()]
+        ),
+        [
+            'vecstorename' => $instance->get_name(),
+            'usages' => $factory->get_usage_descriptions($instance, true),
+            'submitlabel' => get_string('delete'),
+        ]
+    );
+    if ($releaseform->is_cancelled()) {
+        redirect($returnurl);
+    }
+    if ($data = $releaseform->get_data()) {
+        $factory->delete_instance($instance, !empty($data->deletevectors));
+        redirect($returnurl, get_string('vecstoredeleted', 'local_ai_manager'));
+    }
+
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(get_string('vecstorereleaseheading_delete', 'local_ai_manager', format_string($instance->get_name())));
+    $releaseform->display();
+    echo $OUTPUT->footer();
+    die();
 }
 
 if (!empty($id)) {
@@ -104,10 +124,11 @@ if ($editvecstoreform->is_cancelled()) {
         [
             'heading' => $OUTPUT->heading(get_string('configurevecstore', 'local_ai_manager')),
             'showdeletebutton' => !empty($id),
-            'deleteconfirmstr' => 'vecstoredeleteconfirm',
+            // The delete URL leads to a confirmation page, so no additional confirmation modal is needed.
+            'deleteconfirmationpage' => true,
             'deleteurl' => new moodle_url(
                 '/local/ai_manager/edit_vecstore.php',
-                ['id' => $id, 'del' => 1, 'sesskey' => sesskey()]
+                ['id' => $id, 'del' => 1, 'tenant' => $tenant->get_identifier()]
             ),
         ]
     );
