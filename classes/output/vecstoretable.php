@@ -18,7 +18,7 @@ namespace local_ai_manager\output;
 
 use html_writer;
 use local_ai_manager\base_vecstore_instance;
-use local_ai_manager\local\tenant;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\vecstore_factory;
 use local_ai_manager\plugininfo\aivecstore;
 use moodle_url;
@@ -38,7 +38,7 @@ use templatable;
 class vecstoretable implements renderable, templatable {
     #[\Override]
     public function export_for_template(renderer_base $output): stdClass {
-        $tenant = \core\di::get(tenant::class);
+        $tenant = \core\di::get(tenant_factory::class)->get();
 
         // Build the "add" menu from the enabled vector store backends.
         $addoptions = [];

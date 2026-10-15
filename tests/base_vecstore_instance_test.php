@@ -16,8 +16,8 @@
 
 namespace local_ai_manager;
 
-use local_ai_manager\local\config_manager;
 use local_ai_manager\local\tenant;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\vecstore_factory;
 use stdClass;
 
@@ -158,9 +158,9 @@ final class base_vecstore_instance_test extends \advanced_testcase {
             $instance->store();
         }
 
-        \core\di::set(tenant::class, new tenant('tenanta'));
+        \core\di::get(tenant_factory::class)->set(new tenant('tenanta'));
         $this->assertCount(2, base_vecstore_instance::get_all_instances());
-        \core\di::set(tenant::class, new tenant('tenantb'));
+        \core\di::get(tenant_factory::class)->set(new tenant('tenantb'));
         $this->assertCount(1, base_vecstore_instance::get_all_instances());
         $this->assertCount(3, base_vecstore_instance::get_all_instances(true));
     }
@@ -253,9 +253,7 @@ final class base_vecstore_instance_test extends \advanced_testcase {
     public function test_primary_selection(): void {
         $this->resetAfterTest();
 
-        $tenant = new tenant('tn');
-        \core\di::set(tenant::class, $tenant);
-        \core\di::set(config_manager::class, new config_manager($tenant));
+        \core\di::get(tenant_factory::class)->set(new tenant('tn'));
         $factory = new vecstore_factory();
 
         // No instances configured yet.

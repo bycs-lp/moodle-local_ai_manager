@@ -17,6 +17,7 @@
 namespace local_ai_manager;
 
 use local_ai_manager\local\tenant;
+use local_ai_manager\local\tenant_factory;
 use local_ai_manager\plugininfo\aivecstore;
 use stdClass;
 
@@ -139,7 +140,7 @@ class base_vecstore_instance {
 
         $params = [];
         if (!$allinstances) {
-            $params['tenant'] = \core\di::get(tenant::class)->get_identifier();
+            $params['tenant'] = \core\di::get(tenant_factory::class)->get()->get_identifier();
         }
         $records = $DB->get_records('local_ai_manager_vecstore', $params, '', 'id');
         $instances = [];
@@ -578,7 +579,9 @@ class base_vecstore_instance {
         // If this instance was the tenant's primary vector store, clear that pointer.
         // We intentionally build the config manager for this instance's own tenant.
         if (!empty($this->get_tenant())) {
-            $configmanager = new \local_ai_manager\local\config_manager(new tenant($this->get_tenant()));
+            $tenantfactory = new tenant_factory();
+            $tenantfactory->set(new tenant($this->get_tenant()));
+            $configmanager = new \local_ai_manager\local\config_manager($tenantfactory);
             if ((int) $configmanager->get_config(\local_ai_manager\local\vecstore_factory::CONFIG_PRIMARY) === $this->id) {
                 $configmanager->unset_config(\local_ai_manager\local\vecstore_factory::CONFIG_PRIMARY);
             }
