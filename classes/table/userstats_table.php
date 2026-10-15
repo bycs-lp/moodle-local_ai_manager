@@ -204,7 +204,7 @@ class userstats_table extends table_sql implements dynamic {
     #[\Override]
     public function has_capability(): bool {
         $tenant = \core\di::get(tenant_factory::class)->get();
-        return has_capability('local/ai_manager:manage', $tenant->get_context());
+        return has_capability('local/ai_manager:viewuserstatistics', $tenant->get_context());
     }
 
     #[\Override]
