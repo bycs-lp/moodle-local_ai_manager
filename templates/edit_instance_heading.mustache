@@ -21,12 +21,21 @@
     {
         "heading": "Edit the 'Chat' instance",
         "showdeletebutton": true,
+        "deleteconfirmationpage": false,
         "deleteurl": "https://mymoodle.com/editinstance.php?id=5&delete=1"
     }
 }}
 <div class="d-flex justify-content-between mt-5 mb-5 align-items-center w-100">
     {{{heading}}}
     {{#showdeletebutton}}
+        {{#deleteconfirmationpage}}
+        <div>
+            <a class="btn" href="{{{deleteurl}}}" title="{{#str}}delete, core{{/str}}" aria-label="{{#str}}delete, core{{/str}}">
+                <i class="fa fa-trash"></i>
+            </a>
+        </div>
+        {{/deleteconfirmationpage}}
+        {{^deleteconfirmationpage}}
         <div>
             <button class="btn"{{!
                  }} data-confirmation="modal"{{!
@@ -37,5 +46,6 @@
                 <i class="fa fa-trash"></i>
             </button>
         </div>
+        {{/deleteconfirmationpage}}
     {{/showdeletebutton}}
 </div>

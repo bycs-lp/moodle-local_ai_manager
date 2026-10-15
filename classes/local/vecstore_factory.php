@@ -18,6 +18,9 @@ namespace local_ai_manager\local;
 
 use local_ai_manager\base_vecstore;
 use local_ai_manager\base_vecstore_instance;
+use local_ai_manager\hook\before_primary_vecstore_changed;
+use local_ai_manager\hook\before_vecstore_instance_deleted;
+use local_ai_manager\hook\vecstore_usage;
 
 /**
  * Factory for creating/retrieving vector store instance objects.
@@ -135,5 +138,45 @@ class vecstore_factory {
      */
     public function set_primary(int $id): void {
         \core\di::get(config_manager::class)->set_config(self::CONFIG_PRIMARY, (string) $id);
+    }
+
+    /**
+     * Collect the data of other plugins depending on a vector store instance.
+     *
+     * @param base_vecstore_instance $instance The vector store instance.
+     * @param bool $deleting True if the instance is about to be deleted, false if it stops being the primary one.
+     * @return string[][] Localized usage descriptions, indexed by component.
+     */
+    public function get_usage_descriptions(base_vecstore_instance $instance, bool $deleting): array {
+        $hook = new vecstore_usage($instance, $deleting);
+        \core\di::get(\core\hook\manager::class)->dispatch($hook);
+        return $hook->get_usage_descriptions();
+    }
+
+    /**
+     * Delete a vector store instance after letting other plugins detach their data from it.
+     *
+     * @param base_vecstore_instance $instance The vector store instance to delete.
+     * @param bool $deletevectors Whether the stored vectors of the depending data are deleted from the instance.
+     */
+    public function delete_instance(base_vecstore_instance $instance, bool $deletevectors): void {
+        \core\di::get(\core\hook\manager::class)->dispatch(new before_vecstore_instance_deleted($instance, $deletevectors));
+        $instance->delete();
+    }
+
+    /**
+     * Make another instance the primary vector store after letting other plugins detach their data from the old one.
+     *
+     * @param base_vecstore_instance $newprimary The vector store instance becoming the primary one.
+     * @param bool $deletevectors Whether the stored vectors of the depending data are deleted from the old primary.
+     */
+    public function change_primary(base_vecstore_instance $newprimary, bool $deletevectors): void {
+        $oldprimary = $this->get_primary_instance();
+        if ($oldprimary !== null && $oldprimary->get_id() !== $newprimary->get_id()) {
+            \core\di::get(\core\hook\manager::class)->dispatch(
+                new before_primary_vecstore_changed($oldprimary, $newprimary, $deletevectors)
+            );
+        }
+        $this->set_primary($newprimary->get_id());
     }
 }
