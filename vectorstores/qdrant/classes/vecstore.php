@@ -178,17 +178,21 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
-    public function delete_embeddings(int $sourceid): vecstore_response {
+    public function delete_embeddings(int ...$sourceids): vecstore_response {
+        if (empty($sourceids)) {
+            return vecstore_response::create_from_result();
+        }
         $path = '/collections/' . rawurlencode($this->get_collection()) . '/points/delete?wait=true';
         $body = [
             'filter' => [
                 'must' => [
-                    ['key' => 'sourceid', 'match' => ['value' => $sourceid]],
+                    ['key' => 'sourceid', 'match' => ['any' => array_values($sourceids)]],
                 ],
             ],
         ];
         $response = $this->request('POST', $path, $body);
-        if ($response['status'] === 200) {
+        // A missing collection contains no embeddings, so there is nothing left to delete.
+        if ($response['status'] === 200 || $response['status'] === 404) {
             return vecstore_response::create_from_result();
         }
         return $this->create_error_response($response, 'Could not delete embeddings from qdrant collection.');

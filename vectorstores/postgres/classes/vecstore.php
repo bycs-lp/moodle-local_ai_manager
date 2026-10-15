@@ -225,7 +225,10 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
-    public function delete_embeddings(int $sourceid): vecstore_response {
+    public function delete_embeddings(int ...$sourceids): vecstore_response {
+        if (empty($sourceids)) {
+            return vecstore_response::create_from_result();
+        }
         $connection = $this->get_connection();
         if (!$connection) {
             return $this->create_connection_error_response();
@@ -234,8 +237,10 @@ class vecstore extends base_vecstore {
             return vecstore_response::create_from_result();
         }
         $table = pg_escape_identifier($connection, $this->get_collection());
-        $sql = "DELETE FROM {$table} WHERE payload @> \$1::jsonb";
-        if (@pg_query_params($connection, $sql, [json_encode(['sourceid' => $sourceid])]) === false) {
+        $params = array_map(static fn(int $sourceid): string => (string) $sourceid, array_values($sourceids));
+        $placeholders = array_map(static fn(int $index): string => '$' . ($index + 1), array_keys($params));
+        $sql = "DELETE FROM {$table} WHERE payload->>'sourceid' IN (" . implode(', ', $placeholders) . ')';
+        if (@pg_query_params($connection, $sql, $params) === false) {
             return $this->create_error_response(500, 'Could not delete embeddings from postgres vecstore collection.',
                 pg_last_error($connection));
         }

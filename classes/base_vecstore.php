@@ -157,11 +157,9 @@ abstract class base_vecstore {
         foreach ($embeddings as $embedding) {
             $sourceids[$embedding->get_sourceid()] = $embedding->get_sourceid();
         }
-        foreach ($sourceids as $sourceid) {
-            $response = $this->delete_embeddings($sourceid);
-            if ($response->get_code() !== 200) {
-                return $response;
-            }
+        $response = $this->delete_embeddings(...array_values($sourceids));
+        if ($response->get_code() !== 200) {
+            return $response;
         }
         return $this->store_embeddings($embeddings);
     }
@@ -196,12 +194,15 @@ abstract class base_vecstore {
     abstract public function get_all(): vecstore_response;
 
     /**
-     * Deletes all embeddings in the configured collection that carry the given source id as metadata.
+     * Deletes all embeddings in the configured collection that carry one of the given source ids as metadata.
      *
-     * @param int $sourceid the local_ai_content_sources record ID whose embeddings should be deleted
+     * Deleting is idempotent: if there is nothing to delete (no matching embeddings or no collection), the operation
+     * succeeds.
+     *
+     * @param int ...$sourceids the local_ai_content_sources record IDs whose embeddings should be deleted
      * @return vecstore_response structured response containing operation status and potential error details
      */
-    abstract public function delete_embeddings(int $sourceid): vecstore_response;
+    abstract public function delete_embeddings(int ...$sourceids): vecstore_response;
 
     /**
      * Runs a store or retrieve operation, transparently creating the configured collection if it does not exist yet.
