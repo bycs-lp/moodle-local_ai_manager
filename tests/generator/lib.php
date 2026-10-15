@@ -72,11 +72,14 @@ class local_ai_manager_generator extends component_generator_base {
     /**
      * Create a model record.
      *
-     * @param array $record the record data if you want to override any defaults.
+     * @param array $record the record data if you want to override any defaults. Additionally, the key 'connectors'
+     *  can contain a list of connector names the model should be assigned to.
      * @return stdClass the created model record (with id set).
      */
     public function create_model(array $record = []): stdClass {
         global $DB;
+        $connectors = $record['connectors'] ?? [];
+        unset($record['connectors']);
         $default = [
             'name' => 'test-model',
             'displayname' => 'Test Model',
@@ -94,6 +97,37 @@ class local_ai_manager_generator extends component_generator_base {
         ];
         $data = (object) array_merge($default, $record);
         $data->id = $DB->insert_record('local_ai_manager_model', $data);
+        if (!empty($connectors)) {
+            $model = new \local_ai_manager\local\model((int) $data->id);
+            foreach ($connectors as $connector) {
+                $model->add_connector($connector);
+            }
+        }
         return $data;
+    }
+
+    /**
+     * Create and store a connector instance.
+     *
+     * @param array $record the instance data if you want to override any defaults. Supported keys: 'connector', 'name',
+     *  'tenant' and 'modelid'.
+     * @return \local_ai_manager\base_instance the stored instance object
+     */
+    public function create_instance(array $record = []): \local_ai_manager\base_instance {
+        $default = [
+            'connector' => 'chatgpt',
+            'name' => 'Test instance',
+            'tenant' => \core\di::get(\local_ai_manager\local\tenant::class)->get_identifier(),
+            'modelid' => null,
+        ];
+        $data = array_merge($default, $record);
+        $instance = \core\di::get(\local_ai_manager\local\connector_factory::class)->get_new_instance($data['connector']);
+        $instance->set_name($data['name']);
+        $instance->set_tenant($data['tenant']);
+        if (!is_null($data['modelid'])) {
+            $instance->set_model_id((int) $data['modelid']);
+        }
+        $instance->store();
+        return $instance;
     }
 }
