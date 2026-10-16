@@ -35,6 +35,7 @@ $string['disabledmodelssettingdesc'] = 'Select the models that should not be ava
 $string['err_apiresult'] = 'An error occurred while trying to connect to the API.';
 $string['err_contentfilter'] = 'Your request was rejected as a result of the content filter of the external tool. Your prompt probably requests something that is not allowed.';
 $string['err_modelnotavailable'] = 'The currently configured model is not available (anymore).';
+$string['err_noendpoint'] = 'No endpoint is configured. Please contact your administrator.';
 $string['err_noimagedata'] = 'The external AI system could not generate an image. Your prompt probably requests something that is not allowed.';
 $string['err_retrievingmodels'] = 'There was an error while trying to retrieve the list of models from the Telli API. Error code: {$a->code}.';
 $string['eurocents'] = 'Cents';

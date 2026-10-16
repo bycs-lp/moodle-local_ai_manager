@@ -62,7 +62,12 @@ class connector extends base_connector {
 
     #[\Override]
     protected function get_endpoint_url(): string {
-        return $this->get_wrapped_connector()->get_endpoint_url();
+        $wrappedconnector = $this->get_wrapped_connector();
+        // Never fall back to a default endpoint of the wrapped connector, otherwise the global API key could be sent there.
+        if (empty($wrappedconnector->instance->get_endpoint())) {
+            throw new moodle_exception('err_noendpoint', 'aitool_telli');
+        }
+        return $wrappedconnector->get_endpoint_url();
     }
 
     #[\Override]
