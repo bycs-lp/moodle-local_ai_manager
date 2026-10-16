@@ -245,8 +245,27 @@ final class base_vecstore_instance_test extends \advanced_testcase {
     }
 
     /**
-     * Tests primary vector store selection: none, auto-single, explicit override, and delete fallback.
+     * Creates and stores a qdrant vector store instance.
      *
+     * @param string $name the name of the instance
+     * @param string $tenant the identifier of the tenant the instance belongs to
+     * @param bool $isglobal true if the instance should be available for all tenants
+     * @return base_vecstore_instance the stored instance
+     */
+    private function create_instance(string $name, string $tenant, bool $isglobal = false): base_vecstore_instance {
+        $instance = new base_vecstore_instance();
+        $instance->set_name($name);
+        $instance->set_vecstore('qdrant');
+        $instance->set_tenant($tenant);
+        $instance->set_global($isglobal);
+        $instance->store();
+        return $instance;
+    }
+
+    /**
+     * Tests the resolving of the primary vector store of a tenant: none, auto-single, explicit selection and deletion.
+     *
+     * @covers \local_ai_manager\local\vecstore_factory::find_primary_instance
      * @covers \local_ai_manager\local\vecstore_factory::get_primary_instance
      * @covers \local_ai_manager\local\vecstore_factory::set_primary
      */
@@ -255,32 +274,71 @@ final class base_vecstore_instance_test extends \advanced_testcase {
 
         \core\di::get(tenant_factory::class)->set(new tenant('tn'));
         $factory = new vecstore_factory();
+        $configmanager = \core\di::get(\local_ai_manager\local\config_manager::class);
 
         // No instances configured yet.
-        $this->assertNull($factory->get_primary_instance());
+        $this->assertNull($factory->find_primary_instance());
 
-        // Exactly one instance → it is the primary automatically.
-        $a = new base_vecstore_instance();
-        $a->set_name('A');
-        $a->set_vecstore('qdrant');
-        $a->set_tenant('tn');
-        $a->store();
+        // Exactly one instance: It becomes the primary one and is stored in the tenant config.
+        $a = $this->create_instance('A', 'tn');
         $this->assertSame($a->get_id(), $factory->get_primary_instance()->get_id());
+        $this->assertSame((string) $a->get_id(), $configmanager->get_config(vecstore_factory::CONFIG_PRIMARY));
 
-        // Two instances and none set → must choose, so no primary.
-        $b = new base_vecstore_instance();
-        $b->set_name('B');
-        $b->set_vecstore('qdrant');
-        $b->set_tenant('tn');
-        $b->store();
-        $this->assertNull($factory->get_primary_instance());
+        // Adding a second instance does not change the stored primary one.
+        $b = $this->create_instance('B', 'tn');
+        $this->assertSame($a->get_id(), $factory->get_primary_instance()->get_id());
 
         // Explicit selection wins.
         $factory->set_primary($b->get_id());
         $this->assertSame($b->get_id(), $factory->get_primary_instance()->get_id());
 
-        // Deleting the primary clears the pointer; with one instance left, it auto-becomes primary.
+        // Deleting the primary one removes the config entry, the only remaining instance becomes the primary one.
         $b->delete();
         $this->assertSame($a->get_id(), $factory->get_primary_instance()->get_id());
+
+        // Several instances without a valid config entry: There is no primary one.
+        $this->create_instance('C', 'tn');
+        $a->delete();
+        $this->create_instance('D', 'tn');
+        $this->assertNull($factory->find_primary_instance());
+        $this->expectException(\moodle_exception::class);
+        $factory->get_primary_instance();
+    }
+
+    /**
+     * Tests that global vector stores are available for all tenants and can be their primary vector store.
+     *
+     * @covers \local_ai_manager\base_vecstore_instance::get_all_instances
+     * @covers \local_ai_manager\base_vecstore_instance::delete
+     * @covers \local_ai_manager\local\vecstore_factory::find_primary_instance
+     */
+    public function test_global_instances(): void {
+        $this->resetAfterTest();
+
+        $factory = new vecstore_factory();
+        $tenantfactory = \core\di::get(tenant_factory::class);
+        $global = $this->create_instance('Global', 'admintenant', true);
+        $local = $this->create_instance('Local', 'tenanta');
+
+        // Global and own instances count together, so tenanta has to choose its primary vector store.
+        $tenantfactory->set(new tenant('tenanta'));
+        $this->assertCount(2, base_vecstore_instance::get_all_instances());
+        $this->assertNull($factory->find_primary_instance());
+        $factory->set_primary($global->get_id());
+        $this->assertSame($global->get_id(), $factory->find_primary_instance()->get_id());
+
+        // The global instance is the only one available for tenantb, so it becomes its primary vector store.
+        $tenantfactory->set(new tenant('tenantb'));
+        $this->assertCount(1, base_vecstore_instance::get_all_instances());
+        $this->assertSame($global->get_id(), $factory->find_primary_instance()->get_id());
+
+        // An instance of another tenant is no valid config entry, so the only available instance is used instead.
+        $factory->set_primary($local->get_id());
+        $this->assertSame($global->get_id(), $factory->find_primary_instance()->get_id());
+
+        // Deleting the global instance removes it as primary vector store of all tenants.
+        $global->delete();
+        $tenantfactory->set(new tenant('tenanta'));
+        $this->assertSame($local->get_id(), $factory->find_primary_instance()->get_id());
     }
 }

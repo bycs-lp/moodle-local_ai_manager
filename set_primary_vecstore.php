@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Marks a configured vector database as the primary one for its tenant.
+ * Marks a vector database available for the current tenant as its primary one.
  *
  * @package    local_ai_manager
  * @copyright  2026 Exputo Inc.
@@ -23,59 +23,38 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-use local_ai_manager\local\tenant;
+use local_ai_manager\base_vecstore_instance;
 use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\vecstore_factory;
 
 require_once(dirname(__FILE__) . '/../../config.php');
 require_login();
 
-global $CFG;
-
 $id = required_param('id', PARAM_INT);
+require_sesskey();
 
-$pageurl = new moodle_url('/local/ai_manager/set_primary_vecstore.php');
-\local_ai_manager\local\tenant_config_output_utils::setup_tenant_config_page($pageurl);
+\local_ai_manager\local\tenant_config_output_utils::setup_tenant_config_page(
+    new moodle_url('/local/ai_manager/set_primary_vecstore.php')
+);
 
-$factory = new vecstore_factory();
-$accessmanager = \core\di::get(\local_ai_manager\local\access_manager::class);
-
-$instance = $factory->get_vecstore_instance_by_id($id);
-$tenant = new tenant($instance->get_tenant());
-\core\di::get(tenant_factory::class)->set($tenant);
+$tenant = \core\di::get(tenant_factory::class)->get();
 $returnurl = new moodle_url('/local/ai_manager/tenant_config.php', ['tenant' => $tenant->get_identifier()]);
 
-if (!$accessmanager->can_manage_vecstoreinstance($instance)) {
+// Only the enabled vector stores available for the tenant (own and global ones) can become its primary vector store.
+$instances = array_filter(
+    base_vecstore_instance::get_all_instances(),
+    fn(base_vecstore_instance $instance) => $instance->get_id() === $id && $instance->is_enabled()
+);
+if (empty($instances)) {
     throw new moodle_exception('exception_editinstancedenied', 'local_ai_manager');
 }
+$instance = reset($instances);
 
-$successmessage = get_string('vecstoreprimaryset', 'local_ai_manager', $instance->get_name());
-$oldprimary = $factory->get_primary_instance();
-if ($oldprimary === null || $oldprimary->get_id() === $instance->get_id()) {
-    // Without a previous primary vector store no data has to be detached, so there is nothing to confirm.
-    require_sesskey();
-    $factory->change_primary($instance, false);
-    redirect($returnurl, $successmessage, null, \core\output\notification::NOTIFY_SUCCESS);
-}
-
-// Changing the primary vector store always has to be confirmed, because data of other plugins may depend on it.
-$releaseform = new \local_ai_manager\form\vecstore_release_form(
-    new moodle_url('/local/ai_manager/set_primary_vecstore.php', ['id' => $id]),
-    [
-        'vecstorename' => $oldprimary->get_name(),
-        'usages' => $factory->get_usage_descriptions($oldprimary, false),
-        'submitlabel' => get_string('vecstorereleaseconfirm_primary', 'local_ai_manager'),
-    ]
+// Sources already indexed in the previous primary vector store stay there, so there is nothing to confirm.
+\core\di::get(vecstore_factory::class)->set_primary($instance->get_id());
+redirect(
+    $returnurl,
+    get_string('vecstoreprimaryset', 'local_ai_manager', format_string($instance->get_name())),
+    null,
+    \core\output\notification::NOTIFY_SUCCESS
 );
-if ($releaseform->is_cancelled()) {
-    redirect($returnurl);
-}
-if ($data = $releaseform->get_data()) {
-    $factory->change_primary($instance, !empty($data->deletevectors));
-    redirect($returnurl, $successmessage, null, \core\output\notification::NOTIFY_SUCCESS);
-}
-
-echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('vecstorereleaseheading_primary', 'local_ai_manager', format_string($instance->get_name())));
-$releaseform->display();
-echo $OUTPUT->footer();

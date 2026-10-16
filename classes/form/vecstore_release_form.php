@@ -22,7 +22,7 @@ global $CFG;
 require_once($CFG->libdir . '/formslib.php');
 
 /**
- * Confirmation form shown before a vector store instance is deleted or stops being the primary one.
+ * Confirmation form shown before a vector store instance is deleted.
  *
  * Lists the data of other plugins depending on the instance and lets the user decide whether the stored vectors
  * are deleted.

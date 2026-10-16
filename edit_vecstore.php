@@ -64,7 +64,7 @@ if (!empty($del)) {
         ),
         [
             'vecstorename' => $instance->get_name(),
-            'usages' => $factory->get_usage_descriptions($instance, true),
+            'usages' => $factory->get_usage_descriptions($instance),
             'submitlabel' => get_string('delete'),
         ]
     );

@@ -18,6 +18,7 @@ namespace local_ai_manager\output;
 
 use html_writer;
 use local_ai_manager\base_vecstore_instance;
+use local_ai_manager\local\access_manager;
 use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\vecstore_factory;
 use local_ai_manager\plugininfo\aivecstore;
@@ -53,13 +54,17 @@ class vecstoretable implements renderable, templatable {
         }
 
         $factory = new vecstore_factory();
-        $primaryinstance = $factory->get_primary_instance();
+        $accessmanager = \core\di::get(access_manager::class);
+        $primaryinstance = $factory->find_primary_instance();
         $primaryid = $primaryinstance ? $primaryinstance->get_id() : 0;
 
+        $instances = base_vecstore_instance::get_all_instances();
         $vecstores = [];
-        foreach (base_vecstore_instance::get_all_instances() as $instance) {
+        foreach ($instances as $instance) {
             $isprimary = $instance->get_id() === $primaryid;
-            $linkedname = $instance->is_enabled()
+            // Users not allowed to manage an instance (e.g. tenant managers for global ones) must not see its connection data.
+            $canmanage = $accessmanager->can_manage_vecstoreinstance($instance);
+            $linkedname = ($canmanage && $instance->is_enabled())
                 ? html_writer::link(
                     new moodle_url(
                         '/local/ai_manager/edit_vecstore.php',
@@ -72,13 +77,14 @@ class vecstoretable implements renderable, templatable {
             $vecstores[] = [
                 'name' => $linkedname,
                 'backendname' => get_string('pluginname', 'aivecstore_' . $instance->get_vecstore()),
-                'endpoint' => $instance->get_endpoint(),
-                'collection' => $instance->get_collection(),
+                'endpoint' => $canmanage ? $instance->get_endpoint() : null,
+                'collection' => $canmanage ? $instance->get_collection() : null,
                 'dimensions' => $instance->get_dimensions(),
                 'distance' => get_string('distance_' . $instance->get_distancemetric(), 'local_ai_manager'),
                 'enabled' => $instance->is_enabled(),
                 'isprimary' => $isprimary,
-                'testurl' => $instance->is_enabled()
+                'isglobal' => $instance->is_global(),
+                'testurl' => ($canmanage && $instance->is_enabled())
                     ? (new moodle_url(
                         '/local/ai_manager/test_vecstore.php',
                         ['id' => $instance->get_id(), 'sesskey' => sesskey()]
@@ -87,7 +93,7 @@ class vecstoretable implements renderable, templatable {
                 'setprimaryurl' => (!$isprimary && $instance->is_enabled())
                     ? (new moodle_url(
                         '/local/ai_manager/set_primary_vecstore.php',
-                        ['id' => $instance->get_id(), 'sesskey' => sesskey()]
+                        ['id' => $instance->get_id(), 'tenant' => $tenant->get_identifier(), 'sesskey' => sesskey()]
                     ))->out(false)
                     : null,
             ];
@@ -98,6 +104,7 @@ class vecstoretable implements renderable, templatable {
             'hasbackends' => !empty($addoptions),
             'addoptions' => $addoptions,
             'vecstores' => $vecstores,
+            'noprimary' => !empty($instances) && $primaryinstance === null,
         ];
     }
 }
