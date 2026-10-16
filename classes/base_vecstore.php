@@ -117,6 +117,28 @@ abstract class base_vecstore {
     }
 
     /**
+     * Ensures that a vector fits the dimensionality configured for this vector store instance.
+     *
+     * The dimensionality of a vector is determined by the embedding model which created it, so a mismatch means that the
+     * embedding model used by the tenant does not fit this vector store.
+     *
+     * @param array $vector the embedding vector as array of floats
+     * @throws \moodle_exception if the vector does not have the dimensionality configured for this vector store instance
+     */
+    public function require_matching_dimensions(array $vector): void {
+        $dimensions = $this->instance->get_dimensions();
+        if (empty($dimensions) || count($vector) === $dimensions) {
+            return;
+        }
+        throw new \moodle_exception(
+            'exception_vecstoredimensionmismatch',
+            'local_ai_manager',
+            '',
+            ['modeldimensions' => count($vector), 'vecstoredimensions' => $dimensions]
+        );
+    }
+
+    /**
      * Checks whether the vector store backend is correctly configured and reachable.
      *
      * @return vecstore_response structured response containing operation status and potential error details

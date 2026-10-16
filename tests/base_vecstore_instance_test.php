@@ -341,4 +341,29 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $tenantfactory->set(new tenant('tenanta'));
         $this->assertSame($local->get_id(), $factory->find_primary_instance()->get_id());
     }
+
+    /**
+     * Tests that vectors not fitting the configured dimensionality of a vector store are rejected.
+     *
+     * @covers \local_ai_manager\base_vecstore::require_matching_dimensions
+     */
+    public function test_require_matching_dimensions(): void {
+        $this->resetAfterTest();
+
+        $instance = $this->create_instance('Dimensions', 'tn');
+        $instance->set_dimensions(3);
+        $instance->store();
+        $vecstore = (new vecstore_factory())->get_vecstore_by_instance($instance);
+
+        // A vector with the configured dimensionality is accepted.
+        $vecstore->require_matching_dimensions([0.1, 0.2, 0.3]);
+
+        $this->expectException(\moodle_exception::class);
+        $this->expectExceptionMessage(get_string(
+            'exception_vecstoredimensionmismatch',
+            'local_ai_manager',
+            ['modeldimensions' => 2, 'vecstoredimensions' => 3]
+        ));
+        $vecstore->require_matching_dimensions([0.1, 0.2]);
+    }
 }

@@ -625,7 +625,7 @@ class base_vecstore_instance {
         // Remove this instance as primary vector store of all tenants, global instances can be the primary one of many tenants.
         $DB->delete_records(
             'local_ai_manager_config',
-            ['configkey' => \local_ai_manager\local\vecstore_factory::CONFIG_PRIMARY, 'configvalue' => (string) $this->id]
+            ['configkey' => \local_ai_manager\local\vecstore_factory::CONFIG_PRIMARY, 'configvalue' => $this->id]
         );
         $DB->delete_records('local_ai_manager_vecstore', ['id' => $this->id]);
     }
