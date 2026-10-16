@@ -201,10 +201,9 @@ class manager {
             );
         }
 
-        // Give the purpose a chance to manipulate the prompt text.
-        $prompttext = $this->purpose->format_prompt_text($prompttext, $requestoptions);
-
         try {
+            // Give the purpose a chance to manipulate the prompt text.
+            $prompttext = $this->purpose->format_prompt_text($prompttext, $requestoptions);
             $promptdata = $this->connector->get_prompt_data($prompttext, $requestoptions);
         } catch (\moodle_exception $exception) {
             $errormessage = $exception->getMessage();

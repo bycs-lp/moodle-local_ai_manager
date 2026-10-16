@@ -163,6 +163,7 @@ $string['exception_retrievingcachestatus'] = 'An error occured while trying to r
 $string['exception_tenantaccessdenied'] = 'You must not access this tenant ({$a}).';
 $string['exception_tenantnotallowed'] = 'The tenant is not allowed by the administrator';
 $string['exception_usernotexists'] = 'The user does not exist';
+$string['exception_vecstoredimensionmismatch'] = 'The used vector database and the embedding model do not fit together: The embedding model generates vectors with {$a->modeldimensions} dimensions, but the vector database expects vectors with {$a->vecstoredimensions} dimensions. Therefore course contents cannot be indexed or searched. Please contact your tenant manager to fix the AI configuration.';
 $string['executeaction'] = 'Execute action';
 $string['executebulkuseractions'] = 'Execute action for selected users';
 $string['female'] = 'Female';
