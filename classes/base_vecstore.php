@@ -110,10 +110,15 @@ abstract class base_vecstore {
      * name and dimensionality) and used for all subsequent operations. Callers therefore neither pass nor need to
      * know the collection name.
      *
-     * @return string the configured collection name (empty string if none is configured)
+     * @return string the configured collection name
+     * @throws \moodle_exception if no collection is configured, because a vector store cannot be used without one
      */
     public function get_collection(): string {
-        return (string) $this->instance->get_collection();
+        $collection = $this->instance->get_collection();
+        if (empty($collection)) {
+            throw new \moodle_exception('exception_vecstorenocollection', 'local_ai_manager', '', $this->get_name());
+        }
+        return $collection;
     }
 
     /**

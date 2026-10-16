@@ -184,14 +184,11 @@ class vecstore extends base_vecstore {
                 return $this->create_error_response(500, 'Could not run postgres vecstore similarity query.',
                     pg_last_error($connection));
             }
-            $rows = pg_fetch_all($result);
-            if (!is_array($rows)) {
-                return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
-            }
             $matches = [];
-            foreach ($rows as $row) {
-                $payload = is_null($row['payload']) ? [] : json_decode($row['payload'], true);
-                $matches[] = $this->payload_to_enriched_vector((string) ($row['vector'] ?? ''), $payload);
+            foreach (pg_fetch_all($result) as $row) {
+                // Rows of external sources are written outside of Moodle and may come without payload.
+                $payload = $row['payload'] === null ? [] : json_decode($row['payload'], true, flags: JSON_THROW_ON_ERROR);
+                $matches[] = $this->payload_to_enriched_vector($row['vector'], $payload);
             }
             return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($matches));
         });
@@ -212,14 +209,11 @@ class vecstore extends base_vecstore {
             return $this->create_error_response(500, 'Could not fetch vectors from postgres vecstore collection.',
                 pg_last_error($connection));
         }
-        $rows = pg_fetch_all($result);
-        if (!is_array($rows)) {
-            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
-        }
         $vectors = [];
-        foreach ($rows as $row) {
-            $payload = is_null($row['payload']) ? [] : json_decode($row['payload'], true);
-            $vectors[] = $this->payload_to_enriched_vector((string) ($row['vector'] ?? ''), $payload);
+        foreach (pg_fetch_all($result) as $row) {
+            // Rows of external sources are written outside of Moodle and may come without payload.
+            $payload = $row['payload'] === null ? [] : json_decode($row['payload'], true, flags: JSON_THROW_ON_ERROR);
+            $vectors[] = $this->payload_to_enriched_vector($row['vector'], $payload);
         }
         return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($vectors));
     }
@@ -255,6 +249,7 @@ class vecstore extends base_vecstore {
      * @return enriched_vector the reconstructed enriched vector
      */
     protected function payload_to_enriched_vector(string $vector, array $payload): enriched_vector {
+        // Vectors of external sources are managed outside of Moodle, so their payload may lack any of these keys.
         return enriched_vector::create(
             $vector,
             (string) ($payload['content'] ?? ''),
