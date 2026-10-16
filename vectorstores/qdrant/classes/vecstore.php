@@ -73,10 +73,7 @@ class vecstore extends base_vecstore {
     protected function store_embeddings(array $embeddings): vecstore_response {
         $points = [];
         foreach ($embeddings as $embedding) {
-            $vector = json_decode($embedding->get_vector(), true);
-            if (!is_array($vector) || empty($vector)) {
-                continue;
-            }
+            $vector = json_decode($embedding->get_vector(), true, flags: JSON_THROW_ON_ERROR);
             $payload = [
                 'content' => $embedding->get_content(),
                 'sourceid' => $embedding->get_sourceid(),
@@ -141,10 +138,7 @@ class vecstore extends base_vecstore {
             }
             $matches = [];
             foreach ($response['data']['result'] as $hit) {
-                $matches[] = $this->payload_to_enriched_vector(
-                    isset($hit['vector']) ? json_encode(array_values($hit['vector'])) : '',
-                    $hit['payload'] ?? []
-                );
+                $matches[] = $this->payload_to_enriched_vector(json_encode(array_values($hit['vector'])), $hit['payload']);
             }
             return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($matches));
         });
@@ -167,10 +161,7 @@ class vecstore extends base_vecstore {
                 break;
             }
             foreach ($response['data']['result']['points'] as $point) {
-                $vectors[] = $this->payload_to_enriched_vector(
-                    isset($point['vector']) ? json_encode(array_values($point['vector'])) : '',
-                    $point['payload'] ?? []
-                );
+                $vectors[] = $this->payload_to_enriched_vector(json_encode(array_values($point['vector'])), $point['payload']);
             }
             $offset = $response['data']['result']['next_page_offset'] ?? null;
         } while (!is_null($offset));
@@ -206,6 +197,7 @@ class vecstore extends base_vecstore {
      * @return enriched_vector the reconstructed enriched vector
      */
     protected function payload_to_enriched_vector(string $vector, array $payload): enriched_vector {
+        // Vectors of external sources are managed outside of Moodle, so their payload may lack any of these keys.
         return enriched_vector::create(
             $vector,
             (string) ($payload['content'] ?? ''),
@@ -225,19 +217,10 @@ class vecstore extends base_vecstore {
      * @return vecstore_response the standardized error response
      */
     protected function create_error_response(array $response, string $fallbackmessage): vecstore_response {
-        $code = (int) ($response['status'] ?? 500);
-        if ($code === 200) {
-            $code = 500;
-        }
-        if ($code <= 0) {
-            $code = 500;
-        }
-        $errormessage = (string) ($response['data']['status']['error'] ?? $fallbackmessage);
-        $debuginfo = json_encode($response['data']);
-        if ($debuginfo === false) {
-            $debuginfo = '';
-        }
-        return vecstore_response::create_from_error($code, $errormessage, $debuginfo);
+        // Status 0 means that the qdrant endpoint could not be reached at all.
+        $code = $response['status'] > 0 ? $response['status'] : 500;
+        $errormessage = $response['data']['status']['error'] ?? $fallbackmessage;
+        return vecstore_response::create_from_error($code, $errormessage, json_encode($response['data'], JSON_THROW_ON_ERROR));
     }
 
     /**

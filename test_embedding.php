@@ -83,37 +83,30 @@ if ($phrase !== '' && confirm_sesskey()) {
                 echo html_writer::tag('pre', s($debuginfo), ['class' => 'bg-light p-3 border rounded']);
             }
         } else {
-            $embedding = json_decode($response->get_content(), true);
-            if (!is_array($embedding) || empty($embedding)) {
-                echo $OUTPUT->notification(
-                    'The response did not contain a usable embedding vector.',
-                    \core\output\notification::NOTIFY_ERROR
-                );
-            } else {
-                $dimensions = count($embedding);
-                $preview = array_slice($embedding, 0, 10);
+            $embedding = json_decode($response->get_content(), true, flags: JSON_THROW_ON_ERROR);
+            $dimensions = count($embedding);
+            $preview = array_slice($embedding, 0, 10);
 
-                echo $OUTPUT->notification(
-                    'Embedding generated successfully.',
-                    \core\output\notification::NOTIFY_SUCCESS
-                );
+            echo $OUTPUT->notification(
+                'Embedding generated successfully.',
+                \core\output\notification::NOTIFY_SUCCESS
+            );
 
-                $info = new html_table();
-                $info->attributes['class'] = 'generaltable w-auto';
-                $info->data = [
-                    ['Model', s($response->get_modelinfo())],
-                    ['Dimensions', $dimensions],
-                    ['Tokens used', format_float($response->get_usage()->value, 0)],
-                ];
-                echo html_writer::table($info);
+            $info = new html_table();
+            $info->attributes['class'] = 'generaltable w-auto';
+            $info->data = [
+                ['Model', s($response->get_modelinfo())],
+                ['Dimensions', $dimensions],
+                ['Tokens used', format_float($response->get_usage()->value, 0)],
+            ];
+            echo html_writer::table($info);
 
-                echo $OUTPUT->heading('First ' . count($preview) . ' of ' . $dimensions . ' values', 4);
-                echo html_writer::tag(
-                    'pre',
-                    s('[' . implode(', ', array_map(fn($v) => sprintf('%.6f', $v), $preview)) . ', ...]'),
-                    ['class' => 'bg-light p-3 border rounded']
-                );
-            }
+            echo $OUTPUT->heading('First ' . count($preview) . ' of ' . $dimensions . ' values', 4);
+            echo html_writer::tag(
+                'pre',
+                s('[' . implode(', ', array_map(fn($v) => sprintf('%.6f', $v), $preview)) . ', ...]'),
+                ['class' => 'bg-light p-3 border rounded']
+            );
         }
     } catch (\moodle_exception $e) {
         echo $OUTPUT->notification(
