@@ -193,11 +193,16 @@ class access_manager {
      */
     public function can_manage_vecstoreinstance(base_vecstore_instance $instance) {
         global $USER;
+        if ($instance->is_global()) {
+            // Global vector stores contain sensitive data like endpoints and credentials, so tenant managers must not manage them.
+            return has_capability('local/ai_manager:manageglobalvecstores', \context_system::instance());
+        }
         if (has_capability('local/ai_manager:managetenants', \context_system::instance())) {
             return true;
         }
-        if ($this->is_tenant_manager($USER->id, new tenant($instance->get_tenant()))) {
-            return has_capability('local/ai_manager:manage', $this->tenant->get_context());
+        $tenant = new tenant($instance->get_tenant());
+        if ($this->is_tenant_manager($USER->id, $tenant)) {
+            return has_capability('local/ai_manager:manage', $tenant->get_context());
         }
         return false;
     }

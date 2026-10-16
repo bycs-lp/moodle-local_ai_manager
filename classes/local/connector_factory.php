@@ -224,9 +224,10 @@ class connector_factory {
      * work with the connector factory (for example when implementing RAG use cases) can retrieve the configured
      * primary vector store object without having to instantiate the {@see vecstore_factory} themselves.
      *
-     * @return ?base_vecstore the primary vector store driver, or null if the tenant has no primary vector store
+     * @return base_vecstore the primary vector store driver
+     * @throws \moodle_exception if the tenant has no primary vector store
      */
-    public function get_primary_vecstore(): ?base_vecstore {
+    public function get_primary_vecstore(): base_vecstore {
         return (new vecstore_factory())->get_primary_vecstore();
     }
 }

@@ -21,8 +21,7 @@ use local_ai_manager\base_vecstore_instance;
 /**
  * Hook collecting which data of other plugins depends on a vector store instance.
  *
- * Dispatched before a vector store instance is deleted or stops being the primary vector store, so the user can be
- * warned about the affected data before confirming.
+ * Dispatched before a vector store instance is deleted, so the user can be warned about the affected data before confirming.
  *
  * @package    local_ai_manager
  * @copyright  2026 ISB Bayern
@@ -39,13 +38,10 @@ class vecstore_usage {
      * Constructor.
      *
      * @param base_vecstore_instance $instance The vector store instance the usage is collected for.
-     * @param bool $deleting True if the instance is about to be deleted, false if it stops being the primary one.
      */
     public function __construct(
         /** @var base_vecstore_instance The vector store instance the usage is collected for. */
         public readonly base_vecstore_instance $instance,
-        /** @var bool True if the instance is about to be deleted, false if it stops being the primary one. */
-        public readonly bool $deleting,
     ) {
     }
 

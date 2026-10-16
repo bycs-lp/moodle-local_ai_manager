@@ -46,6 +46,9 @@ class base_vecstore_instance {
     /** @var ?string The tenant the instance belongs to */
     protected ?string $tenant = null;
 
+    /** @var bool If the instance is available for all tenants */
+    protected bool $isglobal = false;
+
     /** @var ?string The vector store backend (aivecstore subplugin name) the instance belongs to */
     protected ?string $vecstore = null;
 
@@ -90,6 +93,7 @@ class base_vecstore_instance {
         $this->id = $record->id;
         $this->name = $record->name;
         $this->tenant = $record->tenant;
+        $this->isglobal = !empty($record->isglobal);
         $this->vecstore = $record->vecstore;
         $this->endpoint = $record->endpoint;
         $this->apikey = $record->apikey;
@@ -108,6 +112,7 @@ class base_vecstore_instance {
         $record = new stdClass();
         $record->name = $this->name;
         $record->tenant = $this->tenant;
+        $record->isglobal = $this->isglobal ? 1 : 0;
         $record->vecstore = $this->vecstore;
         $record->endpoint = $this->endpoint;
         $record->apikey = $this->apikey;
@@ -129,20 +134,28 @@ class base_vecstore_instance {
     }
 
     /**
-     * Returns all vector store instance objects.
+     * Returns all vector store instance objects available for the current tenant.
      *
-     * @param bool $allinstances true if all instances should be returned, by default only the instances of the current tenant are
-     *  returned
+     * The vector store instances available for a tenant are its own instances and the global ones.
+     *
+     * @param bool $allinstances true if all instances should be returned, by default only the instances available for the current
+     *  tenant are returned
      * @return array array of instance objects
      */
     public static function get_all_instances(bool $allinstances = false): array {
         global $DB;
 
-        $params = [];
-        if (!$allinstances) {
-            $params['tenant'] = \core\di::get(tenant_factory::class)->get()->get_identifier();
+        if ($allinstances) {
+            $records = $DB->get_records('local_ai_manager_vecstore', null, 'id', 'id');
+        } else {
+            $records = $DB->get_records_select(
+                'local_ai_manager_vecstore',
+                'tenant = :tenant OR isglobal = 1',
+                ['tenant' => \core\di::get(tenant_factory::class)->get()->get_identifier()],
+                'id',
+                'id'
+            );
         }
-        $records = $DB->get_records('local_ai_manager_vecstore', $params, '', 'id');
         $instances = [];
         foreach ($records as $record) {
             $instances[] = new self($record->id);
@@ -204,6 +217,24 @@ class base_vecstore_instance {
      */
     public function set_tenant(string $tenant): void {
         $this->tenant = $tenant;
+    }
+
+    /**
+     * Standard getter.
+     *
+     * @return bool true if the instance is available for all tenants
+     */
+    public function is_global(): bool {
+        return $this->isglobal;
+    }
+
+    /**
+     * Standard setter.
+     *
+     * @param bool $isglobal true if the instance should be available for all tenants
+     */
+    public function set_global(bool $isglobal): void {
+        $this->isglobal = $isglobal;
     }
 
     /**
@@ -358,6 +389,7 @@ class base_vecstore_instance {
             return $data;
         }
         $data->name = $this->get_name();
+        $data->isglobal = $this->is_global();
         $data->vecstore = $this->get_vecstore();
         $data->endpoint = $this->get_endpoint();
         $data->apikey = $this->get_apikey();
@@ -414,6 +446,16 @@ class base_vecstore_instance {
         }
         if (!is_siteadmin()) {
             $mform->freeze('tenant');
+        }
+
+        if (has_capability('local/ai_manager:manageglobalvecstores', \context_system::instance())) {
+            $mform->addElement(
+                'advcheckbox',
+                'isglobal',
+                get_string('vecstoreglobal', 'local_ai_manager'),
+                get_string('vecstoreglobaldesc', 'local_ai_manager')
+            );
+            $mform->setType('isglobal', PARAM_BOOL);
         }
 
         $vecstore = $customdata['vecstore'];
@@ -505,6 +547,10 @@ class base_vecstore_instance {
         $this->set_vecstore($data->vecstore);
         $tenantvalue = trim($data->tenant);
         $this->set_tenant(empty($tenantvalue) ? tenant::DEFAULT_IDENTIFIER : $tenantvalue);
+        // The global flag is only part of the form for users allowed to manage global vector stores.
+        if (property_exists($data, 'isglobal')) {
+            $this->set_global(!empty($data->isglobal));
+        }
         $this->set_collection(!empty($data->collection) ? trim($data->collection) : null);
         $this->set_dimensions(!empty($data->dimensions) ? (int) $data->dimensions : null);
         $this->set_distancemetric(empty($data->distancemetric) ? base_vecstore::DISTANCE_COSINE : $data->distancemetric);
@@ -576,16 +622,11 @@ class base_vecstore_instance {
                 throw new \moodle_exception('exception_instancenotexists', 'local_ai_manager', '', $this->id);
             }
         }
-        // If this instance was the tenant's primary vector store, clear that pointer.
-        // We intentionally build the config manager for this instance's own tenant.
-        if (!empty($this->get_tenant())) {
-            $tenantfactory = new tenant_factory();
-            $tenantfactory->set(new tenant($this->get_tenant()));
-            $configmanager = new \local_ai_manager\local\config_manager($tenantfactory);
-            if ((int) $configmanager->get_config(\local_ai_manager\local\vecstore_factory::CONFIG_PRIMARY) === $this->id) {
-                $configmanager->unset_config(\local_ai_manager\local\vecstore_factory::CONFIG_PRIMARY);
-            }
-        }
+        // Remove this instance as primary vector store of all tenants, global instances can be the primary one of many tenants.
+        $DB->delete_records(
+            'local_ai_manager_config',
+            ['configkey' => \local_ai_manager\local\vecstore_factory::CONFIG_PRIMARY, 'configvalue' => (string) $this->id]
+        );
         $DB->delete_records('local_ai_manager_vecstore', ['id' => $this->id]);
     }
 }

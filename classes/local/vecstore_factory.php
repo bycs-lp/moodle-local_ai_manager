@@ -18,7 +18,6 @@ namespace local_ai_manager\local;
 
 use local_ai_manager\base_vecstore;
 use local_ai_manager\base_vecstore_instance;
-use local_ai_manager\hook\before_primary_vecstore_changed;
 use local_ai_manager\hook\before_vecstore_instance_deleted;
 use local_ai_manager\hook\vecstore_usage;
 
@@ -96,45 +95,64 @@ class vecstore_factory {
     }
 
     /**
-     * Returns the primary vector store instance for the current tenant.
+     * Returns the primary vector store instance for the current tenant or null if it has none.
      *
-     * The primary is the instance explicitly set via {@see set_primary()}. As a convenience, if none
-     * is set (or the set one no longer exists) but the tenant has exactly one configured instance,
-     * that sole instance is treated as the primary.
+     * The primary vector store is stored in the tenant config, see {@see set_primary()}. It can be one of the own or of the
+     * global vector store instances of the tenant. If the tenant has no valid config entry and exactly one enabled vector store
+     * instance is available for the tenant (own and global ones together), this instance is stored as primary vector store of
+     * the tenant and returned.
      *
-     * @return ?base_vecstore_instance the primary instance, or null if the tenant has none / must choose
+     * @return ?base_vecstore_instance the primary instance or null if the tenant has no primary vector store
      */
-    public function get_primary_instance(): ?base_vecstore_instance {
+    public function find_primary_instance(): ?base_vecstore_instance {
         $configmanager = \core\di::get(config_manager::class);
+        $availableinstances = base_vecstore_instance::get_all_instances();
         $primaryid = (int) $configmanager->get_config(self::CONFIG_PRIMARY);
-        if ($primaryid && $this->instance_exists($primaryid)) {
-            $instance = $this->get_vecstore_instance_by_id($primaryid);
-            if ($instance->get_tenant() === $configmanager->get_tenant()->get_identifier()) {
-                return $instance;
+        foreach ($availableinstances as $instance) {
+            if ($instance->get_id() === $primaryid) {
+                return $instance->is_enabled() ? $instance : null;
             }
         }
-        // Auto: if the tenant has exactly one configured instance, treat it as the primary.
-        $all = base_vecstore_instance::get_all_instances();
-        if (count($all) === 1) {
-            return reset($all);
+        $enabledinstances = array_values(array_filter($availableinstances, fn($instance) => $instance->is_enabled()));
+        if (count($enabledinstances) !== 1) {
+            return null;
         }
-        return null;
+        $this->set_primary($enabledinstances[0]->get_id());
+        return $enabledinstances[0];
+    }
+
+    /**
+     * Returns the primary vector store instance for the current tenant.
+     *
+     * See {@see find_primary_instance()} for how the primary vector store is determined.
+     *
+     * @return base_vecstore_instance the primary instance
+     * @throws \moodle_exception if the tenant has no primary vector store
+     */
+    public function get_primary_instance(): base_vecstore_instance {
+        $instance = $this->find_primary_instance();
+        if ($instance === null) {
+            throw new \moodle_exception('exception_noprimaryvecstore', 'local_ai_manager');
+        }
+        return $instance;
     }
 
     /**
      * Returns the primary vector store driver (backend implementation) for the current tenant.
      *
-     * @return ?base_vecstore the primary driver, or null if the tenant has no primary vector store
+     * @return base_vecstore the primary driver
+     * @throws \moodle_exception if the tenant has no primary vector store
      */
-    public function get_primary_vecstore(): ?base_vecstore {
-        $instance = $this->get_primary_instance();
-        return $instance ? $this->get_vecstore_by_instance($instance) : null;
+    public function get_primary_vecstore(): base_vecstore {
+        return $this->get_vecstore_by_instance($this->get_primary_instance());
     }
 
     /**
      * Marks the given instance as the primary vector store for the current tenant.
      *
-     * @param int $id the vector store instance id to make primary
+     * Sources already indexed in the previous primary vector store stay there, only new indexings use the new one.
+     *
+     * @param int $id the id of the vector store instance available for the current tenant to make primary
      */
     public function set_primary(int $id): void {
         \core\di::get(config_manager::class)->set_config(self::CONFIG_PRIMARY, (string) $id);
@@ -144,11 +162,10 @@ class vecstore_factory {
      * Collect the data of other plugins depending on a vector store instance.
      *
      * @param base_vecstore_instance $instance The vector store instance.
-     * @param bool $deleting True if the instance is about to be deleted, false if it stops being the primary one.
      * @return string[][] Localized usage descriptions, indexed by component.
      */
-    public function get_usage_descriptions(base_vecstore_instance $instance, bool $deleting): array {
-        $hook = new vecstore_usage($instance, $deleting);
+    public function get_usage_descriptions(base_vecstore_instance $instance): array {
+        $hook = new vecstore_usage($instance);
         \core\di::get(\core\hook\manager::class)->dispatch($hook);
         return $hook->get_usage_descriptions();
     }
@@ -162,21 +179,5 @@ class vecstore_factory {
     public function delete_instance(base_vecstore_instance $instance, bool $deletevectors): void {
         \core\di::get(\core\hook\manager::class)->dispatch(new before_vecstore_instance_deleted($instance, $deletevectors));
         $instance->delete();
-    }
-
-    /**
-     * Make another instance the primary vector store after letting other plugins detach their data from the old one.
-     *
-     * @param base_vecstore_instance $newprimary The vector store instance becoming the primary one.
-     * @param bool $deletevectors Whether the stored vectors of the depending data are deleted from the old primary.
-     */
-    public function change_primary(base_vecstore_instance $newprimary, bool $deletevectors): void {
-        $oldprimary = $this->get_primary_instance();
-        if ($oldprimary !== null && $oldprimary->get_id() !== $newprimary->get_id()) {
-            \core\di::get(\core\hook\manager::class)->dispatch(
-                new before_primary_vecstore_changed($oldprimary, $newprimary, $deletevectors)
-            );
-        }
-        $this->set_primary($newprimary->get_id());
     }
 }
