@@ -24,11 +24,10 @@ namespace aipurpose_questiongeneration;
  * @author    Philipp Memmel
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(purpose::class)]
 final class purpose_test extends \advanced_testcase {
     /**
      * Tests the output formatting of question generation results.
-     *
-     * @covers \aipurpose_questiongeneration\purpose::format_output
      */
     public function test_format_output(): void {
         global $CFG;
@@ -69,5 +68,35 @@ final class purpose_test extends \advanced_testcase {
             $returnstringwithoutmarkdowncodeformattingandtext,
             $questiongenerationpurpose->format_output($returnstringwithoutmarkdowncodeformattingandtext)
         );
+    }
+
+    /**
+     * Tests that the conversation context is validated by the conversation context validator.
+     */
+    public function test_validate_purpose_options_violation(): void {
+        $this->expectException(\coding_exception::class);
+        (new purpose())->validate_purpose_options(['conversationcontext' => [['sender' => 'admin', 'message' => 'Hello']]]);
+    }
+
+    /**
+     * Tests that the system message with the example Moodle XML question passes the sanitising unchanged.
+     */
+    public function test_validate_purpose_options_verification(): void {
+        $conversationcontext = [
+            [
+                'sender' => 'system',
+                'message' => "## EXAMPLE MOODLE XML QUESTION\n<quiz><question type=\"multichoice\">"
+                    . '<name><text>Q1</text></name></question></quiz>',
+            ],
+            ['sender' => 'user', 'message' => 'Create a question about HTML <div> elements.'],
+        ];
+        $requestoptions = new \local_ai_manager\request_options(
+            new purpose(),
+            \context_system::instance(),
+            'qbank_questiongen',
+            ['conversationcontext' => $conversationcontext]
+        );
+        $requestoptions->sanitize_options();
+        $this->assertSame($conversationcontext, $requestoptions->get_options()['conversationcontext']);
     }
 }
