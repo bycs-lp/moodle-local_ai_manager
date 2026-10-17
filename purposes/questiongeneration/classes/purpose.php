@@ -55,8 +55,28 @@ class purpose extends base_purpose {
             $output = trim($matches[1]);
         }
         // Some LLMs return UTF8-Symbols as UNICODE code. We have to convert this to proper UTF-8 symbols.
-        return preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function ($matches) {
+        $output = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function ($matches) {
             return mb_convert_encoding(pack('H*', $matches[1]), 'UTF-8', 'UCS-2BE');
         }, $output);
+
+        // Clean the HTML inside the text nodes of Moodle XML, so the XML stays importable but carries no active content.
+        try {
+            $xml = new \SimpleXMLElement($output, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
+        } catch (\Exception $e) {
+            // Not parseable as XML; leave other formats to the consuming plugin.
+            return $output;
+        }
+        $changed = false;
+        foreach ($xml->xpath('//text') as $node) {
+            if ((string) ($node->xpath('..')[0]['format'] ?? '') === 'plain_text') {
+                continue;
+            }
+            $cleaned = clean_text((string) $node, FORMAT_HTML);
+            if ($cleaned !== (string) $node) {
+                $node[0] = $cleaned;
+                $changed = true;
+            }
+        }
+        return $changed ? $xml->asXML() : $output;
     }
 }
