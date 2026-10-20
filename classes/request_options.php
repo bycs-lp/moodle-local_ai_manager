@@ -114,7 +114,16 @@ class request_options {
                 }
             } else {
                 if ($this->purpose->get_available_purpose_options()[$key] === base_purpose::PARAM_ARRAY) {
-                    array_walk_recursive($value, fn($text) => clean_param($text, PARAM_NOTAGS));
+                    if (!is_array($value)) {
+                        throw new coding_exception('Option ' . $key . ' must be an array');
+                    }
+                    array_walk_recursive($value, function (&$text) {
+                        // Only strings can carry markup, other scalars keep their type.
+                        if (is_string($text)) {
+                            $text = clean_param($text, PARAM_NOTAGS);
+                        }
+                    });
+                    $this->options[$key] = $value;
                 } else {
                     $this->options[$key] = clean_param($value, $this->purpose->get_available_purpose_options()[$key]);
                 }
