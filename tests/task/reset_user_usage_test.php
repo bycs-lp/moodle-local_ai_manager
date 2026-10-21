@@ -19,6 +19,7 @@ namespace local_ai_manager\task;
 use local_ai_manager\local\config_manager;
 use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\tenant;
+use local_ai_manager\tests\task\testable_reset_user_usage;
 use stdClass;
 
 /**
@@ -29,11 +30,10 @@ use stdClass;
  * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(reset_user_usage::class)]
 final class reset_user_usage_test extends \advanced_testcase {
     /**
      * Tests the task.
-     *
-     * @covers \local_ai_manager\task\reset_user_usage::execute
      */
     public function test_execute(): void {
         global $DB;
@@ -114,5 +114,46 @@ final class reset_user_usage_test extends \advanced_testcase {
         // All records of tenant 1234 should have been reset, but not the ones for tenant 5678.
         $this->assertCount(512, $DB->get_records('local_ai_manager_userusage', ['currentusage' => 0]));
         $this->assertCount(100, $DB->get_records('local_ai_manager_userusage', ['lastreset' => $clock->time()]));
+    }
+
+    /**
+     * Tests that the records are being reset in batches and that the task waits between all batches, also across tenants.
+     */
+    public function test_execute_batches_and_delay(): void {
+        global $DB;
+        $this->resetAfterTest();
+        set_config('tenantcolumn', 'institution');
+        $lastreset = 1736935200;
+        // Tenant 1234 needs 3 batches, tenant 5678 needs 2 batches (batch size of the testable task is 10).
+        $recordcounts = ['1234' => 25, '5678' => 15];
+        foreach ($recordcounts as $tenantidentifier => $count) {
+            $tenantfactory = new tenant_factory();
+            $tenantfactory->set(new tenant($tenantidentifier));
+            (new config_manager($tenantfactory))->set_config('max_requests_period', DAYSECS);
+            for ($i = 0; $i < $count; $i++) {
+                $user = $this->getDataGenerator()->create_user(['institution' => $tenantidentifier]);
+                $DB->insert_record('local_ai_manager_userusage', [
+                    'purpose' => 'singleprompt',
+                    'userid' => $user->id,
+                    'currentusage' => 5,
+                    'lastreset' => $lastreset,
+                ]);
+            }
+        }
+
+        $clock = $this->mock_clock_with_frozen($lastreset + DAYSECS + 1);
+        $task = new testable_reset_user_usage();
+        $this->expectOutputRegex('/tenant 1234 \(25 records\).*tenant 5678 \(15 records\)|'
+            . 'tenant 5678 \(15 records\).*tenant 1234 \(25 records\)/s');
+        $task->execute();
+
+        $this->assertEquals(40, $DB->count_records('local_ai_manager_userusage', ['currentusage' => 0]));
+        $this->assertEquals(40, $DB->count_records('local_ai_manager_userusage', ['lastreset' => $clock->time()]));
+        // The task waits before every batch except the very first one, so the delay is not reset between tenants.
+        $this->assertCount(4, $task->waits);
+        foreach ($task->waits as $wait) {
+            $this->assertGreaterThan(0, $wait);
+            $this->assertLessThanOrEqual(1000000, $wait);
+        }
     }
 }

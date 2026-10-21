@@ -38,6 +38,9 @@ class reset_user_usage extends \core\task\scheduled_task {
     /** @var \core\clock the clock object */
     private \core\clock $clock;
 
+    /** @var int Delay in microseconds before the next UPDATE statement, kept across all tenants of a task run. */
+    private int $delay = 0;
+
     /**
      * Create the task object.
      */
@@ -92,18 +95,17 @@ class reset_user_usage extends \core\task\scheduled_task {
      * Resets the usage of the given records by using batched bulk updates.
      *
      * Each batch is being executed as a separate UPDATE statement (and thus a separate transaction/writeset).
-     * Between two batches the task waits as long as the previous batch took (but at most 1 second) to give the
-     * database cluster time to apply the writesets.
+     * Before each batch the task waits as long as the previous batch took (but at most 1 second) to give the
+     * database cluster time to apply the writesets. This also applies to the previous batch of an earlier call.
      *
      * @param array $ids the ids of the local_ai_manager_userusage records to reset
      * @param int $time the timestamp to store as last reset time
      */
     protected function reset_usage_records(array $ids, int $time): void {
         global $DB;
-        $delay = 0;
-        foreach (array_chunk($ids, self::BATCH_SIZE) as $chunk) {
-            if ($delay > 0) {
-                usleep($delay);
+        foreach (array_chunk($ids, static::BATCH_SIZE) as $chunk) {
+            if ($this->delay > 0) {
+                $this->wait($this->delay);
             }
             $start = hrtime(true);
             [$insql, $inparams] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'uuid');
@@ -112,7 +114,16 @@ class reset_user_usage extends \core\task\scheduled_task {
                      WHERE id " . $insql;
             $DB->execute($sql, array_merge($inparams, ['lastreset' => $time]));
             // Duration of the request in microseconds, capped at 1 second.
-            $delay = min(intdiv(hrtime(true) - $start, 1000), 1000000);
+            $this->delay = min(intdiv(hrtime(true) - $start, 1000), 1000000);
         }
+    }
+
+    /**
+     * Pauses the execution.
+     *
+     * @param int $microseconds the time to wait in microseconds
+     */
+    protected function wait(int $microseconds): void {
+        usleep($microseconds);
     }
 }
