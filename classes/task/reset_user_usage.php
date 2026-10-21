@@ -92,18 +92,27 @@ class reset_user_usage extends \core\task\scheduled_task {
      * Resets the usage of the given records by using batched bulk updates.
      *
      * Each batch is being executed as a separate UPDATE statement (and thus a separate transaction/writeset).
+     * Between two batches the task waits as long as the previous batch took (but at most 1 second) to give the
+     * database cluster time to apply the writesets.
      *
      * @param array $ids the ids of the local_ai_manager_userusage records to reset
      * @param int $time the timestamp to store as last reset time
      */
     protected function reset_usage_records(array $ids, int $time): void {
         global $DB;
+        $delay = 0;
         foreach (array_chunk($ids, self::BATCH_SIZE) as $chunk) {
+            if ($delay > 0) {
+                usleep($delay);
+            }
+            $start = hrtime(true);
             [$insql, $inparams] = $DB->get_in_or_equal($chunk, SQL_PARAMS_NAMED, 'uuid');
             $sql = "UPDATE {local_ai_manager_userusage}
                        SET currentusage = 0, lastreset = :lastreset
                      WHERE id " . $insql;
             $DB->execute($sql, array_merge($inparams, ['lastreset' => $time]));
+            // Duration of the request in microseconds, capped at 1 second.
+            $delay = min(intdiv(hrtime(true) - $start, 1000), 1000000);
         }
     }
 }
