@@ -71,7 +71,6 @@ final class purpose_test extends \advanced_testcase {
         );
     }
 
-    #[\PHPUnit\Framework\Attributes\Group('baseline')]
     /**
      * Tests that active content in the generated question XML is removed.
      *
@@ -93,7 +92,6 @@ final class purpose_test extends \advanced_testcase {
         $this->assertStringContainsString('<p><img src="x"', $questiontext);
     }
 
-    #[\PHPUnit\Framework\Attributes\Group('baseline')]
     /**
      * Tests that legitimate question XML passes unchanged, including plain text that must not be HTML-cleaned.
      *
@@ -108,5 +106,35 @@ final class purpose_test extends \advanced_testcase {
             . '<generalfeedback format="plain_text"><text>a &lt; b &amp; c</text></generalfeedback></question></quiz>';
 
         $this->assertEquals($xml, $purpose->format_output($xml));
+    }
+
+    /**
+     * Tests that the sanitising is not bypassed by a namespace, markdown, a DOCTYPE or deep nesting.
+     *
+     * @covers \aipurpose_questiongeneration\purpose::format_output
+     */
+    public function test_format_output_closes_bypasses(): void {
+        $this->resetAfterTest();
+        $purpose = \core\di::get(\local_ai_manager\local\connector_factory::class)
+            ->get_purpose_by_purpose_string('questiongeneration');
+        $payload = '<![CDATA[<p>Hi</p><img src="x" onerror="alert(1)">]]>';
+
+        $namespaced = '<quiz xmlns="urn:x"><question type="essay"><questiontext format="html"><text>' . $payload
+            . '</text></questiontext></question></quiz>';
+        $this->assertStringNotContainsString('onerror', $purpose->format_output($namespaced));
+
+        $markdown = '<quiz><question type="essay"><questiontext format="markdown"><text>[x](javascript:alert(1))</text>'
+            . '</questiontext></question></quiz>';
+        $result = $purpose->format_output($markdown);
+        $this->assertStringContainsString('format="html"', $result);
+        $this->assertStringNotContainsString('javascript:', $result);
+
+        $doctype = '<!DOCTYPE quiz [<!ENTITY e "&lt;img src=x onerror=alert(1)&gt;">]>'
+            . '<quiz><question type="essay"><questiontext format="html"><text>&e;</text></questiontext></question></quiz>';
+        $this->assertSame('', $purpose->format_output($doctype));
+
+        $deep = '<quiz><question type="essay"><questiontext format="html"><text>' . $payload . '</text></questiontext>'
+            . str_repeat('<x>', 300) . str_repeat('</x>', 300) . '</question></quiz>';
+        $this->assertStringNotContainsString('onerror', $purpose->format_output($deep));
     }
 }

@@ -60,18 +60,33 @@ class purpose extends base_purpose {
         }, $output);
 
         // Clean the HTML inside the text nodes of Moodle XML, so the XML stays importable but carries no active content.
+        // The importer would expand entities of a DOCTYPE, so such output is dropped.
+        if (stripos($output, '<!DOCTYPE') !== false) {
+            return '';
+        }
         try {
-            $xml = new \SimpleXMLElement($output, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
+            $xml = new \SimpleXMLElement($output, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_PARSEHUGE);
         } catch (\Exception $e) {
             // Not parseable as XML; leave other formats to the consuming plugin.
             return $output;
         }
         $changed = false;
-        foreach ($xml->xpath('//text') as $node) {
-            if ((string) ($node->xpath('..')[0]['format'] ?? '') === 'plain_text') {
+        // Match by local name, so a namespace declared by the LLM output does not hide the nodes from the sanitising.
+        foreach ($xml->xpath('//*[local-name()="text"]') as $node) {
+            $parents = $node->xpath('..');
+            $parent = $parents[0];
+            $format = trim((string) $parent['format']);
+            if ($format === 'plain_text') {
                 continue;
             }
-            $cleaned = clean_text((string) $node, FORMAT_HTML);
+            $text = (string) $node;
+            if ($format === 'markdown') {
+                // The importer would keep javascript: links of markdown, so store the cleaned HTML instead.
+                $text = markdown_to_html($text);
+                $parent['format'] = 'html';
+                $changed = true;
+            }
+            $cleaned = clean_text($text, FORMAT_HTML);
             if ($cleaned !== (string) $node) {
                 $node[0] = $cleaned;
                 $changed = true;
