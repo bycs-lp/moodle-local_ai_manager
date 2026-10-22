@@ -55,8 +55,43 @@ class purpose extends base_purpose {
             $output = trim($matches[1]);
         }
         // Some LLMs return UTF8-Symbols as UNICODE code. We have to convert this to proper UTF-8 symbols.
-        return preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function ($matches) {
+        $output = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function ($matches) {
             return mb_convert_encoding(pack('H*', $matches[1]), 'UTF-8', 'UCS-2BE');
         }, $output);
+
+        // Clean the HTML inside the text nodes of Moodle XML, so the XML stays importable but carries no active content.
+        // The importer would expand entities of a DOCTYPE, so such output is dropped.
+        if (stripos($output, '<!DOCTYPE') !== false) {
+            return '';
+        }
+        try {
+            $xml = new \SimpleXMLElement($output, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_PARSEHUGE);
+        } catch (\Exception $e) {
+            // Not parseable as XML; leave other formats to the consuming plugin.
+            return $output;
+        }
+        $changed = false;
+        // Match by local name, so a namespace declared by the LLM output does not hide the nodes from the sanitising.
+        foreach ($xml->xpath('//*[local-name()="text"]') as $node) {
+            $parents = $node->xpath('..');
+            $parent = $parents[0];
+            $format = trim((string) $parent['format']);
+            if ($format === 'plain_text') {
+                continue;
+            }
+            $text = (string) $node;
+            if ($format === 'markdown') {
+                // The importer would keep javascript: links of markdown, so store the cleaned HTML instead.
+                $text = markdown_to_html($text);
+                $parent['format'] = 'html';
+                $changed = true;
+            }
+            $cleaned = clean_text($text, FORMAT_HTML);
+            if ($cleaned !== (string) $node) {
+                $node[0] = $cleaned;
+                $changed = true;
+            }
+        }
+        return $changed ? $xml->asXML() : $output;
     }
 }
