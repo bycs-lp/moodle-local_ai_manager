@@ -53,6 +53,10 @@ class submit_query extends external_api {
     /**
      * Execute the service.
      *
+     * This can be used to submit simple prompts. No system prompts can be sent for security reasons: entries with the sender
+     * 'system' in the conversationcontext option are dropped. If a system prompt is required, implement your own external
+     * function or REST API endpoint and call the AI manager from the PHP side.
+     *
      * @param string $purpose the purpose to use
      * @param string $prompt the user's prompt
      * @param string $component the component from which the request is being made, e.g. 'mod_forum'
