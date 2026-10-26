@@ -52,6 +52,10 @@ const execMakeRequest = (
 /**
  * Executes the call to store input value.
  *
+ * Use this to submit simple prompts. Please note that no system prompts can be sent for security reasons: entries with the
+ * sender 'system' in the conversationcontext option are dropped on the server. If you rely on passing a system prompt, you
+ * need to implement your own external function or REST API endpoint and call the AI manager from the PHP side.
+ *
  * @param {string} purpose the purpose to use for the request
  * @param {string} prompt the prompt of the request
  * @param {string} component the component from which the request is being done

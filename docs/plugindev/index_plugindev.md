@@ -142,6 +142,8 @@ All PHP API functions that are intended to be used by "frontend plugins" are pub
 
   Basic JS function for communicating with the local_ai_manager backend for retrieving an AI result. It basically is a JS wrapper for the `manager` class and the `perform_request` method. See `tiny_ai` and `block_ai_chat` for an example.
 
+  Use this to submit simple prompts. Please note that no system prompts can be sent for security reasons: entries with the sender `system` in the `conversationcontext` option are dropped by the external function `local_ai_manager_post_query`. If you rely on passing a system prompt, you need to implement your own external function or REST API endpoint and call the AI manager from the PHP side.
+
 
 # 4. Obligatory/recommended widgets
 

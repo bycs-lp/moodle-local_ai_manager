@@ -10,7 +10,7 @@ After instantiating the manager by passing a string identifying the purpose one 
 
 Everything else is just being handled by the manager object: Sanitizing, identifying which tenant should be used, checking if the user has sufficient permissions, does not extend the quota, getting the configured external AI service, send the prompt to the external AI system, handle the response and wrapping everything into the *prompt_response* object.
 
-Of course, there also is a JS module for calling the external AI system, see function *make_request* from the module *local_ai_manager/make_request*.
+Of course, there also is a JS module for calling the external AI system, see function *make_request* from the module *local_ai_manager/make_request*. Use it to submit simple prompts. Please note that no system prompts can be sent for security reasons: entries with the sender *system* in the *conversationcontext* option are dropped. If you rely on passing a system prompt, you need to implement your own external function or REST API endpoint and call the AI manager from the PHP side.
 
 # 2 Purposes (aipurpose subplugins in /local/ai_manager/purposes)
 

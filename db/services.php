@@ -28,7 +28,10 @@ defined('MOODLE_INTERNAL') || die();
 $functions = [
         'local_ai_manager_post_query' => [
                 'classname' => 'local_ai_manager\external\submit_query',
-                'description' => 'Send a query to a LLM.',
+                'description' => 'Send a query to a LLM. Use this to submit simple prompts. Please note that no system prompts '
+                        . 'can be sent for security reasons: entries with the sender "system" in the conversationcontext option '
+                        . 'are dropped. If you need to pass a system prompt, implement your own external function or REST API '
+                        . 'endpoint and call the AI manager from the PHP side.',
                 'type' => 'read',
                 'ajax' => true,
                 'capabilities' => 'local/ai_manager:use',
