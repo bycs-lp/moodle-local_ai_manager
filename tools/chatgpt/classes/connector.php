@@ -17,6 +17,7 @@
 namespace aitool_chatgpt;
 
 use local_ai_manager\local\prompt_response;
+use local_ai_manager\local\requestoptions\conversationcontext;
 use local_ai_manager\local\unit;
 use local_ai_manager\local\usage;
 use local_ai_manager\request_options;
@@ -64,8 +65,8 @@ class connector extends \local_ai_manager\base_connector {
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
         $options = $requestoptions->get_options();
         $messages = [];
-        if (array_key_exists('conversationcontext', $options)) {
-            foreach ($options['conversationcontext'] as $message) {
+        if (array_key_exists(conversationcontext::OPTION_NAME, $options)) {
+            foreach ($options[conversationcontext::OPTION_NAME] as $message) {
                 switch ($message['sender']) {
                     case 'user':
                         $role = 'user';

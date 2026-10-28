@@ -26,6 +26,7 @@
 namespace aipurpose_agent;
 
 use local_ai_manager\base_purpose;
+use local_ai_manager\local\requestoptions\conversationcontext;
 use local_ai_manager\request_options;
 use Locale;
 
@@ -93,15 +94,23 @@ class purpose extends base_purpose {
         ];
 
         // Append the conversation history after the system prompt and additional context.
-        $currentconversationcontext = $options['conversationcontext'] ?? [];
+        $currentconversationcontext = $options[conversationcontext::OPTION_NAME] ?? [];
         $conversationcontext = array_merge($conversationcontext, $currentconversationcontext);
 
-        return ['conversationcontext' => $conversationcontext];
+        return [conversationcontext::OPTION_NAME => $conversationcontext];
     }
 
     #[\Override]
     public function get_additional_purpose_options(): array {
-        return ['conversationcontext' => base_purpose::PARAM_ARRAY, 'agentoptions' => base_purpose::PARAM_ARRAY];
+        return \core\di::get(conversationcontext::class)->get_option_definition()
+            + ['agentoptions' => base_purpose::PARAM_ARRAY];
+    }
+
+    #[\Override]
+    public function validate_purpose_options(array $options): void {
+        if (array_key_exists(conversationcontext::OPTION_NAME, $options)) {
+            \core\di::get(conversationcontext::class)->validate($options[conversationcontext::OPTION_NAME]);
+        }
     }
 
     #[\Override]

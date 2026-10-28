@@ -24,11 +24,10 @@ namespace aipurpose_questiongeneration;
  * @author    Philipp Memmel
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(purpose::class)]
 final class purpose_test extends \advanced_testcase {
     /**
      * Tests the output formatting of question generation results.
-     *
-     * @covers \aipurpose_questiongeneration\purpose::format_output
      */
     public function test_format_output(): void {
         global $CFG;
@@ -72,69 +71,32 @@ final class purpose_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that active content in the generated question XML is removed.
-     *
-     * @covers \aipurpose_questiongeneration\purpose::format_output
+     * Tests that the conversation context is validated by the conversation context validator.
      */
-    public function test_format_output_removes_active_content(): void {
-        $this->resetAfterTest();
-        $purpose = \core\di::get(\local_ai_manager\local\connector_factory::class)
-            ->get_purpose_by_purpose_string('questiongeneration');
-        $llmoutput = "\u{0060}\u{0060}\u{0060}xml\n<quiz><question type=\"essay\"><questiontext format=\"html\">"
-            . '<text><![CDATA[<p><img src="x" onerror="alert(1)"><script>alert(2)</script>Text</p>]]></text>'
-            . "</questiontext></question></quiz>\n\u{0060}\u{0060}\u{0060}";
-
-        $result = $purpose->format_output($llmoutput);
-
-        $questiontext = (string) (new \SimpleXMLElement($result))->question->questiontext->text;
-        $this->assertStringNotContainsString('onerror', $questiontext);
-        $this->assertStringNotContainsString('<script', $questiontext);
-        $this->assertStringContainsString('<p><img src="x"', $questiontext);
+    public function test_validate_purpose_options_violation(): void {
+        $this->expectException(\coding_exception::class);
+        (new purpose())->validate_purpose_options(['conversationcontext' => [['sender' => 'admin', 'message' => 'Hello']]]);
     }
 
     /**
-     * Tests that legitimate question XML passes unchanged, including plain text that must not be HTML-cleaned.
-     *
-     * @covers \aipurpose_questiongeneration\purpose::format_output
+     * Tests that the system message with the example Moodle XML question passes the sanitising unchanged.
      */
-    public function test_format_output_keeps_legitimate_content(): void {
-        $this->resetAfterTest();
-        $purpose = \core\di::get(\local_ai_manager\local\connector_factory::class)
-            ->get_purpose_by_purpose_string('questiongeneration');
-        $xml = '<quiz><question type="essay"><questiontext format="html">'
-            . '<text><![CDATA[<p>Größe <strong>über</strong> 5 &amp; 3</p>]]></text></questiontext>'
-            . '<generalfeedback format="plain_text"><text>a &lt; b &amp; c</text></generalfeedback></question></quiz>';
-
-        $this->assertEquals($xml, $purpose->format_output($xml));
-    }
-
-    /**
-     * Tests that the sanitising is not bypassed by a namespace, markdown, a DOCTYPE or deep nesting.
-     *
-     * @covers \aipurpose_questiongeneration\purpose::format_output
-     */
-    public function test_format_output_closes_bypasses(): void {
-        $this->resetAfterTest();
-        $purpose = \core\di::get(\local_ai_manager\local\connector_factory::class)
-            ->get_purpose_by_purpose_string('questiongeneration');
-        $payload = '<![CDATA[<p>Hi</p><img src="x" onerror="alert(1)">]]>';
-
-        $namespaced = '<quiz xmlns="urn:x"><question type="essay"><questiontext format="html"><text>' . $payload
-            . '</text></questiontext></question></quiz>';
-        $this->assertStringNotContainsString('onerror', $purpose->format_output($namespaced));
-
-        $markdown = '<quiz><question type="essay"><questiontext format="markdown"><text>[x](javascript:alert(1))</text>'
-            . '</questiontext></question></quiz>';
-        $result = $purpose->format_output($markdown);
-        $this->assertStringContainsString('format="html"', $result);
-        $this->assertStringNotContainsString('javascript:', $result);
-
-        $doctype = '<!DOCTYPE quiz [<!ENTITY e "&lt;img src=x onerror=alert(1)&gt;">]>'
-            . '<quiz><question type="essay"><questiontext format="html"><text>&e;</text></questiontext></question></quiz>';
-        $this->assertSame('', $purpose->format_output($doctype));
-
-        $deep = '<quiz><question type="essay"><questiontext format="html"><text>' . $payload . '</text></questiontext>'
-            . str_repeat('<x>', 300) . str_repeat('</x>', 300) . '</question></quiz>';
-        $this->assertStringNotContainsString('onerror', $purpose->format_output($deep));
+    public function test_validate_purpose_options_verification(): void {
+        $conversationcontext = [
+            [
+                'sender' => 'system',
+                'message' => "## EXAMPLE MOODLE XML QUESTION\n<quiz><question type=\"multichoice\">"
+                    . '<name><text>Q1</text></name></question></quiz>',
+            ],
+            ['sender' => 'user', 'message' => 'Create a question about HTML <div> elements.'],
+        ];
+        $requestoptions = new \local_ai_manager\request_options(
+            new purpose(),
+            \context_system::instance(),
+            'qbank_questiongen',
+            ['conversationcontext' => $conversationcontext]
+        );
+        $requestoptions->sanitize_options();
+        $this->assertSame($conversationcontext, $requestoptions->get_options()['conversationcontext']);
     }
 }

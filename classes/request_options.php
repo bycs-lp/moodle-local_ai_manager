@@ -94,6 +94,16 @@ class request_options {
     /**
      * Helper function that sanitizes the options against the options defined in the purpose class.
      *
+     * Options with a moodle param type are cleaned with clean_param(), options with a list of allowed values are checked
+     * against this list.
+     *
+     * Options of type {@see base_purpose::PARAM_ARRAY} are only checked to be an array, their content is INTENTIONALLY NOT
+     * sanitized: Like the prompt text it is raw input for the external AI tool and legitimately contains code, markup or XML
+     * (for example code snippets in a chat history or the example Moodle XML in the system prompt of the question
+     * generation). Cleaning it, for example with PARAM_NOTAGS, would destroy these contents. Consumers therefore must treat
+     * the content as untrusted and never output it without escaping. The structure of array options is validated by the
+     * purpose in {@see base_purpose::validate_purpose_options}, which is called with all options at the end.
+     *
      * @throws coding_exception if validation is failing
      */
     public function sanitize_options(): void {
@@ -114,11 +124,15 @@ class request_options {
                 }
             } else {
                 if ($this->purpose->get_available_purpose_options()[$key] === base_purpose::PARAM_ARRAY) {
-                    array_walk_recursive($value, fn($text) => clean_param($text, PARAM_NOTAGS));
+                    if (!is_array($value)) {
+                        throw new coding_exception('Option ' . $key . ' must be an array');
+                    }
+                    // The content of array options is intentionally not sanitized, see the docblock of this method.
                 } else {
                     $this->options[$key] = clean_param($value, $this->purpose->get_available_purpose_options()[$key]);
                 }
             }
         }
+        $this->purpose->validate_purpose_options($this->options);
     }
 }

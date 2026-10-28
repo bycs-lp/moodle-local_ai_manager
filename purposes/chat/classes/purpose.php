@@ -26,6 +26,7 @@
 namespace aipurpose_chat;
 
 use local_ai_manager\base_purpose;
+use local_ai_manager\local\requestoptions\conversationcontext;
 
 /**
  * Purpose chat methods
@@ -40,7 +41,7 @@ class purpose extends base_purpose {
     public function get_additional_request_options(array $options): array {
         $systemprompt = get_config('aipurpose_chat', 'chatsystemprompt') ?: self::get_default_chatsystemprompt();
 
-        $conversationcontext = $options['conversationcontext'] ?? [];
+        $conversationcontext = $options[conversationcontext::OPTION_NAME] ?? [];
 
         // Some LLM APIs require exactly one message with role 'system' and error out otherwise. If the
         // conversation context already has a system message, put our system prompt in front of it; only
@@ -62,12 +63,19 @@ class purpose extends base_purpose {
             ]);
         }
 
-        return ['conversationcontext' => $conversationcontext];
+        return [conversationcontext::OPTION_NAME => $conversationcontext];
     }
 
     #[\Override]
     public function get_additional_purpose_options(): array {
-        return ['conversationcontext' => base_purpose::PARAM_ARRAY];
+        return \core\di::get(conversationcontext::class)->get_option_definition();
+    }
+
+    #[\Override]
+    public function validate_purpose_options(array $options): void {
+        if (array_key_exists(conversationcontext::OPTION_NAME, $options)) {
+            \core\di::get(conversationcontext::class)->validate($options[conversationcontext::OPTION_NAME]);
+        }
     }
 
     /**
