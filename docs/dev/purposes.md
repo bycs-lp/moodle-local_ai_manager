@@ -46,6 +46,14 @@ The class `\aipurpose_YOURAIPURPOSEPLUGINNAME` has to extend `\local_ai_manager\
 
   You can overwrite this method to manipulate the options that are being passed along the prompt. As an example see `\aipurpose_imggen\purpose::get_additional_request_options` where a free itemid is being passed to the options if the frontend plugin did not provide one.
 
+- `validate_purpose_options(array $options): void`
+
+  After the options have been manipulated by `get_additional_request_options` they are being cleaned according to the types defined in `get_additional_purpose_options`. Options of type `base_purpose::PARAM_ARRAY` are only checked to be an array, their content is intentionally not cleaned, because it is raw input for the AI tool which legitimately can contain code, markup or XML (just like the prompt itself). So never output them without escaping.
+
+  Afterwards `validate_purpose_options` is being called with all the cleaned options (the general options like `itemid` as well as the purpose specific ones) as associative array keyed by option name. Overwrite this method to validate the structure of your options, especially of array options. **If an option is not valid, your implementation has to throw a `\coding_exception`.** The request will then be rejected with an HTTP 400 error.
+
+  If your purpose supports a conversation history, use the class `\local_ai_manager\local\requestoptions\conversationcontext`: It provides the option definition (`get_option_definition()`) for `get_additional_purpose_options` and validates the structure the connectors rely on (`validate()`). As an example see `\aipurpose_chat\purpose::get_additional_purpose_options` and `\aipurpose_chat\purpose::validate_purpose_options`.
+
 - `format_output(string $output): string`
 
   If your purpose wants to apply some additional formatting of the output of the LLM you can overwrite this function, sanitize/manipulate/format the output accordingly and return the changed output. As an example see `\aipurpose_questiongeneration\purpose::format_output`.

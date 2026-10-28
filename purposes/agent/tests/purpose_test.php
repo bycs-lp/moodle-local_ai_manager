@@ -1821,4 +1821,28 @@ JSON;
         $this->assertEmpty($decoded['formelements'], 'Unrecoverable input must not produce form elements');
         $this->assertArrayHasKey('chatoutput', $decoded, 'Fallback must still contain chatoutput');
     }
+
+    /**
+     * Tests that the conversation context is validated by the conversation context validator.
+     *
+     * @covers ::validate_purpose_options
+     */
+    public function test_validate_purpose_options_violation(): void {
+        $this->expectException(\coding_exception::class);
+        (new purpose())->validate_purpose_options(['conversationcontext' => [['sender' => 'admin', 'message' => 'Hello']]]);
+    }
+
+    /**
+     * Tests that a valid conversation context including markup is accepted.
+     *
+     * @covers ::validate_purpose_options
+     */
+    public function test_validate_purpose_options_verification(): void {
+        $this->expectNotToPerformAssertions();
+        (new purpose())->validate_purpose_options(['conversationcontext' => [
+            ['sender' => 'system', 'message' => 'Write it as <pre class="language-xxx"><code>...</code></pre>.'],
+            ['sender' => 'user', 'message' => 'Fill in <b>bold</b> text.'],
+            ['sender' => 'ai', 'message' => '{"formelements": []}'],
+        ]]);
+    }
 }

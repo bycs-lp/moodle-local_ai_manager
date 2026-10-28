@@ -23,13 +23,11 @@ namespace aipurpose_chat;
  * @copyright  2026 ISB Bayern
  * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @coversDefaultClass \aipurpose_chat\purpose
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(purpose::class)]
 final class purpose_test extends \advanced_testcase {
     /**
      * Tests that the formatting system message is prepended and any existing conversation context is preserved after it.
-     *
-     * @covers ::get_additional_request_options
      */
     public function test_get_additional_request_options_prepends_system_message(): void {
         $this->resetAfterTest();
@@ -56,8 +54,6 @@ final class purpose_test extends \advanced_testcase {
 
     /**
      * Tests that a configured chatsystemprompt setting overrides the default formatting prompt.
-     *
-     * @covers ::get_additional_request_options
      */
     public function test_get_additional_request_options_uses_configured_prompt(): void {
         $this->resetAfterTest();
@@ -67,5 +63,32 @@ final class purpose_test extends \advanced_testcase {
         $conversationcontext = $purpose->get_additional_request_options([]);
         $context = $conversationcontext['conversationcontext'];
         $this->assertEquals($customprompt, $context[0]['message']);
+    }
+
+    /**
+     * Tests that the conversation context is validated by the conversation context validator.
+     */
+    public function test_validate_purpose_options_violation(): void {
+        $this->expectException(\coding_exception::class);
+        (new purpose())->validate_purpose_options(['conversationcontext' => [['sender' => 'admin', 'message' => 'Hello']]]);
+    }
+
+    /**
+     * Tests that a valid conversation context including code and markup passes the sanitising unchanged.
+     */
+    public function test_validate_purpose_options_verification(): void {
+        $conversationcontext = [
+            ['sender' => 'user', 'message' => 'What does if (a<b && c>d) do? List<String> list = new ArrayList<>();'],
+            ['sender' => 'ai', 'message' => '<div class="x">Hello</div>'],
+        ];
+        $requestoptions = new \local_ai_manager\request_options(
+            new purpose(),
+            \context_system::instance(),
+            'block_ai_chat',
+            ['conversationcontext' => $conversationcontext]
+        );
+        $requestoptions->sanitize_options();
+        // The chat purpose prepends its system message, the submitted entries have to stay untouched.
+        $this->assertSame($conversationcontext, array_slice($requestoptions->get_options()['conversationcontext'], 1));
     }
 }

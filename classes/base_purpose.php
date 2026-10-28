@@ -29,7 +29,13 @@ use Michelf\MarkdownExtra;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class base_purpose {
-    /** @var string Constant for defining that a purpose option is an array */
+    /**
+     * @var string Constant for defining that a purpose option is an array.
+     *
+     * The content of such options is intentionally not sanitized, only the type is checked. See
+     * {@see request_options::sanitize_options} for the reasons and {@see self::validate_purpose_options} for validating the
+     * structure.
+     */
     const PARAM_ARRAY = 'array';
 
     /**
@@ -155,10 +161,29 @@ class base_purpose {
      *
      * Should be overwritten of subclasses if they want to add options.
      *
+     * The options are being cleaned according to the defined types by {@see request_options::sanitize_options}. The content
+     * of options of type {@see self::PARAM_ARRAY} is intentionally not sanitized, so purposes defining such options should
+     * validate their structure in {@see self::validate_purpose_options}.
+     *
      * @return array the options array
      */
     public function get_additional_purpose_options(): array {
         return [];
+    }
+
+    /**
+     * Hook for additionally validating the submitted request options.
+     *
+     * Called by {@see request_options::sanitize_options} after the basic cleaning, so the values already have the declared
+     * types. Purposes should override this to validate the structure of their options, especially of array options whose
+     * content is not being cleaned.
+     *
+     * Implementations MUST throw a \coding_exception if an option is not valid. The request is then rejected.
+     *
+     * @param array $options associative array of all already cleaned options which have been submitted (general options
+     *  like itemid as well as the options defined in {@see self::get_additional_purpose_options}), keyed by option name
+     */
+    public function validate_purpose_options(array $options): void {
     }
 
     /**
