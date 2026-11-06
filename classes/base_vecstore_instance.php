@@ -61,11 +61,8 @@ class base_vecstore_instance {
     /** @var ?string If an eventually configured global API key should be used */
     protected ?string $useglobalapikey = null;
 
-    /** @var ?string The collection/index/table name the vectors live in */
+    /** @var ?string The prefix of the collection/index/table names the vectors live in */
     protected ?string $collection = null;
-
-    /** @var ?int The dimensionality of the stored embedding vectors */
-    protected ?int $dimensions = null;
 
     /** @var ?string The distance metric, one of the base_vecstore::DISTANCE_* constants */
     protected ?string $distancemetric = null;
@@ -99,7 +96,6 @@ class base_vecstore_instance {
         $this->apikey = $record->apikey;
         $this->useglobalapikey = $record->useglobalapikey;
         $this->collection = $record->collection;
-        $this->dimensions = is_null($record->dimensions) ? null : (int) $record->dimensions;
         $this->distancemetric = $record->distancemetric;
     }
 
@@ -118,7 +114,6 @@ class base_vecstore_instance {
         $record->apikey = $this->apikey;
         $record->useglobalapikey = $this->get_useglobalapikey() ? 1 : 0;
         $record->collection = $this->collection;
-        $record->dimensions = $this->dimensions;
         $record->distancemetric = $this->distancemetric;
         $currenttime = $clock->time();
         $record->timemodified = $currenttime;
@@ -312,7 +307,7 @@ class base_vecstore_instance {
     /**
      * Standard getter.
      *
-     * @return ?string the collection/index name or null if not set
+     * @return ?string the prefix of the collection/index names or null if not set
      */
     public function get_collection(): ?string {
         return $this->collection;
@@ -321,28 +316,10 @@ class base_vecstore_instance {
     /**
      * Standard setter.
      *
-     * @param ?string $collection the collection/index name
+     * @param ?string $collection the prefix of the collection/index names
      */
     public function set_collection(?string $collection): void {
         $this->collection = $collection;
-    }
-
-    /**
-     * Standard getter.
-     *
-     * @return ?int the vector dimensionality or null if not set
-     */
-    public function get_dimensions(): ?int {
-        return $this->dimensions;
-    }
-
-    /**
-     * Standard setter.
-     *
-     * @param ?int $dimensions the vector dimensionality
-     */
-    public function set_dimensions(?int $dimensions): void {
-        $this->dimensions = $dimensions;
     }
 
     /**
@@ -395,7 +372,6 @@ class base_vecstore_instance {
         $data->apikey = $this->get_apikey();
         $data->useglobalapikey = $this->get_useglobalapikey();
         $data->collection = $this->get_collection();
-        $data->dimensions = $this->get_dimensions();
         $data->distancemetric = $this->get_distancemetric();
         foreach ($this->get_extended_formdata() as $key => $value) {
             $data->{$key} = $value;
@@ -507,15 +483,6 @@ class base_vecstore_instance {
         $mform->setType('collection', PARAM_TEXT);
         $mform->addHelpButton('collection', 'collection', 'local_ai_manager');
 
-        $mform->addElement(
-            'text',
-            'dimensions',
-            get_string('dimensions', 'local_ai_manager'),
-            array_merge($textelementparams, ['placeholder' => 'e.g. 1536'])
-        );
-        $mform->setType('dimensions', PARAM_INT);
-        $mform->addHelpButton('dimensions', 'dimensions', 'local_ai_manager');
-
         $distanceoptions = [
             base_vecstore::DISTANCE_COSINE => get_string('distance_cosine', 'local_ai_manager'),
             base_vecstore::DISTANCE_DOT => get_string('distance_dot', 'local_ai_manager'),
@@ -552,7 +519,6 @@ class base_vecstore_instance {
             $this->set_global(!empty($data->isglobal));
         }
         $this->set_collection(!empty($data->collection) ? trim($data->collection) : null);
-        $this->set_dimensions(!empty($data->dimensions) ? (int) $data->dimensions : null);
         $this->set_distancemetric(empty($data->distancemetric) ? base_vecstore::DISTANCE_COSINE : $data->distancemetric);
         $this->extend_store_formdata($data);
         $this->store();
@@ -589,9 +555,6 @@ class base_vecstore_instance {
         ) {
             $errors['endpoint'] = get_string('formvalidation_editinstance_endpointnossl', 'local_ai_manager');
         }
-        if (!empty($data['dimensions']) && intval($data['dimensions']) <= 0) {
-            $errors['dimensions'] = get_string('formvalidation_vecstore_dimensions', 'local_ai_manager');
-        }
         return $errors + $this->extend_validation($data, $files);
     }
 
@@ -627,6 +590,8 @@ class base_vecstore_instance {
             'local_ai_manager_config',
             ['configkey' => \local_ai_manager\local\vecstore_factory::CONFIG_PRIMARY, 'configvalue' => $this->id]
         );
+        // The collections stay in the backend, only our bookkeeping of them is removed.
+        $DB->delete_records('local_ai_manager_collection', ['vecstoreid' => $this->id]);
         $DB->delete_records('local_ai_manager_vecstore', ['id' => $this->id]);
     }
 }

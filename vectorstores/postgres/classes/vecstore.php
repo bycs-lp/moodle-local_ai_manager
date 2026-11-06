@@ -55,16 +55,16 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
-    public function create_collection(): vecstore_response {
+    public function create_collection(string $collection, int $dimensions): vecstore_response {
         $connection = $this->get_connection();
         if (!$connection) {
             return $this->create_connection_error_response();
         }
         // The vector type requires the pgvector extension; create it if the user is allowed to.
         pg_query($connection, 'CREATE EXTENSION IF NOT EXISTS vector');
-        $table = pg_escape_identifier($connection, $this->get_collection());
+        $table = pg_escape_identifier($connection, $collection);
         $sql = "CREATE TABLE IF NOT EXISTS {$table} "
-            . '(id text PRIMARY KEY, embedding vector(' . (int) $this->instance->get_dimensions() . '), payload jsonb)';
+            . '(id text PRIMARY KEY, embedding vector(' . $dimensions . '), payload jsonb)';
         if (pg_query($connection, $sql) === false) {
             return $this->create_error_response(500, 'Could not create postgres vecstore collection table.',
                 pg_last_error($connection));
@@ -73,12 +73,12 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
-    public function delete_collection(): vecstore_response {
+    public function delete_collection(string $collection): vecstore_response {
         $connection = $this->get_connection();
         if (!$connection) {
             return $this->create_connection_error_response();
         }
-        $table = pg_escape_identifier($connection, $this->get_collection());
+        $table = pg_escape_identifier($connection, $collection);
         if (pg_query($connection, "DROP TABLE IF EXISTS {$table}") === false) {
             return $this->create_error_response(500, 'Could not delete postgres vecstore collection table.',
                 pg_last_error($connection));
@@ -87,123 +87,120 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
-    protected function store_embeddings(array $embeddings): vecstore_response {
-        return $this->with_existing_collection(function () use ($embeddings): vecstore_response {
-            $connection = $this->get_connection();
-            if (!$connection) {
-                return $this->create_connection_error_response();
-            }
-            if (!$this->table_exists()) {
-                throw new collection_not_found_exception();
-            }
-            $table = pg_escape_identifier($connection, $this->get_collection());
-            $sql = "INSERT INTO {$table} (id, embedding, payload) VALUES ($1, $2::vector, $3::jsonb)";
-
-            $success = pg_query($connection, 'BEGIN') !== false;
-            foreach ($embeddings as $embedding) {
-                $payload = [
-                    'content' => $embedding->get_content(),
-                    'sourceid' => $embedding->get_sourceid(),
-                    'chunk' => $embedding->get_chunk(),
-                    'maxchunks' => $embedding->get_maxchunks(),
-                ];
-                // Vector-level citation metadata is only stored when present, to keep the payload minimal.
-                if ($embedding->get_locator() !== '') {
-                    $payload['locator'] = $embedding->get_locator();
-                }
-                if ($embedding->get_url() !== '') {
-                    $payload['url'] = $embedding->get_url();
-                }
-                $params = [
-                    // The id column is the table's primary key; we generate a UUID as callers do not manage references.
-                    \core\uuid::generate(),
-                    $this->normalize_vector_literal($embedding->get_vector()),
-                    json_encode($payload),
-                ];
-                if (@pg_query_params($connection, $sql, $params) === false) {
-                    $success = false;
-                    break;
-                }
-            }
-            pg_query($connection, $success ? 'COMMIT' : 'ROLLBACK');
-            if (!$success) {
-                return $this->create_error_response(500, 'Could not store embeddings in postgres vecstore collection.',
-                    pg_last_error($connection));
-            }
-            return vecstore_response::create_from_result();
-        });
-    }
-
-    #[\Override]
-    public function query(array $vector, int $topk = 5, array $filters = []): vecstore_response {
-        return $this->with_existing_collection(function () use ($vector, $topk, $filters): vecstore_response {
-            $connection = $this->get_connection();
-            if (!$connection) {
-                return $this->create_connection_error_response();
-            }
-            if (!$this->table_exists()) {
-                throw new collection_not_found_exception();
-            }
-            $table = pg_escape_identifier($connection, $this->get_collection());
-            [$operator, $scoreexpr] = $this->distance_sql();
-
-            // Parameter $1 is reserved for the query vector; filter values are bound from $2 onwards.
-            // Keys and values are parameterized (payload->>$k) so arbitrary filter keys can't inject SQL.
-            $params = [$this->vector_to_literal($vector)];
-            $conditions = [];
-            foreach ($filters as $key => $value) {
-                $params[] = (string) $key;
-                $keyparam = '$' . count($params);
-                if (is_array($value)) {
-                    if (empty($value)) {
-                        // An empty value set matches nothing.
-                        $conditions[] = 'FALSE';
-                        continue;
-                    }
-                    // Array value → IN semantics.
-                    $placeholders = [];
-                    foreach (array_values($value) as $item) {
-                        $params[] = (string) $item;
-                        $placeholders[] = '$' . count($params);
-                    }
-                    $conditions[] = "payload->>{$keyparam} IN (" . implode(', ', $placeholders) . ')';
-                } else {
-                    // Scalar value → exact match.
-                    $params[] = (string) $value;
-                    $valueparam = '$' . count($params);
-                    $conditions[] = "payload->>{$keyparam} = {$valueparam}";
-                }
-            }
-            $where = empty($conditions) ? '' : ('WHERE ' . implode(' AND ', $conditions));
-
-            $sql = "SELECT id, payload, embedding::text AS vector, {$scoreexpr} AS score FROM {$table} {$where} "
-                . "ORDER BY embedding {$operator} \$1::vector ASC LIMIT " . (int) $topk;
-
-            $result = @pg_query_params($connection, $sql, $params);
-            if ($result === false) {
-                return $this->create_error_response(500, 'Could not run postgres vecstore similarity query.',
-                    pg_last_error($connection));
-            }
-            $matches = [];
-            foreach (pg_fetch_all($result) as $row) {
-                // Rows of external sources are written outside of Moodle and may come without payload.
-                $payload = $row['payload'] === null ? [] : json_decode($row['payload'], true, flags: JSON_THROW_ON_ERROR);
-                $matches[] = $this->payload_to_enriched_vector($row['vector'], $payload);
-            }
-            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($matches));
-        });
-    }
-
-    #[\Override]
-    public function get_all(): vecstore_response {
+    protected function store_embeddings(string $collection, array $embeddings): vecstore_response {
         $connection = $this->get_connection();
         if (!$connection) {
             return $this->create_connection_error_response();
         }
-        if (!$this->table_exists()) {
+        if (!$this->table_exists($collection)) {
+            throw new collection_not_found_exception();
+        }
+        $table = pg_escape_identifier($connection, $collection);
+        $sql = "INSERT INTO {$table} (id, embedding, payload) VALUES ($1, $2::vector, $3::jsonb)";
+
+        $success = pg_query($connection, 'BEGIN') !== false;
+        foreach ($embeddings as $embedding) {
+            $payload = [
+                'content' => $embedding->get_content(),
+                'sourceid' => $embedding->get_sourceid(),
+                'chunk' => $embedding->get_chunk(),
+                'maxchunks' => $embedding->get_maxchunks(),
+            ];
+            // Vector-level citation metadata is only stored when present, to keep the payload minimal.
+            if ($embedding->get_locator() !== '') {
+                $payload['locator'] = $embedding->get_locator();
+            }
+            if ($embedding->get_url() !== '') {
+                $payload['url'] = $embedding->get_url();
+            }
+            $params = [
+                // The id column is the table's primary key; we generate a UUID as callers do not manage references.
+                \core\uuid::generate(),
+                $this->normalize_vector_literal($embedding->get_vector()),
+                json_encode($payload),
+            ];
+            if (@pg_query_params($connection, $sql, $params) === false) {
+                $success = false;
+                break;
+            }
+        }
+        pg_query($connection, $success ? 'COMMIT' : 'ROLLBACK');
+        if (!$success) {
+            return $this->create_error_response(500, 'Could not store embeddings in postgres vecstore collection.',
+                pg_last_error($connection));
+        }
+        return vecstore_response::create_from_result();
+    }
+
+    #[\Override]
+    public function query_collection(string $collection, array $vector, int $topk = 5, array $filters = []): vecstore_response {
+        $connection = $this->get_connection();
+        if (!$connection) {
+            return $this->create_connection_error_response();
+        }
+        // A missing collection contains no vectors.
+        if (!$this->table_exists($collection)) {
             return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
         }
-        $table = pg_escape_identifier($connection, $this->get_collection());
+        $table = pg_escape_identifier($connection, $collection);
+        [$operator, $scoreexpr] = $this->distance_sql();
+
+        // Parameter $1 is reserved for the query vector; filter values are bound from $2 onwards.
+        // Keys and values are parameterized (payload->>$k) so arbitrary filter keys can't inject SQL.
+        $params = [$this->vector_to_literal($vector)];
+        $conditions = [];
+        foreach ($filters as $key => $value) {
+            $params[] = (string) $key;
+            $keyparam = '$' . count($params);
+            if (is_array($value)) {
+                if (empty($value)) {
+                    // An empty value set matches nothing.
+                    $conditions[] = 'FALSE';
+                    continue;
+                }
+                // Array value → IN semantics.
+                $placeholders = [];
+                foreach (array_values($value) as $item) {
+                    $params[] = (string) $item;
+                    $placeholders[] = '$' . count($params);
+                }
+                $conditions[] = "payload->>{$keyparam} IN (" . implode(', ', $placeholders) . ')';
+            } else {
+                // Scalar value → exact match.
+                $params[] = (string) $value;
+                $valueparam = '$' . count($params);
+                $conditions[] = "payload->>{$keyparam} = {$valueparam}";
+            }
+        }
+        $where = empty($conditions) ? '' : ('WHERE ' . implode(' AND ', $conditions));
+
+        $sql = "SELECT id, payload, embedding::text AS vector, {$scoreexpr} AS score FROM {$table} {$where} "
+            . "ORDER BY embedding {$operator} \$1::vector ASC LIMIT " . (int) $topk;
+
+        $result = @pg_query_params($connection, $sql, $params);
+        if ($result === false) {
+            return $this->create_error_response(500, 'Could not run postgres vecstore similarity query.',
+                pg_last_error($connection));
+        }
+        $matches = [];
+        foreach (pg_fetch_all($result) as $row) {
+            // Rows of external sources are written outside of Moodle and may come without payload.
+            $payload = $row['payload'] === null ? [] : json_decode($row['payload'], true, flags: JSON_THROW_ON_ERROR);
+            $matches[] = $this->payload_to_enriched_vector($row['vector'], $payload);
+        }
+        return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($matches));
+    }
+
+    #[\Override]
+    public function get_all(string $collection): vecstore_response {
+        $connection = $this->get_connection();
+        if (!$connection) {
+            return $this->create_connection_error_response();
+        }
+        if (!$this->table_exists($collection)) {
+            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
+        }
+        $table = pg_escape_identifier($connection, $collection);
         $result = @pg_query($connection, "SELECT id, payload, embedding::text AS vector FROM {$table}");
         if ($result === false) {
             return $this->create_error_response(500, 'Could not fetch vectors from postgres vecstore collection.',
@@ -219,7 +216,7 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
-    public function delete_embeddings(int ...$sourceids): vecstore_response {
+    protected function delete_from_collection(string $collection, int ...$sourceids): vecstore_response {
         if (empty($sourceids)) {
             return vecstore_response::create_from_result();
         }
@@ -227,10 +224,10 @@ class vecstore extends base_vecstore {
         if (!$connection) {
             return $this->create_connection_error_response();
         }
-        if (!$this->table_exists()) {
+        if (!$this->table_exists($collection)) {
             return vecstore_response::create_from_result();
         }
-        $table = pg_escape_identifier($connection, $this->get_collection());
+        $table = pg_escape_identifier($connection, $collection);
         $params = array_map(static fn(int $sourceid): string => (string) $sourceid, array_values($sourceids));
         $placeholders = array_map(static fn(int $index): string => '$' . ($index + 1), array_keys($params));
         $sql = "DELETE FROM {$table} WHERE payload->>'sourceid' IN (" . implode(', ', $placeholders) . ')';
@@ -366,11 +363,12 @@ class vecstore extends base_vecstore {
     }
 
     /**
-     * Checks whether the table backing the configured collection exists.
+     * Checks whether the table backing a collection exists.
      *
+     * @param string $collection the backend name of the collection
      * @return bool true if the table exists
      */
-    protected function table_exists(): bool {
+    protected function table_exists(string $collection): bool {
         $connection = $this->get_connection();
         if (!$connection) {
             return false;
@@ -378,7 +376,7 @@ class vecstore extends base_vecstore {
         $result = @pg_query_params(
             $connection,
             'SELECT to_regclass($1) AS oid',
-            [pg_escape_identifier($connection, $this->get_collection())]
+            [pg_escape_identifier($connection, $collection)]
         );
         if ($result === false) {
             return false;

@@ -46,14 +46,14 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
-    public function create_collection(): vecstore_response {
+    public function create_collection(string $collection, int $dimensions): vecstore_response {
         $body = [
             'vectors' => [
-                'size' => (int) $this->instance->get_dimensions(),
+                'size' => $dimensions,
                 'distance' => $this->map_distance(),
             ],
         ];
-        $response = $this->request('PUT', '/collections/' . rawurlencode($this->get_collection()), $body);
+        $response = $this->request('PUT', '/collections/' . rawurlencode($collection), $body);
         if ($response['status'] === 200) {
             return vecstore_response::create_from_result();
         }
@@ -61,8 +61,8 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
-    public function delete_collection(): vecstore_response {
-        $response = $this->request('DELETE', '/collections/' . rawurlencode($this->get_collection()));
+    public function delete_collection(string $collection): vecstore_response {
+        $response = $this->request('DELETE', '/collections/' . rawurlencode($collection));
         if ($response['status'] === 200) {
             return vecstore_response::create_from_result();
         }
@@ -70,7 +70,7 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
-    protected function store_embeddings(array $embeddings): vecstore_response {
+    protected function store_embeddings(string $collection, array $embeddings): vecstore_response {
         $points = [];
         foreach ($embeddings as $embedding) {
             $vector = json_decode($embedding->get_vector(), true, flags: JSON_THROW_ON_ERROR);
@@ -94,21 +94,19 @@ class vecstore extends base_vecstore {
                 'payload' => $payload,
             ];
         }
-        return $this->with_existing_collection(function () use ($points): vecstore_response {
-            $path = '/collections/' . rawurlencode($this->get_collection()) . '/points?wait=true';
-            $response = $this->request('PUT', $path, ['points' => $points]);
-            if ($response['status'] === 404) {
-                throw new collection_not_found_exception();
-            }
-            if ($response['status'] === 200) {
-                return vecstore_response::create_from_result();
-            }
-            return $this->create_error_response($response, 'Could not store embeddings in qdrant collection.');
-        });
+        $path = '/collections/' . rawurlencode($collection) . '/points?wait=true';
+        $response = $this->request('PUT', $path, ['points' => $points]);
+        if ($response['status'] === 404) {
+            throw new collection_not_found_exception();
+        }
+        if ($response['status'] === 200) {
+            return vecstore_response::create_from_result();
+        }
+        return $this->create_error_response($response, 'Could not store embeddings in qdrant collection.');
     }
 
     #[\Override]
-    public function query(array $vector, int $topk = 5, array $filters = []): vecstore_response {
+    public function query_collection(string $collection, array $vector, int $topk = 5, array $filters = []): vecstore_response {
         $body = [
             'vector' => array_values($vector),
             'limit' => $topk,
@@ -125,27 +123,23 @@ class vecstore extends base_vecstore {
             }
             $body['filter'] = ['must' => $must];
         }
-        return $this->with_existing_collection(function () use ($body): vecstore_response {
-            $response = $this->request('POST', '/collections/' . rawurlencode($this->get_collection()) . '/points/search', $body);
-            if ($response['status'] === 404) {
-                throw new collection_not_found_exception();
-            }
-            if ($response['status'] !== 200) {
-                return $this->create_error_response($response, 'Could not run qdrant similarity query.');
-            }
-            if (empty($response['data']['result'])) {
-                return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
-            }
-            $matches = [];
-            foreach ($response['data']['result'] as $hit) {
-                $matches[] = $this->payload_to_enriched_vector(json_encode(array_values($hit['vector'])), $hit['payload']);
-            }
-            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($matches));
-        });
+        $response = $this->request('POST', '/collections/' . rawurlencode($collection) . '/points/search', $body);
+        // A missing collection contains no vectors.
+        if ($response['status'] === 404 || ($response['status'] === 200 && empty($response['data']['result']))) {
+            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
+        }
+        if ($response['status'] !== 200) {
+            return $this->create_error_response($response, 'Could not run qdrant similarity query.');
+        }
+        $matches = [];
+        foreach ($response['data']['result'] as $hit) {
+            $matches[] = $this->payload_to_enriched_vector(json_encode(array_values($hit['vector'])), $hit['payload']);
+        }
+        return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($matches));
     }
 
     #[\Override]
-    public function get_all(): vecstore_response {
+    public function get_all(string $collection): vecstore_response {
         $vectors = [];
         $offset = null;
         do {
@@ -153,7 +147,7 @@ class vecstore extends base_vecstore {
             if (!is_null($offset)) {
                 $body['offset'] = $offset;
             }
-            $response = $this->request('POST', '/collections/' . rawurlencode($this->get_collection()) . '/points/scroll', $body);
+            $response = $this->request('POST', '/collections/' . rawurlencode($collection) . '/points/scroll', $body);
             if ($response['status'] !== 200) {
                 return $this->create_error_response($response, 'Could not fetch vectors from qdrant collection.');
             }
@@ -169,11 +163,11 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
-    public function delete_embeddings(int ...$sourceids): vecstore_response {
+    protected function delete_from_collection(string $collection, int ...$sourceids): vecstore_response {
         if (empty($sourceids)) {
             return vecstore_response::create_from_result();
         }
-        $path = '/collections/' . rawurlencode($this->get_collection()) . '/points/delete?wait=true';
+        $path = '/collections/' . rawurlencode($collection) . '/points/delete?wait=true';
         $body = [
             'filter' => [
                 'must' => [

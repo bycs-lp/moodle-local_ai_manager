@@ -48,6 +48,17 @@ class purpose extends base_purpose {
     public function format_output(string $output): string {
         return $output;
     }
+
+    /**
+     * Sources are indexed with the embedding model of the user who starts the indexing, and they can only be searched with
+     * the same embedding model. So all users of a tenant have to use the same embedding model.
+     *
+     * @return bool always true
+     */
+    #[\Override]
+    public function requires_same_model_for_all_roles(): bool {
+        return true;
+    }
 }
 
 
