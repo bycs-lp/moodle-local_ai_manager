@@ -22,6 +22,7 @@ use core\clock;
 use core_plugin_manager;
 use local_ai_manager\event\get_ai_response_failed;
 use local_ai_manager\event\get_ai_response_succeeded;
+use local_ai_manager\hook\additional_prompt_context;
 use local_ai_manager\hook\additional_user_restriction;
 use local_ai_manager\local\config_manager;
 use local_ai_manager\local\connector_factory;
@@ -202,6 +203,17 @@ class manager {
         }
 
         try {
+            // Give other plugins a chance to add context to the request, for example retrieved content (RAG).
+            $contexthook = new additional_prompt_context($prompttext, $requestoptions);
+            \core\di::get(\core\hook\manager::class)->dispatch($contexthook);
+            if (!empty($contexthook->get_result_data())) {
+                $requestoptions->set_options(
+                    ['contextdata' => $contexthook->get_result_data()] + $requestoptions->get_options()
+                );
+            }
+            if (!empty($contexthook->get_contexts())) {
+                $prompttext = $this->purpose->add_prompt_contexts($prompttext, $requestoptions, $contexthook->get_contexts());
+            }
             // Give the purpose a chance to manipulate the prompt text.
             $prompttext = $this->purpose->format_prompt_text($prompttext, $requestoptions);
             $promptdata = $this->connector->get_prompt_data($prompttext, $requestoptions);

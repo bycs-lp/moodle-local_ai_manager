@@ -20,6 +20,7 @@ use local_ai_manager\base_vecstore;
 use local_ai_manager\collection_not_found_exception;
 use local_ai_manager\local\vecstore_query_response;
 use local_ai_manager\local\vecstore_response;
+use local_ai_manager\local\vector_record;
 
 /**
  * In-memory vector store backend for testing the backend independent logic of {@see base_vecstore}.
@@ -32,7 +33,7 @@ use local_ai_manager\local\vecstore_response;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class testable_vecstore extends base_vecstore {
-    /** @var array[] The backend collections: name => ['dimensions' => int, 'vectors' => enriched_vector[]]. */
+    /** @var array[] The backend collections: name => ['dimensions' => int, 'vectors' => vector_record[]]. */
     public array $collections = [];
 
     /**
@@ -75,8 +76,8 @@ class testable_vecstore extends base_vecstore {
     public function query_collection(string $collection, array $vector, int $topk = 5, array $filters = []): vecstore_response {
         $matches = [];
         foreach ($this->collections[$collection]['vectors'] ?? [] as $embedding) {
-            $sourceids = (array) ($filters['sourceid'] ?? [$embedding->get_sourceid()]);
-            if (in_array($embedding->get_sourceid(), $sourceids)) {
+            $documentids = (array) ($filters['documentid'] ?? [$embedding->get_documentid()]);
+            if (in_array($embedding->get_documentid(), $documentids)) {
                 $matches[] = $embedding;
             }
         }
@@ -91,11 +92,11 @@ class testable_vecstore extends base_vecstore {
     }
 
     #[\Override]
-    protected function delete_from_collection(string $collection, int ...$sourceids): vecstore_response {
+    protected function delete_from_collection(string $collection, int ...$documentids): vecstore_response {
         if (isset($this->collections[$collection])) {
             $this->collections[$collection]['vectors'] = array_values(array_filter(
                 $this->collections[$collection]['vectors'],
-                static fn($embedding): bool => !in_array($embedding->get_sourceid(), $sourceids)
+                static fn($embedding): bool => !in_array($embedding->get_documentid(), $documentids)
             ));
         }
         return vecstore_response::create_from_result();

@@ -18,7 +18,7 @@ namespace aivecstore_qdrant;
 
 use local_ai_manager\base_vecstore;
 use local_ai_manager\base_vecstore_instance;
-use local_ai_content\local\enriched_vector;
+use local_ai_manager\local\vector_record;
 
 /**
  * Integration tests for the Qdrant vector store driver.
@@ -81,9 +81,9 @@ final class vecstore_test extends \advanced_testcase {
      */
     public function test_full_lifecycle(): void {
         $this->assertSame(200, $this->driver->insert_embeddings(self::MODEL, [
-            enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'x', 101, 0, 1),
-            enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'y', 102, 0, 1),
-            enriched_vector::create(json_encode([0.0, 0.0, 1.0, 0.0]), 'z', 103, 0, 1),
+            new vector_record(json_encode([1.0, 0.0, 0.0, 0.0]), 'x', 101),
+            new vector_record(json_encode([0.0, 1.0, 0.0, 0.0]), 'y', 102, ['chunk' => 2, 'locator' => 'p. 3']),
+            new vector_record(json_encode([0.0, 0.0, 1.0, 0.0]), 'z', 103),
         ])->get_code());
         $collection = $this->driver->get_collections()[self::MODEL];
         $this->assertSame($this->collection . '_test_model', $collection);
@@ -93,9 +93,10 @@ final class vecstore_test extends \advanced_testcase {
         $this->assertSame(200, $queryresponse->get_code());
         $matches = $queryresponse->get_queryresponse()->get_matches();
         $this->assertNotEmpty($matches);
-        $this->assertInstanceOf(enriched_vector::class, $matches[0]);
+        $this->assertInstanceOf(vector_record::class, $matches[0]);
         $this->assertSame('y', $matches[0]->get_content());
-        $this->assertSame(102, $matches[0]->get_sourceid());
+        $this->assertSame(102, $matches[0]->get_documentid());
+        $this->assertEquals(['chunk' => 2, 'locator' => 'p. 3'], $matches[0]->get_metadata());
         $this->assertNotSame('', $matches[0]->get_vector());
 
         // The get_all() call returns all stored vectors.
@@ -112,11 +113,11 @@ final class vecstore_test extends \advanced_testcase {
      */
     public function test_query_with_filter(): void {
         $this->driver->insert_embeddings(self::MODEL, [
-            enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'seven', 7, 0, 1),
-            enriched_vector::create(json_encode([0.9, 0.1, 0.0, 0.0]), 'nine', 9, 0, 1),
+            new vector_record(json_encode([1.0, 0.0, 0.0, 0.0]), 'seven', 7),
+            new vector_record(json_encode([0.9, 0.1, 0.0, 0.0]), 'nine', 9),
         ]);
 
-        $matches = $this->driver->query(self::MODEL, [1.0, 0.0, 0.0, 0.0], 5, ['sourceid' => 9])
+        $matches = $this->driver->query(self::MODEL, [1.0, 0.0, 0.0, 0.0], 5, ['documentid' => 9])
             ->get_queryresponse()->get_matches();
         $contents = array_map(static fn($match) => $match->get_content(), $matches);
         $this->assertContains('nine', $contents);
@@ -128,47 +129,47 @@ final class vecstore_test extends \advanced_testcase {
      */
     public function test_query_with_multivalue_filter(): void {
         $this->driver->insert_embeddings(self::MODEL, [
-            enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'seven', 7, 0, 1),
-            enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'eight', 8, 0, 1),
-            enriched_vector::create(json_encode([0.0, 0.0, 1.0, 0.0]), 'nine', 9, 0, 1),
+            new vector_record(json_encode([1.0, 0.0, 0.0, 0.0]), 'seven', 7),
+            new vector_record(json_encode([0.0, 1.0, 0.0, 0.0]), 'eight', 8),
+            new vector_record(json_encode([0.0, 0.0, 1.0, 0.0]), 'nine', 9),
         ]);
 
-        // Restrict to source ids 7 and 9 (excluding 8) via an array value = IN semantics.
-        $matches = $this->driver->query(self::MODEL, [1.0, 1.0, 1.0, 1.0], 10, ['sourceid' => [7, 9]])
+        // Restrict to document ids 7 and 9 (excluding 8) via an array value = IN semantics.
+        $matches = $this->driver->query(self::MODEL, [1.0, 1.0, 1.0, 1.0], 10, ['documentid' => [7, 9]])
             ->get_queryresponse()->get_matches();
-        $sourceids = array_map(static fn($match) => $match->get_sourceid(), $matches);
-        sort($sourceids);
-        $this->assertSame([7, 9], $sourceids);
+        $documentids = array_map(static fn($match) => $match->get_documentid(), $matches);
+        sort($documentids);
+        $this->assertSame([7, 9], $documentids);
     }
 
     /**
-     * Deleting by source id must remove all vectors carrying that source id and keep the rest.
+     * Deleting by document id must remove all vectors carrying that document id and keep the rest.
      */
-    public function test_delete_embeddings_by_sourceid(): void {
+    public function test_delete_embeddings_by_documentid(): void {
         $this->driver->insert_embeddings(self::MODEL, [
-            enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'keep', 101, 0, 2),
-            enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'gone-a', 102, 0, 2),
-            enriched_vector::create(json_encode([0.0, 0.0, 1.0, 0.0]), 'gone-b', 102, 1, 2),
+            new vector_record(json_encode([1.0, 0.0, 0.0, 0.0]), 'keep', 101),
+            new vector_record(json_encode([0.0, 1.0, 0.0, 0.0]), 'gone-a', 102),
+            new vector_record(json_encode([0.0, 0.0, 1.0, 0.0]), 'gone-b', 102),
         ]);
 
         $this->assertSame(200, $this->driver->delete_embeddings(null, 102)->get_code());
 
         $matches = $this->driver->query(self::MODEL, [1.0, 1.0, 1.0, 1.0], 10)->get_queryresponse()->get_matches();
-        $sourceids = array_map(static fn($match) => $match->get_sourceid(), $matches);
-        $this->assertContains(101, $sourceids);
-        $this->assertNotContains(102, $sourceids);
+        $documentids = array_map(static fn($match) => $match->get_documentid(), $matches);
+        $this->assertContains(101, $documentids);
+        $this->assertNotContains(102, $documentids);
     }
 
     /**
-     * Inserting for a source id must first remove the existing vectors of that source (replace semantics).
+     * Inserting for a document id must first remove the existing vectors of that document (replace semantics).
      */
     public function test_insert_replaces_existing_context(): void {
         $this->driver->insert_embeddings(self::MODEL, [
-            enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'old', 200, 0, 1),
+            new vector_record(json_encode([1.0, 0.0, 0.0, 0.0]), 'old', 200),
         ]);
-        // Re-inserting for the same source id must replace the previous vectors.
+        // Re-inserting for the same document id must replace the previous vectors.
         $this->driver->insert_embeddings(self::MODEL, [
-            enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'new', 200, 0, 1),
+            new vector_record(json_encode([0.0, 1.0, 0.0, 0.0]), 'new', 200),
         ]);
 
         $contents = array_map(
@@ -189,7 +190,7 @@ final class vecstore_test extends \advanced_testcase {
         $this->assertSame([], $queryresponse->get_queryresponse()->get_matches());
 
         $this->assertSame(200, $this->driver->insert_embeddings(self::MODEL, [
-            enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'hello', 55, 0, 1),
+            new vector_record(json_encode([1.0, 0.0, 0.0, 0.0]), 'hello', 55),
         ])->get_code());
         $matches = $this->driver->query(self::MODEL, [1.0, 0.0, 0.0, 0.0], 5)->get_queryresponse()->get_matches();
         $this->assertNotEmpty($matches);

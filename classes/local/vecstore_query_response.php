@@ -16,8 +16,6 @@
 
 namespace local_ai_manager\local;
 
-use local_ai_content\local\enriched_vector;
-
 /**
  * Data object class for storing vecstore query result information in a defined way.
  *
@@ -27,7 +25,7 @@ use local_ai_content\local\enriched_vector;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class vecstore_query_response {
-    /** @var enriched_vector[] The query matches returned by the vecstore backend. */
+    /** @var vector_record[] The query matches returned by the vecstore backend. */
     private array $matches;
 
     /**
@@ -39,7 +37,7 @@ class vecstore_query_response {
     /**
      * Standard setter.
      *
-     * @param enriched_vector[] $matches the query matches
+     * @param vector_record[] $matches the query matches
      */
     public function set_matches(array $matches): void {
         $this->matches = $matches;
@@ -48,7 +46,7 @@ class vecstore_query_response {
     /**
      * Standard getter.
      *
-     * @return enriched_vector[] the query matches
+     * @return vector_record[] the query matches
      */
     public function get_matches(): array {
         return $this->matches;
@@ -57,7 +55,7 @@ class vecstore_query_response {
     /**
      * Static create function for a vecstore_query_response object in case of a successful query response.
      *
-     * @param enriched_vector[] $matches the query matches
+     * @param vector_record[] $matches the query matches
      * @return vecstore_query_response the vecstore_query_response object containing the query matches
      */
     public static function create_from_result(array $matches): vecstore_query_response {

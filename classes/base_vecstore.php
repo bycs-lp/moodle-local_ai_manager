@@ -17,8 +17,8 @@
 namespace local_ai_manager;
 
 use core_plugin_manager;
-use local_ai_content\local\enriched_vector;
 use local_ai_manager\local\vecstore_query_response;
+use local_ai_manager\local\vector_record;
 use local_ai_manager\local\vecstore_response;
 
 /**
@@ -149,16 +149,15 @@ abstract class base_vecstore {
      * Stores a set of embeddings created by the given embedding model.
      *
      * The embeddings are stored in the collection of the embedding model, which is created if it does not exist yet. Before
-     * inserting, all existing vectors of this collection carrying one of the source ids of the given embeddings are deleted,
-     * so that re-indexing a source replaces its previous vectors instead of accumulating duplicates.
+     * inserting, all existing vectors of this collection carrying one of the document ids of the given embeddings are deleted,
+     * so that re-indexing a document replaces its previous vectors instead of accumulating duplicates.
      *
-     * The embeddings are passed as {@see enriched_vector} objects. Each vecstore subplugin is responsible for
-     * extracting the required information via the getters and building the actual store call for its backend (see
-     * {@see self::store_embeddings()}). The backend record identifier is generated internally by the subplugin, so
-     * callers neither provide nor need to know about it.
+     * The embeddings are passed as {@see vector_record} objects. Each vecstore subplugin is responsible for building the
+     * actual store call for its backend from the vector and the payload (see {@see self::store_embeddings()}). The backend
+     * record identifier is generated internally by the subplugin, so callers neither provide nor need to know about it.
      *
      * @param string $model the name of the embedding model which created the embeddings
-     * @param enriched_vector[] $embeddings array of enriched vector objects to store
+     * @param vector_record[] $embeddings array of vector records to store
      * @return vecstore_response structured response containing operation status and potential error details
      */
     public function insert_embeddings(string $model, array $embeddings): vecstore_response {
@@ -178,12 +177,12 @@ abstract class base_vecstore {
         }
         $this->require_matching_dimensions($collectionrecord, $dimensions);
 
-        // Replace semantics: first remove any existing vectors for the affected source ids.
-        $sourceids = [];
+        // Replace semantics: first remove any existing vectors for the affected document ids.
+        $documentids = [];
         foreach ($embeddings as $embedding) {
-            $sourceids[$embedding->get_sourceid()] = $embedding->get_sourceid();
+            $documentids[$embedding->get_documentid()] = $embedding->get_documentid();
         }
-        $response = $this->delete_from_collection($collectionrecord->collection, ...array_values($sourceids));
+        $response = $this->delete_from_collection($collectionrecord->collection, ...array_values($documentids));
         if ($response->get_code() !== 200) {
             return $response;
         }
@@ -197,10 +196,10 @@ abstract class base_vecstore {
     /**
      * Performs the actual backend insert of the given embeddings into a collection.
      *
-     * Called by {@see self::insert_embeddings()} after existing vectors of the affected sources have been removed.
+     * Called by {@see self::insert_embeddings()} after existing vectors of the affected documents have been removed.
      *
      * @param string $collection the backend name of the collection
-     * @param enriched_vector[] $embeddings array of enriched vector objects to store
+     * @param vector_record[] $embeddings array of vector records to store
      * @return vecstore_response structured response containing operation status and potential error details
      * @throws collection_not_found_exception if the collection does not exist in the backend
      */
@@ -217,7 +216,7 @@ abstract class base_vecstore {
      * @param int $topk the maximum number of nearest neighbours to return
      * @param array $filters optional payload filters keyed by payload field. A scalar value matches that field
      *  exactly; an array value matches any of the given values (IN semantics), e.g.
-     *  ['sourceid' => [12, 34]] restricts the search to those source ids
+     *  ['documentid' => [12, 34]] restricts the search to those document ids
      * @return vecstore_response structured response containing operation status and a query payload
      */
     public function query(string $model, array $vector, int $topk = 5, array $filters = []): vecstore_response {
@@ -254,22 +253,22 @@ abstract class base_vecstore {
     abstract public function get_all(string $collection): vecstore_response;
 
     /**
-     * Deletes all embeddings carrying one of the given source ids as metadata.
+     * Deletes all embeddings carrying one of the given document ids.
      *
      * Deleting is idempotent: if there is nothing to delete (no matching embeddings or no collection), the operation
      * succeeds.
      *
      * @param ?string $model the name of the embedding model whose collection is affected, null for all collections
-     * @param int ...$sourceids the local_ai_content_sources record IDs whose embeddings should be deleted
+     * @param int ...$documentids the document ids whose embeddings should be deleted
      * @return vecstore_response structured response containing operation status and potential error details
      */
-    public function delete_embeddings(?string $model, int ...$sourceids): vecstore_response {
+    public function delete_embeddings(?string $model, int ...$documentids): vecstore_response {
         $collections = $this->get_collections();
         if ($model !== null) {
             $collections = array_intersect_key($collections, [$model => true]);
         }
         foreach ($collections as $collection) {
-            $response = $this->delete_from_collection($collection, ...$sourceids);
+            $response = $this->delete_from_collection($collection, ...$documentids);
             if ($response->get_code() !== 200) {
                 return $response;
             }
@@ -297,15 +296,15 @@ abstract class base_vecstore {
     }
 
     /**
-     * Deletes all embeddings in a collection that carry one of the given source ids as metadata.
+     * Deletes all embeddings in a collection that carry one of the given document ids.
      *
      * Has to succeed if there is nothing to delete (no matching embeddings or no collection).
      *
      * @param string $collection the backend name of the collection
-     * @param int ...$sourceids the local_ai_content_sources record IDs whose embeddings should be deleted
+     * @param int ...$documentids the document ids whose embeddings should be deleted
      * @return vecstore_response structured response containing operation status and potential error details
      */
-    abstract protected function delete_from_collection(string $collection, int ...$sourceids): vecstore_response;
+    abstract protected function delete_from_collection(string $collection, int ...$documentids): vecstore_response;
 
     /**
      * Builds the backend name of the collection of an embedding model.
