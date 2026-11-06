@@ -79,7 +79,6 @@ class vecstoretable implements renderable, templatable {
                 'backendname' => get_string('pluginname', 'aivecstore_' . $instance->get_vecstore()),
                 'endpoint' => $canmanage ? $instance->get_endpoint() : null,
                 'collection' => $canmanage ? $instance->get_collection() : null,
-                'dimensions' => $instance->get_dimensions(),
                 'distance' => get_string('distance_' . $instance->get_distancemetric(), 'local_ai_manager'),
                 'enabled' => $instance->is_enabled(),
                 'isprimary' => $isprimary,

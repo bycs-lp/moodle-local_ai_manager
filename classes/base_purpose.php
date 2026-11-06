@@ -193,6 +193,17 @@ class base_purpose {
     }
 
     /**
+     * Whether all user roles of a tenant have to use AI tools with the same model for this purpose.
+     *
+     * Should be overwritten by purposes whose results of different models must not be mixed.
+     *
+     * @return bool true if the AI tools assigned to the user roles have to use the same model
+     */
+    public function requires_same_model_for_all_roles(): bool {
+        return false;
+    }
+
+    /**
      * Most AI tools will return Markdown code, so we use this as default.
      *
      * Can be overwritten by purposes which return special content, for example single strings which should not be wrapped

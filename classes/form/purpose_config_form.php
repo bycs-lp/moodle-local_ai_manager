@@ -84,4 +84,34 @@ class purpose_config_form extends \moodleform {
         }
         $this->add_action_buttons();
     }
+
+    /**
+     * Ensures that purposes requiring the same model for all user roles get AI tools with the same model.
+     *
+     * @param array $data the submitted form data
+     * @param array $files the uploaded files
+     * @return array errors keyed by form element name
+     */
+    #[\Override]
+    public function validation($data, $files): array {
+        $errors = parent::validation($data, $files);
+        $factory = \core\di::get(connector_factory::class);
+        foreach (base_purpose::get_all_purposes() as $purpose) {
+            if (!$factory->get_purpose_by_purpose_string($purpose)->requires_same_model_for_all_roles()) {
+                continue;
+            }
+            $models = [];
+            foreach ([userinfo::ROLE_BASIC, userinfo::ROLE_EXTENDED] as $role) {
+                $instanceid = (int) ($data[base_purpose::get_purpose_tool_config_key($purpose, $role)] ?? 0);
+                if ($instanceid > 0) {
+                    $models[] = $factory->get_connector_instance_by_id($instanceid)->get_model_name();
+                }
+            }
+            if (count(array_unique($models)) > 1) {
+                $errors[base_purpose::get_purpose_tool_config_key($purpose, userinfo::ROLE_EXTENDED)] =
+                    get_string('formvalidation_purpose_samemodel', 'local_ai_manager');
+            }
+        }
+        return $errors;
+    }
 }

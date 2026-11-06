@@ -118,6 +118,11 @@ class purpose extends base_purpose {
         );
         $ragcontent = $ragresult->get_retrieved_text();
         if ($ragcontent === '') {
+            // The request goes on without RAG, but the user is told which selected sources could not be used.
+            if (!empty($ragresult->get_unavailable_sources())) {
+                $options['ragresult'] = $ragresult->to_array();
+                $requestoptions->set_options($options);
+            }
             return $prompttext;
         }
 

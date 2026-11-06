@@ -47,7 +47,6 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $instance->set_endpoint('https://qdrant.example.com');
         $instance->set_apikey('secret');
         $instance->set_collection('moodle_rag');
-        $instance->set_dimensions(1536);
         $instance->set_distancemetric(base_vecstore::DISTANCE_COSINE);
         $instance->store();
 
@@ -61,7 +60,6 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $this->assertSame('https://qdrant.example.com', $loaded->get_endpoint());
         $this->assertSame('secret', $loaded->get_apikey());
         $this->assertSame('moodle_rag', $loaded->get_collection());
-        $this->assertSame(1536, $loaded->get_dimensions());
         $this->assertSame(base_vecstore::DISTANCE_COSINE, $loaded->get_distancemetric());
     }
 
@@ -105,7 +103,6 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $data->apikey = 'abc';
         $data->useglobalapikey = 0;
         $data->collection = 'col';
-        $data->dimensions = '768';
         $data->distancemetric = base_vecstore::DISTANCE_DOT;
         $instance->store_formdata($data);
 
@@ -113,12 +110,11 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $this->assertSame('Trimmed Name', $formdata->name);
         $this->assertSame('qdrant', $formdata->vecstore);
         $this->assertSame('col', $formdata->collection);
-        $this->assertSame(768, $formdata->dimensions);
         $this->assertSame(base_vecstore::DISTANCE_DOT, $formdata->distancemetric);
     }
 
     /**
-     * Tests that validation rejects an empty name, a non-SSL endpoint and non-positive dimensions.
+     * Tests that validation rejects an empty name and a non-SSL endpoint.
      *
      * @covers \local_ai_manager\base_vecstore_instance::validation
      */
@@ -127,16 +123,15 @@ final class base_vecstore_instance_test extends \advanced_testcase {
 
         $instance = new base_vecstore_instance();
         $errors = $instance->validation(
-            ['name' => '', 'endpoint' => 'http://insecure.example.com', 'dimensions' => '-5'],
+            ['name' => '', 'endpoint' => 'http://insecure.example.com'],
             []
         );
         $this->assertArrayHasKey('name', $errors);
         $this->assertArrayHasKey('endpoint', $errors);
-        $this->assertArrayHasKey('dimensions', $errors);
 
         $instance = new base_vecstore_instance();
         $errors = $instance->validation(
-            ['name' => 'Valid', 'endpoint' => 'https://secure.example.com', 'dimensions' => '1536'],
+            ['name' => 'Valid', 'endpoint' => 'https://secure.example.com'],
             []
         );
         $this->assertEmpty($errors);
@@ -166,7 +161,7 @@ final class base_vecstore_instance_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that deleting an instance removes its database record.
+     * Tests that deleting an instance removes its database record and the bookkeeping of its collections.
      *
      * @covers \local_ai_manager\base_vecstore_instance::delete
      */
@@ -179,10 +174,13 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $instance->set_vecstore('qdrant');
         $instance->store();
         $id = $instance->get_id();
+        $DB->insert_record('local_ai_manager_collection', ['vecstoreid' => $id, 'embeddingmodel' => 'model',
+            'collection' => 'prefix_model', 'dimensions' => 3, 'timecreated' => 0, 'timemodified' => 0]);
 
         $this->assertTrue($DB->record_exists('local_ai_manager_vecstore', ['id' => $id]));
         $instance->delete();
         $this->assertFalse($DB->record_exists('local_ai_manager_vecstore', ['id' => $id]));
+        $this->assertFalse($DB->record_exists('local_ai_manager_collection', ['vecstoreid' => $id]));
     }
 
     /**
@@ -222,7 +220,6 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $data->vecstore = 'postgres';
         $data->connectionstring = $dsn;
         $data->collection = 'embeddings';
-        $data->dimensions = '1536';
         $data->distancemetric = base_vecstore::DISTANCE_COSINE;
         $instance->store_formdata($data);
 
@@ -340,30 +337,5 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $global->delete();
         $tenantfactory->set(new tenant('tenanta'));
         $this->assertSame($local->get_id(), $factory->find_primary_instance()->get_id());
-    }
-
-    /**
-     * Tests that vectors not fitting the configured dimensionality of a vector store are rejected.
-     *
-     * @covers \local_ai_manager\base_vecstore::require_matching_dimensions
-     */
-    public function test_require_matching_dimensions(): void {
-        $this->resetAfterTest();
-
-        $instance = $this->create_instance('Dimensions', 'tn');
-        $instance->set_dimensions(3);
-        $instance->store();
-        $vecstore = (new vecstore_factory())->get_vecstore_by_instance($instance);
-
-        // A vector with the configured dimensionality is accepted.
-        $vecstore->require_matching_dimensions([0.1, 0.2, 0.3]);
-
-        $this->expectException(\moodle_exception::class);
-        $this->expectExceptionMessage(get_string(
-            'exception_vecstoredimensionmismatch',
-            'local_ai_manager',
-            ['modeldimensions' => 2, 'vecstoredimensions' => 3]
-        ));
-        $vecstore->require_matching_dimensions([0.1, 0.2]);
     }
 }

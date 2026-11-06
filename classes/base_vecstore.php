@@ -18,6 +18,7 @@ namespace local_ai_manager;
 
 use core_plugin_manager;
 use local_ai_content\local\enriched_vector;
+use local_ai_manager\local\vecstore_query_response;
 use local_ai_manager\local\vecstore_response;
 
 /**
@@ -41,6 +42,9 @@ abstract class base_vecstore {
 
     /** @var string Distance metric: euclidean distance. */
     const DISTANCE_EUCLIDEAN = 'euclidean';
+
+    /** @var int Maximum length of a collection name, PostgreSQL limits identifiers to 63 bytes. */
+    const MAX_COLLECTION_NAME_LENGTH = 63;
 
     /** @var base_vecstore_instance the vector store instance providing the connection configuration */
     protected base_vecstore_instance $instance;
@@ -104,43 +108,17 @@ abstract class base_vecstore {
     }
 
     /**
-     * Returns the name of the collection configured for this vector store instance.
+     * Returns the collections of this vector store instance.
      *
-     * The collection is an internal detail of the vector store instance: it is created once (with the configured
-     * name and dimensionality) and used for all subsequent operations. Callers therefore neither pass nor need to
-     * know the collection name.
+     * Every embedding model gets its own collection, because vectors of different embedding models must never be
+     * compared with each other. A collection is registered when the first vectors of its embedding model are stored.
      *
-     * @return string the configured collection name
-     * @throws \moodle_exception if no collection is configured, because a vector store cannot be used without one
+     * @return string[] the backend collection names, indexed by the name of the embedding model
      */
-    public function get_collection(): string {
-        $collection = $this->instance->get_collection();
-        if (empty($collection)) {
-            throw new \moodle_exception('exception_vecstorenocollection', 'local_ai_manager', '', $this->get_name());
-        }
-        return $collection;
-    }
-
-    /**
-     * Ensures that a vector fits the dimensionality configured for this vector store instance.
-     *
-     * The dimensionality of a vector is determined by the embedding model which created it, so a mismatch means that the
-     * embedding model used by the tenant does not fit this vector store.
-     *
-     * @param array $vector the embedding vector as array of floats
-     * @throws \moodle_exception if the vector does not have the dimensionality configured for this vector store instance
-     */
-    public function require_matching_dimensions(array $vector): void {
-        $dimensions = $this->instance->get_dimensions();
-        if (empty($dimensions) || count($vector) === $dimensions) {
-            return;
-        }
-        throw new \moodle_exception(
-            'exception_vecstoredimensionmismatch',
-            'local_ai_manager',
-            '',
-            ['modeldimensions' => count($vector), 'vecstoredimensions' => $dimensions]
-        );
+    public function get_collections(): array {
+        global $DB;
+        return $DB->get_records_menu('local_ai_manager_collection', ['vecstoreid' => $this->instance->get_id()],
+            'embeddingmodel', 'embeddingmodel, collection');
     }
 
     /**
@@ -151,59 +129,90 @@ abstract class base_vecstore {
     abstract public function is_available(): vecstore_response;
 
     /**
-     * Creates the configured collection (index) for this instance using its configured dimensionality.
+     * Creates a collection (index) in the backend.
      *
+     * @param string $collection the backend name of the collection
+     * @param int $dimensions the dimensionality of the vectors the collection will hold
      * @return vecstore_response structured response containing operation status and potential error details
      */
-    abstract public function create_collection(): vecstore_response;
+    abstract public function create_collection(string $collection, int $dimensions): vecstore_response;
 
     /**
-     * Deletes the configured collection (index) including all stored vectors.
+     * Deletes a collection (index) including all stored vectors from the backend.
      *
+     * @param string $collection the backend name of the collection
      * @return vecstore_response structured response containing operation status and potential error details
      */
-    abstract public function delete_collection(): vecstore_response;
+    abstract public function delete_collection(string $collection): vecstore_response;
 
     /**
-     * Stores a set of embeddings in the configured collection.
+     * Stores a set of embeddings created by the given embedding model.
      *
-     * Before inserting, all existing vectors carrying one of the source ids of the given embeddings are deleted, so
-     * that re-indexing a source replaces its previous vectors instead of accumulating duplicates.
+     * The embeddings are stored in the collection of the embedding model, which is created if it does not exist yet. Before
+     * inserting, all existing vectors of this collection carrying one of the source ids of the given embeddings are deleted,
+     * so that re-indexing a source replaces its previous vectors instead of accumulating duplicates.
      *
      * The embeddings are passed as {@see enriched_vector} objects. Each vecstore subplugin is responsible for
      * extracting the required information via the getters and building the actual store call for its backend (see
      * {@see self::store_embeddings()}). The backend record identifier is generated internally by the subplugin, so
      * callers neither provide nor need to know about it.
      *
+     * @param string $model the name of the embedding model which created the embeddings
      * @param enriched_vector[] $embeddings array of enriched vector objects to store
      * @return vecstore_response structured response containing operation status and potential error details
      */
-    public function insert_embeddings(array $embeddings): vecstore_response {
+    public function insert_embeddings(string $model, array $embeddings): vecstore_response {
+        if (empty($embeddings)) {
+            return vecstore_response::create_from_result();
+        }
+        $dimensions = count(json_decode(reset($embeddings)->get_vector(), true, flags: JSON_THROW_ON_ERROR));
+
+        $collectionrecord = $this->get_collection_record($model);
+        if ($collectionrecord === null) {
+            $collection = $this->build_collection_name($model);
+            $response = $this->create_collection($collection, $dimensions);
+            if ($response->get_code() !== 200) {
+                return $response;
+            }
+            $collectionrecord = $this->register_collection($model, $collection, $dimensions);
+        }
+        $this->require_matching_dimensions($collectionrecord, $dimensions);
+
         // Replace semantics: first remove any existing vectors for the affected source ids.
         $sourceids = [];
         foreach ($embeddings as $embedding) {
             $sourceids[$embedding->get_sourceid()] = $embedding->get_sourceid();
         }
-        $response = $this->delete_embeddings(...array_values($sourceids));
+        $response = $this->delete_from_collection($collectionrecord->collection, ...array_values($sourceids));
         if ($response->get_code() !== 200) {
             return $response;
         }
-        return $this->store_embeddings($embeddings);
+        return $this->with_existing_collection(
+            $collectionrecord->collection,
+            $dimensions,
+            fn(): vecstore_response => $this->store_embeddings($collectionrecord->collection, $embeddings)
+        );
     }
 
     /**
-     * Performs the actual backend insert of the given embeddings into the configured collection.
+     * Performs the actual backend insert of the given embeddings into a collection.
      *
-     * Called by {@see self::insert_embeddings()} after existing vectors of the affected contexts have been removed.
+     * Called by {@see self::insert_embeddings()} after existing vectors of the affected sources have been removed.
      *
+     * @param string $collection the backend name of the collection
      * @param enriched_vector[] $embeddings array of enriched vector objects to store
      * @return vecstore_response structured response containing operation status and potential error details
+     * @throws collection_not_found_exception if the collection does not exist in the backend
      */
-    abstract protected function store_embeddings(array $embeddings): vecstore_response;
+    abstract protected function store_embeddings(string $collection, array $embeddings): vecstore_response;
 
     /**
-     * Performs a similarity search in the configured collection.
+     * Performs a similarity search among the vectors created by the given embedding model.
      *
+     * The query vector has to be created by the same embedding model. If no vectors of this embedding model have been
+     * stored yet, the result is empty.
+     *
+     * @param string $model the name of the embedding model which created the query vector
      * @param array $vector the query embedding vector as array of floats
      * @param int $topk the maximum number of nearest neighbours to return
      * @param array $filters optional payload filters keyed by payload field. A scalar value matches that field
@@ -211,40 +220,195 @@ abstract class base_vecstore {
      *  ['sourceid' => [12, 34]] restricts the search to those source ids
      * @return vecstore_response structured response containing operation status and a query payload
      */
-    abstract public function query(array $vector, int $topk = 5, array $filters = []): vecstore_response;
+    public function query(string $model, array $vector, int $topk = 5, array $filters = []): vecstore_response {
+        $collectionrecord = $this->get_collection_record($model);
+        if ($collectionrecord === null) {
+            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
+        }
+        $this->require_matching_dimensions($collectionrecord, count($vector));
+        return $this->query_collection($collectionrecord->collection, $vector, $topk, $filters);
+    }
 
     /**
-     * Retrieves all embeddings currently stored in the configured collection.
+     * Performs a similarity search in a collection given by its backend name.
      *
+     * Use {@see self::query()} for vectors stored by Moodle. This method is meant for collections managed outside of
+     * Moodle, the caller is responsible for the query vector fitting the vectors of the collection. A missing collection
+     * leads to an empty result.
+     *
+     * @param string $collection the backend name of the collection
+     * @param array $vector the query embedding vector as array of floats
+     * @param int $topk the maximum number of nearest neighbours to return
+     * @param array $filters optional payload filters, see {@see self::query()}
      * @return vecstore_response structured response containing operation status and a query payload
      */
-    abstract public function get_all(): vecstore_response;
+    abstract public function query_collection(string $collection, array $vector, int $topk = 5,
+            array $filters = []): vecstore_response;
 
     /**
-     * Deletes all embeddings in the configured collection that carry one of the given source ids as metadata.
+     * Retrieves all embeddings currently stored in a collection.
+     *
+     * @param string $collection the backend name of the collection
+     * @return vecstore_response structured response containing operation status and a query payload
+     */
+    abstract public function get_all(string $collection): vecstore_response;
+
+    /**
+     * Deletes all embeddings carrying one of the given source ids as metadata.
      *
      * Deleting is idempotent: if there is nothing to delete (no matching embeddings or no collection), the operation
      * succeeds.
      *
+     * @param ?string $model the name of the embedding model whose collection is affected, null for all collections
      * @param int ...$sourceids the local_ai_content_sources record IDs whose embeddings should be deleted
      * @return vecstore_response structured response containing operation status and potential error details
      */
-    abstract public function delete_embeddings(int ...$sourceids): vecstore_response;
+    public function delete_embeddings(?string $model, int ...$sourceids): vecstore_response {
+        $collections = $this->get_collections();
+        if ($model !== null) {
+            $collections = array_intersect_key($collections, [$model => true]);
+        }
+        foreach ($collections as $collection) {
+            $response = $this->delete_from_collection($collection, ...$sourceids);
+            if ($response->get_code() !== 200) {
+                return $response;
+            }
+        }
+        return vecstore_response::create_from_result();
+    }
 
     /**
-     * Runs a store or retrieve operation, transparently creating the configured collection if it does not exist yet.
+     * Deletes the collection of an embedding model including all its vectors.
+     *
+     * @param string $model the name of the embedding model
+     * @return vecstore_response structured response containing operation status and potential error details
+     */
+    public function drop_collection(string $model): vecstore_response {
+        global $DB;
+        $collectionrecord = $this->get_collection_record($model);
+        if ($collectionrecord === null) {
+            return vecstore_response::create_from_result();
+        }
+        $response = $this->delete_collection($collectionrecord->collection);
+        if ($response->get_code() === 200) {
+            $DB->delete_records('local_ai_manager_collection', ['id' => $collectionrecord->id]);
+        }
+        return $response;
+    }
+
+    /**
+     * Deletes all embeddings in a collection that carry one of the given source ids as metadata.
+     *
+     * Has to succeed if there is nothing to delete (no matching embeddings or no collection).
+     *
+     * @param string $collection the backend name of the collection
+     * @param int ...$sourceids the local_ai_content_sources record IDs whose embeddings should be deleted
+     * @return vecstore_response structured response containing operation status and potential error details
+     */
+    abstract protected function delete_from_collection(string $collection, int ...$sourceids): vecstore_response;
+
+    /**
+     * Builds the backend name of the collection of an embedding model.
+     *
+     * The name consists of the collection prefix configured for the instance and the sanitized model name. Names exceeding
+     * the length most backends support are shortened and made unique by a hash of the model name.
+     *
+     * @param string $model the name of the embedding model
+     * @return string the backend name of the collection
+     * @throws \moodle_exception if no collection prefix is configured, because a vector store cannot be used without one
+     */
+    protected function build_collection_name(string $model): string {
+        $prefix = $this->instance->get_collection();
+        if (empty($prefix)) {
+            throw new \moodle_exception('exception_vecstorenocollection', 'local_ai_manager', '', $this->get_name());
+        }
+        $slug = trim(preg_replace('/[^a-z0-9]+/', '_', \core_text::strtolower($model)), '_');
+        $name = $prefix . '_' . $slug;
+        if (strlen($name) > self::MAX_COLLECTION_NAME_LENGTH) {
+            $hash = substr(sha1($model), 0, 8);
+            $name = substr($name, 0, self::MAX_COLLECTION_NAME_LENGTH - strlen($hash) - 1) . '_' . $hash;
+        }
+        return $name;
+    }
+
+    /**
+     * Returns the registered collection of an embedding model.
+     *
+     * @param string $model the name of the embedding model
+     * @return ?\stdClass the local_ai_manager_collection record or null if the model has no collection yet
+     */
+    protected function get_collection_record(string $model): ?\stdClass {
+        global $DB;
+        $record = $DB->get_record('local_ai_manager_collection',
+            ['vecstoreid' => $this->instance->get_id(), 'embeddingmodel' => $model]);
+        return $record ?: null;
+    }
+
+    /**
+     * Registers the collection of an embedding model.
+     *
+     * @param string $model the name of the embedding model
+     * @param string $collection the backend name of the collection
+     * @param int $dimensions the dimensionality of the vectors of the embedding model
+     * @return \stdClass the created local_ai_manager_collection record
+     */
+    protected function register_collection(string $model, string $collection, int $dimensions): \stdClass {
+        global $DB;
+        $now = \core\di::get(\core\clock::class)->time();
+        $record = (object) [
+            'vecstoreid' => $this->instance->get_id(),
+            'embeddingmodel' => $model,
+            'collection' => $collection,
+            'dimensions' => $dimensions,
+            'timecreated' => $now,
+            'timemodified' => $now,
+        ];
+        $record->id = $DB->insert_record('local_ai_manager_collection', $record);
+        return $record;
+    }
+
+    /**
+     * Ensures that vectors fit the dimensionality of the collection of their embedding model.
+     *
+     * A mismatch can only happen if the vectors of a model changed their dimensionality, for example because a model name
+     * has been reused for another model.
+     *
+     * @param \stdClass $collectionrecord the local_ai_manager_collection record
+     * @param int $dimensions the dimensionality of the vectors
+     * @throws \moodle_exception if the dimensionalities do not match
+     */
+    protected function require_matching_dimensions(\stdClass $collectionrecord, int $dimensions): void {
+        if ((int) $collectionrecord->dimensions === $dimensions) {
+            return;
+        }
+        throw new \moodle_exception(
+            'exception_vecstoredimensionmismatch',
+            'local_ai_manager',
+            '',
+            [
+                'model' => $collectionrecord->embeddingmodel,
+                'modeldimensions' => $dimensions,
+                'vecstoredimensions' => (int) $collectionrecord->dimensions,
+            ]
+        );
+    }
+
+    /**
+     * Runs a store operation, transparently creating the collection if it does not exist in the backend (anymore).
      *
      * If the operation signals a missing collection by throwing a {@see collection_not_found_exception}, the
-     * collection is created with the configured name and dimensionality and the operation is retried once.
+     * collection is created and the operation is retried once.
      *
-     * @param callable $operation the store or retrieve operation to run
+     * @param string $collection the backend name of the collection
+     * @param int $dimensions the dimensionality of the vectors of the collection
+     * @param callable $operation the store operation to run
      * @return vecstore_response the operation result
      */
-    protected function with_existing_collection(callable $operation): vecstore_response {
+    protected function with_existing_collection(string $collection, int $dimensions, callable $operation): vecstore_response {
         try {
             return $operation();
         } catch (collection_not_found_exception $e) {
-            $createcollectionresponse = $this->create_collection();
+            $createcollectionresponse = $this->create_collection($collection, $dimensions);
             if ($createcollectionresponse->get_code() !== 200) {
                 return $createcollectionresponse;
             }

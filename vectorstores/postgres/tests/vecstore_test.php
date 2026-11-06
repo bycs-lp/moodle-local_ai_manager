@@ -37,7 +37,10 @@ final class vecstore_test extends \advanced_testcase {
     /** @var vecstore the driver under test */
     private vecstore $driver;
 
-    /** @var string the unique collection (table) name used for this test run */
+    /** @var string Name of the embedding model the test vectors belong to. */
+    private const MODEL = 'test-model';
+
+    /** @var string the unique collection (table) name prefix used for this test run */
     private string $collection;
 
     #[\Override]
@@ -51,9 +54,9 @@ final class vecstore_test extends \advanced_testcase {
         $instance->set_vecstore('postgres');
         $instance->set_apikey($dsn);
         $instance->set_distancemetric(base_vecstore::DISTANCE_COSINE);
-        // The collection is an internal detail of the instance; configure it here for all operations.
+        // Every embedding model gets its own collection named after this prefix.
         $instance->set_collection($this->collection);
-        $instance->set_dimensions(4);
+        $instance->store();
         $this->driver = new vecstore($instance);
 
         if ($this->driver->is_available()->get_code() !== 200) {
@@ -63,26 +66,28 @@ final class vecstore_test extends \advanced_testcase {
 
     #[\Override]
     protected function tearDown(): void {
-        if (isset($this->driver) && isset($this->collection)) {
-            $this->driver->delete_collection();
+        if (isset($this->driver)) {
+            foreach (array_keys($this->driver->get_collections()) as $model) {
+                $this->driver->drop_collection($model);
+            }
         }
         parent::tearDown();
     }
 
     /**
-     * Exercises the full lifecycle: create table, insert, query, drop table.
+     * Exercises the full lifecycle: insert (creating the table of the model), query, drop table.
      */
     public function test_full_lifecycle(): void {
-        $this->assertSame(200, $this->driver->create_collection()->get_code());
-
-        $this->assertSame(200, $this->driver->insert_embeddings([
+        $this->assertSame(200, $this->driver->insert_embeddings(self::MODEL, [
             enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'x', 101, 0, 1),
             enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'y', 102, 0, 1),
             enriched_vector::create(json_encode([0.0, 0.0, 1.0, 0.0]), 'z', 103, 0, 1),
         ])->get_code());
+        $collection = $this->driver->get_collections()[self::MODEL];
+        $this->assertSame($this->collection . '_test_model', $collection);
 
         // A query near the second vector should return it as the closest match.
-        $queryresponse = $this->driver->query([0.0, 0.9, 0.1, 0.0], 2);
+        $queryresponse = $this->driver->query(self::MODEL, [0.0, 0.9, 0.1, 0.0], 2);
         $this->assertSame(200, $queryresponse->get_code());
         $matches = $queryresponse->get_queryresponse()->get_matches();
         $this->assertNotEmpty($matches);
@@ -92,24 +97,25 @@ final class vecstore_test extends \advanced_testcase {
         $this->assertNotSame('', $matches[0]->get_vector());
 
         // The get_all() call returns all stored vectors.
-        $allresponse = $this->driver->get_all();
+        $allresponse = $this->driver->get_all($collection);
         $this->assertSame(200, $allresponse->get_code());
         $this->assertCount(3, $allresponse->get_queryresponse()->get_matches());
 
-        $this->assertSame(200, $this->driver->delete_collection()->get_code());
+        $this->assertSame(200, $this->driver->drop_collection(self::MODEL)->get_code());
+        $this->assertSame([], $this->driver->get_collections());
     }
 
     /**
      * Filtered queries should only return rows whose payload contains the filter.
      */
     public function test_query_with_filter(): void {
-        $this->driver->create_collection();
-        $this->driver->insert_embeddings([
+        $this->driver->insert_embeddings(self::MODEL, [
             enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'seven', 7, 0, 1),
             enriched_vector::create(json_encode([0.9, 0.1, 0.0, 0.0]), 'nine', 9, 0, 1),
         ]);
 
-        $matches = $this->driver->query([1.0, 0.0, 0.0, 0.0], 5, ['sourceid' => 9])->get_queryresponse()->get_matches();
+        $matches = $this->driver->query(self::MODEL, [1.0, 0.0, 0.0, 0.0], 5, ['sourceid' => 9])
+            ->get_queryresponse()->get_matches();
         $contents = array_map(static fn($match) => $match->get_content(), $matches);
         $this->assertContains('nine', $contents);
         $this->assertNotContains('seven', $contents);
@@ -119,15 +125,15 @@ final class vecstore_test extends \advanced_testcase {
      * A filter with an array of values matches any of them (IN semantics).
      */
     public function test_query_with_multivalue_filter(): void {
-        $this->driver->create_collection();
-        $this->driver->insert_embeddings([
+        $this->driver->insert_embeddings(self::MODEL, [
             enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'seven', 7, 0, 1),
             enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'eight', 8, 0, 1),
             enriched_vector::create(json_encode([0.0, 0.0, 1.0, 0.0]), 'nine', 9, 0, 1),
         ]);
 
         // Restrict to source ids 7 and 9 (excluding 8) via an array value = IN semantics.
-        $matches = $this->driver->query([1.0, 1.0, 1.0, 1.0], 10, ['sourceid' => [7, 9]])->get_queryresponse()->get_matches();
+        $matches = $this->driver->query(self::MODEL, [1.0, 1.0, 1.0, 1.0], 10, ['sourceid' => [7, 9]])
+            ->get_queryresponse()->get_matches();
         $sourceids = array_map(static fn($match) => $match->get_sourceid(), $matches);
         sort($sourceids);
         $this->assertSame([7, 9], $sourceids);
@@ -137,16 +143,15 @@ final class vecstore_test extends \advanced_testcase {
      * Deleting by source id must remove all rows carrying that source id and keep the rest.
      */
     public function test_delete_embeddings_by_sourceid(): void {
-        $this->driver->create_collection();
-        $this->driver->insert_embeddings([
+        $this->driver->insert_embeddings(self::MODEL, [
             enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'keep', 101, 0, 2),
             enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'gone-a', 102, 0, 2),
             enriched_vector::create(json_encode([0.0, 0.0, 1.0, 0.0]), 'gone-b', 102, 1, 2),
         ]);
 
-        $this->assertSame(200, $this->driver->delete_embeddings(102)->get_code());
+        $this->assertSame(200, $this->driver->delete_embeddings(null, 102)->get_code());
 
-        $matches = $this->driver->query([1.0, 1.0, 1.0, 1.0], 10)->get_queryresponse()->get_matches();
+        $matches = $this->driver->query(self::MODEL, [1.0, 1.0, 1.0, 1.0], 10)->get_queryresponse()->get_matches();
         $sourceids = array_map(static fn($match) => $match->get_sourceid(), $matches);
         $this->assertContains(101, $sourceids);
         $this->assertNotContains(102, $sourceids);
@@ -156,18 +161,17 @@ final class vecstore_test extends \advanced_testcase {
      * Inserting for a source id must first remove the existing vectors of that source (replace semantics).
      */
     public function test_insert_replaces_existing_context(): void {
-        $this->driver->create_collection();
-        $this->driver->insert_embeddings([
+        $this->driver->insert_embeddings(self::MODEL, [
             enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'old', 200, 0, 1),
         ]);
         // Re-inserting for the same source id must replace the previous vectors.
-        $this->driver->insert_embeddings([
+        $this->driver->insert_embeddings(self::MODEL, [
             enriched_vector::create(json_encode([0.0, 1.0, 0.0, 0.0]), 'new', 200, 0, 1),
         ]);
 
         $contents = array_map(
             static fn($vector) => $vector->get_content(),
-            $this->driver->get_all()->get_queryresponse()->get_matches()
+            $this->driver->get_all($this->driver->get_collections()[self::MODEL])->get_queryresponse()->get_matches()
         );
         $this->assertContains('new', $contents);
         $this->assertNotContains('old', $contents);
@@ -175,21 +179,27 @@ final class vecstore_test extends \advanced_testcase {
     }
 
     /**
-     * Inserting or querying a missing collection must transparently create it with the configured name and dimensions.
+     * Querying a model without collection returns an empty result, inserting creates the collection.
      */
-    public function test_missing_collection_is_created_on_demand(): void {
-        // The collection name and dimensions are configured on the instance but the table is NOT created yet.
-        // Querying a non-existent collection should create it and return an empty result set.
-        $queryresponse = $this->driver->query([1.0, 0.0, 0.0, 0.0], 5);
+    public function test_missing_collection_is_created_on_insert(): void {
+        $queryresponse = $this->driver->query(self::MODEL, [1.0, 0.0, 0.0, 0.0], 5);
         $this->assertSame(200, $queryresponse->get_code());
         $this->assertSame([], $queryresponse->get_queryresponse()->get_matches());
 
-        // Inserting into the (now existing) collection works and the vector can be retrieved.
-        $this->assertSame(200, $this->driver->insert_embeddings([
+        $this->assertSame(200, $this->driver->insert_embeddings(self::MODEL, [
             enriched_vector::create(json_encode([1.0, 0.0, 0.0, 0.0]), 'hello', 55, 0, 1),
         ])->get_code());
-        $matches = $this->driver->query([1.0, 0.0, 0.0, 0.0], 5)->get_queryresponse()->get_matches();
+        $matches = $this->driver->query(self::MODEL, [1.0, 0.0, 0.0, 0.0], 5)->get_queryresponse()->get_matches();
         $this->assertNotEmpty($matches);
         $this->assertSame('hello', $matches[0]->get_content());
+    }
+
+    /**
+     * Querying a collection which does not exist in the backend returns an empty result.
+     */
+    public function test_query_collection_missing_returns_empty_result(): void {
+        $queryresponse = $this->driver->query_collection($this->collection . '_external', [1.0, 0.0, 0.0, 0.0], 5);
+        $this->assertSame(200, $queryresponse->get_code());
+        $this->assertSame([], $queryresponse->get_queryresponse()->get_matches());
     }
 }
