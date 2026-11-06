@@ -19,9 +19,9 @@ namespace aivecstore_qdrant;
 use core\http_client;
 use local_ai_manager\base_vecstore;
 use local_ai_manager\collection_not_found_exception;
-use local_ai_content\local\enriched_vector;
 use local_ai_manager\local\vecstore_query_response;
 use local_ai_manager\local\vecstore_response;
+use local_ai_manager\local\vector_record;
 
 /**
  * Vector store implementation for the Qdrant vector database.
@@ -74,24 +74,11 @@ class vecstore extends base_vecstore {
         $points = [];
         foreach ($embeddings as $embedding) {
             $vector = json_decode($embedding->get_vector(), true, flags: JSON_THROW_ON_ERROR);
-            $payload = [
-                'content' => $embedding->get_content(),
-                'sourceid' => $embedding->get_sourceid(),
-                'chunk' => $embedding->get_chunk(),
-                'maxchunks' => $embedding->get_maxchunks(),
-            ];
-            // Vector-level citation metadata is only stored when present, to keep the payload minimal.
-            if ($embedding->get_locator() !== '') {
-                $payload['locator'] = $embedding->get_locator();
-            }
-            if ($embedding->get_url() !== '') {
-                $payload['url'] = $embedding->get_url();
-            }
             $points[] = [
                 // Qdrant requires a point id; we generate a UUID as callers do not manage record references.
                 'id' => \core\uuid::generate(),
                 'vector' => array_values($vector),
-                'payload' => $payload,
+                'payload' => $embedding->to_payload(),
             ];
         }
         $path = '/collections/' . rawurlencode($collection) . '/points?wait=true';
@@ -133,7 +120,7 @@ class vecstore extends base_vecstore {
         }
         $matches = [];
         foreach ($response['data']['result'] as $hit) {
-            $matches[] = $this->payload_to_enriched_vector(json_encode(array_values($hit['vector'])), $hit['payload']);
+            $matches[] = vector_record::from_payload(json_encode(array_values($hit['vector'])), $hit['payload'] ?? []);
         }
         return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($matches));
     }
@@ -155,7 +142,7 @@ class vecstore extends base_vecstore {
                 break;
             }
             foreach ($response['data']['result']['points'] as $point) {
-                $vectors[] = $this->payload_to_enriched_vector(json_encode(array_values($point['vector'])), $point['payload']);
+                $vectors[] = vector_record::from_payload(json_encode(array_values($point['vector'])), $point['payload'] ?? []);
             }
             $offset = $response['data']['result']['next_page_offset'] ?? null;
         } while (!is_null($offset));
@@ -163,15 +150,15 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
-    protected function delete_from_collection(string $collection, int ...$sourceids): vecstore_response {
-        if (empty($sourceids)) {
+    protected function delete_from_collection(string $collection, int ...$documentids): vecstore_response {
+        if (empty($documentids)) {
             return vecstore_response::create_from_result();
         }
         $path = '/collections/' . rawurlencode($collection) . '/points/delete?wait=true';
         $body = [
             'filter' => [
                 'must' => [
-                    ['key' => 'sourceid', 'match' => ['any' => array_values($sourceids)]],
+                    ['key' => vector_record::PAYLOAD_DOCUMENTID, 'match' => ['any' => array_values($documentids)]],
                 ],
             ],
         ];
@@ -181,26 +168,6 @@ class vecstore extends base_vecstore {
             return vecstore_response::create_from_result();
         }
         return $this->create_error_response($response, 'Could not delete embeddings from qdrant collection.');
-    }
-
-    /**
-     * Builds an enriched vector object from a raw backend vector string and its stored payload.
-     *
-     * @param string $vector the (string representation of the) embedding vector
-     * @param array $payload the stored payload
-     * @return enriched_vector the reconstructed enriched vector
-     */
-    protected function payload_to_enriched_vector(string $vector, array $payload): enriched_vector {
-        // Vectors of external sources are managed outside of Moodle, so their payload may lack any of these keys.
-        return enriched_vector::create(
-            $vector,
-            (string) ($payload['content'] ?? ''),
-            (int) ($payload['sourceid'] ?? 0),
-            (int) ($payload['chunk'] ?? 0),
-            (int) ($payload['maxchunks'] ?? 0),
-            (string) ($payload['locator'] ?? ''),
-            (string) ($payload['url'] ?? '')
-        );
     }
 
     /**

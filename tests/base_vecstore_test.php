@@ -16,7 +16,7 @@
 
 namespace local_ai_manager;
 
-use local_ai_content\local\enriched_vector;
+use local_ai_manager\local\vector_record;
 use local_ai_manager\tests\testable_vecstore;
 
 /**
@@ -45,14 +45,14 @@ final class base_vecstore_test extends \advanced_testcase {
     }
 
     /**
-     * Create an enriched vector of a source.
+     * Create a vector record of a document.
      *
-     * @param int $sourceid The source id.
+     * @param int $documentid The document id.
      * @param float[] $vector The vector.
-     * @return enriched_vector The enriched vector.
+     * @return vector_record The vector record.
      */
-    private function create_vector(int $sourceid, array $vector): enriched_vector {
-        return enriched_vector::create(json_encode($vector), 'content ' . $sourceid, $sourceid, 0, 1);
+    private function create_vector(int $documentid, array $vector): vector_record {
+        return new vector_record(json_encode($vector), 'content ' . $documentid, $documentid);
     }
 
     /**
@@ -99,7 +99,7 @@ final class base_vecstore_test extends \advanced_testcase {
 
         $matches = $vecstore->query('model-b', [0.1, 0.2])->get_queryresponse()->get_matches();
         $this->assertCount(1, $matches);
-        $this->assertSame(2, $matches[0]->get_sourceid());
+        $this->assertSame(2, $matches[0]->get_documentid());
 
         $response = $vecstore->query('model-c', [0.1, 0.2]);
         $this->assertSame(200, $response->get_code());

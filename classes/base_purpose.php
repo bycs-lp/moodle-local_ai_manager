@@ -85,6 +85,9 @@ class base_purpose {
         if (!empty($options['forcenewitemid'])) {
             $newoptions['forcenewitemid'] = $options['forcenewitemid'];
         }
+        if (!empty($options['sourceids'])) {
+            $newoptions['sourceids'] = $options['sourceids'];
+        }
         return $newoptions + $this->get_additional_request_options($options);
     }
 
@@ -146,6 +149,8 @@ class base_purpose {
         $options = [];
         $options['itemid'] = PARAM_INT;
         $options['forcenewitemid'] = PARAM_BOOL;
+        // Comma separated ids of sources selected by the user, evaluated by listeners of the additional_prompt_context hook.
+        $options['sourceids'] = PARAM_SEQUENCE;
         $additionalpurposeoptions = $this->get_additional_purpose_options();
         foreach (array_keys($additionalpurposeoptions) as $purposeoption) {
             if (in_array($purposeoption, $options)) {
@@ -323,6 +328,21 @@ to formulas inside running text and derivation steps.
 Never put mathematical formulas in fenced code blocks unless the user
 explicitly asks for (La)TeX source code.
 EOF;
+    }
+
+    /**
+     * Adds the contexts provided by listeners of the {@see hook\additional_prompt_context} hook to the request.
+     *
+     * The default puts the contexts in front of the prompt text. Purposes with a dedicated place for context, for example a
+     * system message, should override this.
+     *
+     * @param string $prompttext The prompt text.
+     * @param request_options $requestoptions The request options object, can be updated by the purpose.
+     * @param string[] $contexts The contexts to add, not empty.
+     * @return string The prompt text to use.
+     */
+    public function add_prompt_contexts(string $prompttext, request_options $requestoptions, array $contexts): string {
+        return implode("\n\n", $contexts) . "\n\n" . $prompttext;
     }
 
     /**
