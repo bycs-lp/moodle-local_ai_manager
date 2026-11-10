@@ -22,10 +22,12 @@ use local_ai_manager\request_options;
  * Hook for adding additional context to an AI request.
  *
  * Dispatched for every AI request before the purpose formats the prompt. Listeners can add context for the AI tool, for
- * example content retrieved for the prompt (RAG). The purpose decides how the added context is passed to the AI tool
- * (see {@see \local_ai_manager\base_purpose::add_prompt_contexts()}). Listeners can also add result data, which is stored in
- * the request options under the key 'contextdata' and therefore ends up in the request log, so the calling component can show
- * it next to the response.
+ * example content retrieved for the prompt (RAG). Purposes supporting the 'conversationcontext' option get the added
+ * context appended to their system message
+ * (see {@see \local_ai_manager\local\requestoptions\conversationcontext::append_to_system_message()}), all other purposes
+ * decide themselves how to pass it to the AI tool (see {@see \local_ai_manager\base_purpose::add_prompt_contexts()}). Listeners
+ * can also add result data, which is stored in the request options under the key 'contextdata' and therefore ends up in the
+ * request log, so the calling component can show it next to the response.
  *
  * Input for listeners is passed via the request options, for example the generic option 'sourceids'.
  *

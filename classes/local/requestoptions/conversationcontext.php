@@ -69,4 +69,25 @@ class conversationcontext {
             }
         }
     }
+
+    /**
+     * Appends the given text to the system message of the conversation context.
+     *
+     * Some LLM APIs require exactly one system message, so the text is appended to an existing system message. Only if there
+     * is none yet, a new system message is added at the beginning.
+     *
+     * @param array $conversationcontext the conversation context
+     * @param string $text the text to append to the system message
+     * @return array the updated conversation context
+     */
+    public function append_to_system_message(array $conversationcontext, string $text): array {
+        foreach ($conversationcontext as $index => $entry) {
+            if ($entry['sender'] === 'system') {
+                $conversationcontext[$index]['message'] .= "\n\n" . $text;
+                return $conversationcontext;
+            }
+        }
+        array_unshift($conversationcontext, ['sender' => 'system', 'message' => $text]);
+        return $conversationcontext;
+    }
 }

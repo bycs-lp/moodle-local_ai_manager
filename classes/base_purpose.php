@@ -333,8 +333,9 @@ EOF;
     /**
      * Adds the contexts provided by listeners of the {@see hook\additional_prompt_context} hook to the request.
      *
-     * The default puts the contexts in front of the prompt text. Purposes with a dedicated place for context, for example a
-     * system message, should override this.
+     * Only used for purposes without the 'conversationcontext' option, the others get the contexts appended to their system
+     * message (see {@see local\requestoptions\conversationcontext::append_to_system_message()}). The default puts the contexts
+     * in front of the prompt text. Purposes with another dedicated place for context should override this.
      *
      * @param string $prompttext The prompt text.
      * @param request_options $requestoptions The request options object, can be updated by the purpose.

@@ -27,7 +27,6 @@ namespace aipurpose_chat;
 
 use local_ai_manager\base_purpose;
 use local_ai_manager\local\requestoptions\conversationcontext;
-use local_ai_manager\request_options;
 
 /**
  * Purpose chat methods
@@ -77,36 +76,6 @@ class purpose extends base_purpose {
         if (array_key_exists(conversationcontext::OPTION_NAME, $options)) {
             \core\di::get(conversationcontext::class)->validate($options[conversationcontext::OPTION_NAME]);
         }
-    }
-
-    /**
-     * Appends the contexts to the system message of the conversation context.
-     *
-     * @param string $prompttext The prompt text.
-     * @param request_options $requestoptions The request options object, the conversation context is updated.
-     * @param string[] $contexts The contexts to add, not empty.
-     * @return string The unchanged prompt text.
-     */
-    #[\Override]
-    public function add_prompt_contexts(string $prompttext, request_options $requestoptions, array $contexts): string {
-        $options = $requestoptions->get_options();
-        $contexttext = implode("\n\n", $contexts);
-        $conversationcontext = $options['conversationcontext'] ?? [];
-        $systemmessagefound = false;
-        foreach ($conversationcontext as $index => $message) {
-            if (($message['sender'] ?? '') === 'system') {
-                $conversationcontext[$index]['message'] .= "\n\n" . $contexttext;
-                $systemmessagefound = true;
-                break;
-            }
-        }
-        if (!$systemmessagefound) {
-            array_unshift($conversationcontext, ['sender' => 'system', 'message' => $contexttext]);
-        }
-        $options['conversationcontext'] = $conversationcontext;
-        $requestoptions->set_options($options);
-
-        return $prompttext;
     }
 
     /**
