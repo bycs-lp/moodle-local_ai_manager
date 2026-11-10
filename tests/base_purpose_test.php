@@ -27,6 +27,7 @@ use local_ai_manager\local\connector_factory;
  * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+#[\PHPUnit\Framework\Attributes\CoversClass(base_purpose::class)]
 final class base_purpose_test extends \advanced_testcase {
     /**
      * Test if all purpose plugins have a proper description.
@@ -35,9 +36,8 @@ final class base_purpose_test extends \advanced_testcase {
      * by overwriting base_purpose::get_description.
      *
      * @param string $purpose The purpose to check as string
-     * @covers       \local_ai_manager\base_purpose::get_description
-     * @dataProvider get_description_provider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('get_description_provider')]
     public function test_get_description(string $purpose): void {
         $connectorfactory = \core\di::get(connector_factory::class);
         $purposeinstance = $connectorfactory->get_purpose_by_purpose_string($purpose);
@@ -168,9 +168,8 @@ final class base_purpose_test extends \advanced_testcase {
      * @param string $input The markdown input
      * @param array $mustcontain Strings that must be in the output
      * @param array $mustnotcontain Strings that must not be in the output
-     * @covers \local_ai_manager\base_purpose::format_output
-     * @dataProvider format_output_html_escaping_provider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('format_output_html_escaping_provider')]
     public function test_format_output_html_escaping(string $input, array $mustcontain, array $mustnotcontain): void {
         $purpose = new base_purpose();
         $output = $purpose->format_output($input);
@@ -209,9 +208,8 @@ final class base_purpose_test extends \advanced_testcase {
      * @param string $input The input with potential XSS
      * @param array $mustcontain Strings that must be in the output
      * @param array $mustnotcontain Strings that must not be in the output
-     * @covers \local_ai_manager\base_purpose::format_output
-     * @dataProvider format_output_xss_sanitization_provider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('format_output_xss_sanitization_provider')]
     public function test_format_output_xss_sanitization(string $input, array $mustcontain, array $mustnotcontain): void {
         $purpose = new base_purpose();
         $output = $purpose->format_output($input);
@@ -281,9 +279,8 @@ final class base_purpose_test extends \advanced_testcase {
      *
      * @param string $input The markdown input
      * @param array $mustcontain Strings that must be in the output
-     * @covers \local_ai_manager\base_purpose::format_output
-     * @dataProvider format_output_markdown_formatting_provider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('format_output_markdown_formatting_provider')]
     public function test_format_output_markdown_formatting(string $input, array $mustcontain): void {
         $purpose = new base_purpose();
         $output = $purpose->format_output($input);
@@ -706,9 +703,8 @@ final class base_purpose_test extends \advanced_testcase {
      * @param array $mustcontain Strings that must be in the output
      * @param array $mustnotcontain Strings that must not be in the output
      * @param array $options Optional format_text options to pass
-     * @covers \local_ai_manager\base_purpose::format_ai_markdown_output
-     * @dataProvider format_ai_markdown_output_provider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('format_ai_markdown_output_provider')]
     public function test_format_ai_markdown_output(
         string $input,
         array $mustcontain,
@@ -756,9 +752,8 @@ final class base_purpose_test extends \advanced_testcase {
      * @param string $input The markdown input
      * @param array $mustcontain Strings that must be in the output
      * @param array $mustnotcontain Strings that must not be in the output
-     * @covers \local_ai_manager\base_purpose::format_output
-     * @dataProvider format_output_mathjax_provider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('format_output_mathjax_provider')]
     public function test_format_output_mathjax(
         string $input,
         array $mustcontain,
@@ -773,5 +768,15 @@ final class base_purpose_test extends \advanced_testcase {
         foreach ($mustnotcontain as $notexpected) {
             $this->assertStringNotContainsString($notexpected, $output);
         }
+    }
+
+    /**
+     * Test that the general option sourceids is available for every purpose and passed on as request option.
+     */
+    public function test_sourceids_option_is_available(): void {
+        $purpose = new base_purpose();
+
+        $this->assertSame(PARAM_SEQUENCE, $purpose->get_available_purpose_options()['sourceids']);
+        $this->assertSame('3,5', $purpose->get_request_options(['sourceids' => '3,5'])['sourceids']);
     }
 }

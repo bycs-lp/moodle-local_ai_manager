@@ -103,4 +103,39 @@ final class request_options_test extends \advanced_testcase {
         );
         $this->assertSame($items, $requestoptions->get_options()['items']);
     }
+
+    /**
+     * Data provider for test_construct_sanitizes_sourceids.
+     *
+     * @return array Datasets with the submitted sourceids and the expected sanitized value.
+     */
+    public static function construct_sanitizes_sourceids_provider(): array {
+        return [
+            'valid_sequence' => ['sourceids' => '1,2,3', 'expected' => '1,2,3'],
+            'single_id' => ['sourceids' => '42', 'expected' => '42'],
+            'whitespace_is_removed' => ['sourceids' => '1, 2 ,3', 'expected' => '1,2,3'],
+            'sql_injection_is_stripped' => ['sourceids' => '1); DROP TABLE mdl_user; --', 'expected' => '1'],
+            'html_is_stripped' => ['sourceids' => '<script>alert(1)</script>', 'expected' => '1'],
+            'negative_and_decimal_numbers_are_stripped' => ['sourceids' => '-1,2.5', 'expected' => '1,25'],
+            'letters_only_result_in_empty_string' => ['sourceids' => 'abc', 'expected' => ''],
+        ];
+    }
+
+    /**
+     * Test that the submitted sourceids are cleaned as sequence of ids when creating the request options.
+     *
+     * @param string $sourceids The submitted sourceids option.
+     * @param string $expected The expected sanitized sourceids option.
+     */
+    #[DataProvider('construct_sanitizes_sourceids_provider')]
+    public function test_construct_sanitizes_sourceids(string $sourceids, string $expected): void {
+        $requestoptions = new request_options(
+            new base_purpose(),
+            \core\context\system::instance(),
+            'block_ai_chat',
+            ['sourceids' => $sourceids]
+        );
+
+        $this->assertSame($expected, $requestoptions->get_options()['sourceids']);
+    }
 }
