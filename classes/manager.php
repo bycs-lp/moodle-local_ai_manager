@@ -27,6 +27,7 @@ use local_ai_manager\hook\additional_user_restriction;
 use local_ai_manager\local\config_manager;
 use local_ai_manager\local\connector_factory;
 use local_ai_manager\local\prompt_response;
+use local_ai_manager\local\requestoptions\conversationcontext;
 use local_ai_manager\local\userinfo;
 use local_ai_manager\local\userusage;
 use stdClass;
@@ -212,7 +213,23 @@ class manager {
                 );
             }
             if (!empty($contexthook->get_contexts())) {
-                $prompttext = $this->purpose->add_prompt_contexts($prompttext, $requestoptions, $contexthook->get_contexts());
+                $options = $requestoptions->get_options();
+                if (array_key_exists(conversationcontext::OPTION_NAME, $this->purpose->get_available_purpose_options())) {
+                    // Purposes with a conversation get the additional contexts as part of their system instructions.
+                    // The option is missing if the purpose did not build a conversation context for this request.
+                    $options[conversationcontext::OPTION_NAME] = \core\di::get(conversationcontext::class)
+                        ->append_to_system_message(
+                            $options[conversationcontext::OPTION_NAME] ?? [],
+                            implode("\n\n", $contexthook->get_contexts())
+                        );
+                    $requestoptions->set_options($options);
+                } else {
+                    $prompttext = $this->purpose->add_prompt_contexts(
+                        $prompttext,
+                        $requestoptions,
+                        $contexthook->get_contexts()
+                    );
+                }
             }
             // Give the purpose a chance to manipulate the prompt text.
             $prompttext = $this->purpose->format_prompt_text($prompttext, $requestoptions);
