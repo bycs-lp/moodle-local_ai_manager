@@ -92,8 +92,8 @@ class base_purpose {
      * Function that can be used by subclasses to manipulate the options being sent in a request.
      *
      * Subclasses can override this function and manipulate the options being sent in a request to the
-     * needs of the specific purpose. The default is to just use all options. The options are being sanitized before
-     * by using {@see self::get_available_purpose_options}.
+     * needs of the specific purpose. The default is to just use all options. The options have already been sanitized by
+     * using {@see self::get_available_purpose_options} and validated by {@see self::validate_purpose_options}.
      *
      * @param array $options the options being sent in the request
      * @return array the manipulated options
@@ -172,16 +172,22 @@ class base_purpose {
     }
 
     /**
-     * Hook for additionally validating the submitted request options.
+     * Hook for the purpose specific validation of the submitted request options.
      *
-     * Called by {@see request_options::sanitize_options} after the basic cleaning, so the values already have the declared
-     * types. Purposes should override this to validate the structure of their options, especially of array options whose
-     * content is not being cleaned.
+     * Called when creating the {@see request_options} object AFTER the submitted options have been sanitized by
+     * {@see request_options::sanitize_options} and BEFORE they are being processed by {@see self::get_additional_request_options}.
+     * So at this point only options defined by the purpose are present, their values have been cleaned according to their
+     * types and options of type {@see self::PARAM_ARRAY} are guaranteed to be arrays. The purpose can rely on valid options
+     * when processing them. Options added by the purpose itself in {@see self::get_additional_request_options} are not being
+     * validated.
+     *
+     * Purposes should override this for additional (for example domain specific) validations, especially for validating the
+     * structure of array options whose content is not being cleaned.
      *
      * Implementations MUST throw a \coding_exception if an option is not valid. The request is then rejected.
      *
-     * @param array $options associative array of all already cleaned options which have been submitted (general options
-     *  like itemid as well as the options defined in {@see self::get_additional_purpose_options}), keyed by option name
+     * @param array $options associative array of the sanitized options (general options like itemid as well as the options
+     *  defined in {@see self::get_additional_purpose_options}), keyed by option name
      */
     public function validate_purpose_options(array $options): void {
     }

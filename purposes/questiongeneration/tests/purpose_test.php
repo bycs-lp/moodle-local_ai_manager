@@ -96,7 +96,6 @@ final class purpose_test extends \advanced_testcase {
             'qbank_questiongen',
             ['conversationcontext' => $conversationcontext]
         );
-        $requestoptions->sanitize_options();
         $this->assertSame($conversationcontext, $requestoptions->get_options()['conversationcontext']);
     }
 }

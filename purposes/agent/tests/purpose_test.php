@@ -1823,6 +1823,31 @@ JSON;
     }
 
     /**
+     * Tests that a conversation context which is no array is rejected before the purpose processes it.
+     *
+     * @covers ::validate_purpose_options
+     */
+    public function test_request_options_conversationcontext_no_array(): void {
+        $this->resetAfterTest();
+        set_config('agentprompt', 'Prompt. {{formelementsjson}} {{pageid}} {{currentlang}}', 'aipurpose_agent');
+        $this->expectException(\coding_exception::class);
+        new \local_ai_manager\request_options(
+            \core\di::get(connector_factory::class)->get_purpose_by_purpose_string('agent'),
+            context_system::instance(),
+            'block_ai_chat',
+            [
+                'agentoptions' => [
+                    'formelements' => [
+                        ['id' => 'id_test', 'name' => 'test', 'label' => 'Test'],
+                    ],
+                    'pageid' => 'page-test',
+                ],
+                'conversationcontext' => 'no array',
+            ]
+        );
+    }
+
+    /**
      * Tests that the conversation context is validated by the conversation context validator.
      *
      * @covers ::validate_purpose_options

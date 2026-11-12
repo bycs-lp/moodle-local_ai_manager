@@ -27,6 +27,9 @@ use local_ai_manager\base_purpose;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class array_option_purpose extends base_purpose {
+    /** @var array|null the options passed to {@see self::validate_purpose_options} */
+    public ?array $validatedoptions = null;
+
     #[\Override]
     public function get_additional_purpose_options(): array {
         return ['items' => base_purpose::PARAM_ARRAY];
@@ -34,6 +37,7 @@ class array_option_purpose extends base_purpose {
 
     #[\Override]
     public function validate_purpose_options(array $options): void {
+        $this->validatedoptions = $options;
         if (in_array('invalid', $options['items'] ?? [], true)) {
             throw new \coding_exception('Invalid item');
         }

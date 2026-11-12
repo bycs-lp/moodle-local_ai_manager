@@ -41,6 +41,8 @@ class request_options {
         /** @var array additional request options for the AI request */
         private array $options = []
     ) {
+        $options = $this->sanitize_options($options);
+        $this->purpose->validate_purpose_options($options);
         $this->options = $this->purpose->get_request_options($options);
     }
 
@@ -92,22 +94,26 @@ class request_options {
     }
 
     /**
-     * Helper function that sanitizes the options against the options defined in the purpose class.
+     * Helper function that sanitizes the submitted options against the options defined in the purpose class.
      *
-     * Options with a moodle param type are cleaned with clean_param(), options with a list of allowed values are checked
-     * against this list.
+     * Called when creating this object, so BEFORE the purpose validates the options in
+     * {@see base_purpose::validate_purpose_options} and processes them in {@see base_purpose::get_additional_request_options}.
+     * Options which are not defined by the purpose are rejected. Options with a moodle param type are cleaned with
+     * clean_param(), options with a list of allowed values are checked against this list. Options of type
+     * {@see base_purpose::PARAM_ARRAY} have to be arrays.
      *
-     * Options of type {@see base_purpose::PARAM_ARRAY} are only checked to be an array, their content is INTENTIONALLY NOT
-     * sanitized: Like the prompt text it is raw input for the external AI tool and legitimately contains code, markup or XML
-     * (for example code snippets in a chat history or the example Moodle XML in the system prompt of the question
-     * generation). Cleaning it, for example with PARAM_NOTAGS, would destroy these contents. Consumers therefore must treat
-     * the content as untrusted and never output it without escaping. The structure of array options is validated by the
-     * purpose in {@see base_purpose::validate_purpose_options}, which is called with all options at the end.
+     * The content of options of type {@see base_purpose::PARAM_ARRAY} is INTENTIONALLY NOT sanitized: Like the prompt text it
+     * is raw input for the external AI tool and legitimately contains code, markup or XML (for example code snippets in a
+     * chat history or the example Moodle XML in the system prompt of the question generation). Cleaning it, for example with
+     * PARAM_NOTAGS, would destroy these contents. Consumers therefore must treat the content as untrusted and never output it
+     * without escaping. Validating the structure of array options is up to {@see base_purpose::validate_purpose_options}.
      *
+     * @param array $options the options as submitted by the calling plugin or client
+     * @return array the sanitized options
      * @throws coding_exception if validation is failing
      */
-    public function sanitize_options(): void {
-        foreach ($this->options as $key => $value) {
+    private function sanitize_options(array $options): array {
+        foreach ($options as $key => $value) {
             if (!array_key_exists($key, $this->purpose->get_available_purpose_options())) {
                 throw new coding_exception('Option ' . $key . ' is not allowed for the purpose ' .
                     $this->purpose->get_plugin_name());
@@ -124,15 +130,15 @@ class request_options {
                 }
             } else {
                 if ($this->purpose->get_available_purpose_options()[$key] === base_purpose::PARAM_ARRAY) {
+                    // The content of array options is intentionally not sanitized, see the docblock of this method.
                     if (!is_array($value)) {
                         throw new coding_exception('Option ' . $key . ' must be an array');
                     }
-                    // The content of array options is intentionally not sanitized, see the docblock of this method.
                 } else {
-                    $this->options[$key] = clean_param($value, $this->purpose->get_available_purpose_options()[$key]);
+                    $options[$key] = clean_param($value, $this->purpose->get_available_purpose_options()[$key]);
                 }
             }
         }
-        $this->purpose->validate_purpose_options($this->options);
+        return $options;
     }
 }

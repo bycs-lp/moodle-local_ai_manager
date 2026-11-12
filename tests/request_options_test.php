@@ -30,11 +30,11 @@ use PHPUnit\Framework\Attributes\DataProvider;
 #[\PHPUnit\Framework\Attributes\CoversClass(request_options::class)]
 final class request_options_test extends \advanced_testcase {
     /**
-     * Data provider for test_sanitize_options_array_option_violation.
+     * Data provider for test_construct_array_option_violation.
      *
      * @return array datasets with the invalid value of the array option
      */
-    public static function sanitize_options_array_option_violation_provider(): array {
+    public static function construct_array_option_violation_provider(): array {
         return [
             'no_array' => ['items' => 'no array'],
             'rejected_by_purpose' => ['items' => ['valid', 'invalid']],
@@ -42,20 +42,46 @@ final class request_options_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that array options which are no array or are rejected by the purpose validation lead to an exception.
+     * Tests that submitted array options which are no array or are rejected by the purpose validation lead to an exception.
      *
      * @param mixed $items the invalid value of the array option
      */
-    #[DataProvider('sanitize_options_array_option_violation_provider')]
-    public function test_sanitize_options_array_option_violation(mixed $items): void {
-        $requestoptions = new request_options(
+    #[DataProvider('construct_array_option_violation_provider')]
+    public function test_construct_array_option_violation(mixed $items): void {
+        $this->expectException(\coding_exception::class);
+        new request_options(
             new array_option_purpose(),
             \context_system::instance(),
             'local_ai_manager',
             ['items' => $items]
         );
+    }
+
+    /**
+     * Tests that options which are not defined by the purpose lead to an exception.
+     */
+    public function test_construct_undefined_option_violation(): void {
         $this->expectException(\coding_exception::class);
-        $requestoptions->sanitize_options();
+        new request_options(
+            new array_option_purpose(),
+            \context_system::instance(),
+            'local_ai_manager',
+            ['undefined' => 'value']
+        );
+    }
+
+    /**
+     * Tests that the purpose validation receives the sanitized options.
+     */
+    public function test_construct_purpose_validation_receives_sanitized_options(): void {
+        $purpose = new array_option_purpose();
+        new request_options(
+            $purpose,
+            \context_system::instance(),
+            'local_ai_manager',
+            ['itemid' => '12abc', 'items' => ['valid']]
+        );
+        $this->assertSame(['itemid' => 12, 'items' => ['valid']], $purpose->validatedoptions);
     }
 
     /**
@@ -63,7 +89,7 @@ final class request_options_test extends \advanced_testcase {
      *
      * Array options like conversation contexts legitimately contain code, markup and XML which must not be stripped.
      */
-    public function test_sanitize_options_array_option_verification(): void {
+    public function test_construct_array_option_verification(): void {
         $items = [
             'What does if (a<b && c>d) do? List<String> list = new ArrayList<>();',
             ['nested' => '<div class="x">Hello</div>'],
@@ -75,7 +101,6 @@ final class request_options_test extends \advanced_testcase {
             'local_ai_manager',
             ['items' => $items]
         );
-        $requestoptions->sanitize_options();
         $this->assertSame($items, $requestoptions->get_options()['items']);
     }
 }
