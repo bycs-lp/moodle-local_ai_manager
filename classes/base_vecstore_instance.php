@@ -366,6 +366,7 @@ class base_vecstore_instance {
             return $data;
         }
         $data->name = $this->get_name();
+        $data->tenant = $this->get_tenant();
         $data->isglobal = $this->is_global();
         $data->vecstore = $this->get_vecstore();
         $data->endpoint = $this->get_endpoint();
@@ -415,13 +416,15 @@ class base_vecstore_instance {
         );
         $mform->setType('name', PARAM_TEXT);
 
+        $tenant = $this->record_exists() ? $this->get_tenant() : $customdata['tenant'];
         $mform->addElement('text', 'tenant', get_string('tenant', 'local_ai_manager'), $textelementparams);
         $mform->setType('tenant', PARAM_ALPHANUM);
-        if (empty($customdata['id'])) {
-            $mform->setDefault('tenant', $customdata['tenant']);
-        }
-        if (!is_siteadmin()) {
-            $mform->freeze('tenant');
+        if (has_capability('local/ai_manager:managetenants', \context_system::instance())) {
+            $mform->setDefault('tenant', $tenant);
+        } else {
+            // Constant instead of default, so a manipulated request cannot move the instance to another tenant.
+            $mform->setConstant('tenant', $tenant);
+            $mform->hardFreeze('tenant');
         }
 
         if (has_capability('local/ai_manager:manageglobalvecstores', \context_system::instance())) {
