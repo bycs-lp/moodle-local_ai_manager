@@ -193,7 +193,6 @@ class manager {
 
         try {
             $requestoptions = new request_options($this->purpose, $context, $component, $options);
-            $requestoptions->sanitize_options();
         } catch (\Exception $exception) {
             return prompt_response::create_from_error(
                 400,

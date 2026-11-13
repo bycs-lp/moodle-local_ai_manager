@@ -6,7 +6,7 @@ Whenever a call to an external AI system is being made, you need to specify whic
 
 Currently implemented purposes are *chat*, *feedback*, *imggen* (image generation), *itt* (image to text), *questiongeneration*, *singleprompt*, $translate*, *tts* (text to speech). Every interaction with an external AI system needs to define which purpose it wants to use.
 
-- *Option definitions*: The purpose is responsible for defining, sanitizing and providing additional options that are allowed to be sent along the prompt.
+- *Option definitions*: The purpose is responsible for defining, validating and providing additional options that are allowed to be sent along the prompt. The submitted options are being sanitized according to these definitions by the AI manager.
   For example, when using the purpose *itt* the purpose plugin defines that an option 'image' can be passed to the *perform_request* method that contains the base64 encoded image that should be passed to the external AI system. It also provides the option *allowed_mimetypes* to the "frontend" plugin so that the plugin sees what mimetypes are supported by the currently used external AI system.
 - *Manipulating output*: The formatting of the output is also dependent from the used purpose. For example, the purpose *questiongeneration* takes care of formatting the output in a way that only the bare XML of a generated moodle question is being returned in the correct formatting (stripping additional blah blah of the LLM as well as for example markdown formatting, fixing encoding etc.).
 - *Quota*: The user quota is bound to a certain purpose. That means for the basic role a quota of 50 *chat* requests per hour can be defined, for purpose *itt* it's just 10 requests per hour and purpose *imggen* is set to 0 requests per hour which means usage of this purpose is completely disabled for the role.
@@ -44,7 +44,15 @@ The class `\aipurpose_YOURAIPURPOSEPLUGINNAME` has to extend `\local_ai_manager\
 
 - `get_additional_request_options(array $options): array`
 
-  You can overwrite this method to manipulate the options that are being passed along the prompt. As an example see `\aipurpose_imggen\purpose::get_additional_request_options` where a free itemid is being passed to the options if the frontend plugin did not provide one.
+  You can overwrite this method to manipulate the options that are being passed along the prompt. The method receives the options after they have been sanitized and validated (see `validate_purpose_options` below). As an example see `\aipurpose_imggen\purpose::get_additional_request_options` where a free itemid is being passed to the options if the frontend plugin did not provide one.
+
+- `validate_purpose_options(array $options): void`
+
+  When a request is being created, the submitted options are first being sanitized according to the types defined in `get_additional_purpose_options`: Options not defined by your purpose are rejected, options with a moodle param type are cleaned, options with a list of possible values are checked against this list and options of type `base_purpose::PARAM_ARRAY` have to be arrays. The content of options of type `base_purpose::PARAM_ARRAY` is intentionally not cleaned, because it is raw input for the AI tool which legitimately can contain code, markup or XML (just like the prompt itself). So never output them without escaping.
+
+  Afterwards `validate_purpose_options` is being called with these sanitized options (the general options like `itemid` as well as the purpose specific ones) as associative array keyed by option name, BEFORE they are being processed by `get_additional_request_options`. So your purpose can rely on valid options when processing them. Overwrite this method for additional (for example domain specific) validations, especially to validate the structure of your array options. **If an option is not valid, your implementation has to throw a `\coding_exception`.** The request will then be rejected with an HTTP 400 error. Options your purpose adds itself in `get_additional_request_options` are not being validated.
+
+  If your purpose supports a conversation history, use the class `\local_ai_manager\local\requestoptions\conversationcontext`: It provides the option definition (`get_option_definition()`) for `get_additional_purpose_options` and validates the structure the connectors rely on (`validate()`). As an example see `\aipurpose_chat\purpose::get_additional_purpose_options` and `\aipurpose_chat\purpose::validate_purpose_options`.
 
 - `format_output(string $output): string`
 

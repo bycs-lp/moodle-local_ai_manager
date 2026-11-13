@@ -21,6 +21,7 @@ use core_external\external_function_parameters;
 use core_external\external_single_structure;
 use core_external\external_value;
 use local_ai_manager\local\connector_factory;
+use local_ai_manager\local\requestoptions\conversationcontext;
 
 /**
  * Web service to submit a query to an AI tool.
@@ -81,10 +82,10 @@ class submit_query extends external_api {
         if (!empty($options)) {
             $options = json_decode($options, true);
         }
-        if (!empty($options['conversationcontext']) && is_array($options['conversationcontext'])) {
+        if (!empty($options[conversationcontext::OPTION_NAME]) && is_array($options[conversationcontext::OPTION_NAME])) {
             // Only server side code may add system messages, a client may only pass on the conversation itself.
-            $options['conversationcontext'] = array_values(array_filter(
-                $options['conversationcontext'],
+            $options[conversationcontext::OPTION_NAME] = array_values(array_filter(
+                $options[conversationcontext::OPTION_NAME],
                 fn($entry) => is_array($entry) && in_array($entry['sender'] ?? '', ['user', 'ai'], true)
             ));
         }

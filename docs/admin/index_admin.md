@@ -14,7 +14,7 @@ The flow for every AI system interaction is:
 ```
 -> Frontend plugin
   -> call the AI manager with a purpose (can be done via JS or PHP)
-    -> selected purpose subplugin defines, checks, and sanitizes options passed alone
+    -> options passed along are sanitized according to the definitions of the selected purpose subplugin, which validates them
       -> purpose passes information to the connector (AI tool)
         -> connector implements the specific API call to the external AI system
           -> connector calls external AI system and retrieves information

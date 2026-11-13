@@ -125,7 +125,7 @@ All PHP API functions that are intended to be used by "frontend plugins" are pub
 
 - `ai_manager_utils::get_available_purpose_options`
 
-  Each purpose exposes options that can be sent along the prompt when calling the `perform_request` method of the `manager` class. This helper function retrieves the currently available purpose options as well as valid values. See `\qbank_questiongen\local\question_generator::is_mimetype_supported_by_ai_system` for an example.
+  Each purpose exposes options that can be sent along the prompt when calling the `perform_request` method of the `manager` class. This helper function retrieves the currently available purpose options as well as valid values. Only pass options the purpose defines: Options which are not defined or which do not match the defined type are rejected and the request fails with an HTTP 400 error. See `\qbank_questiongen\local\question_generator::is_mimetype_supported_by_ai_system` for an example.
 
 
 # 3. JS API functions

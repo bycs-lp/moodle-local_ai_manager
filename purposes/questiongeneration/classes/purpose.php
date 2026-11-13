@@ -26,6 +26,7 @@
 namespace aipurpose_questiongeneration;
 
 use local_ai_manager\base_purpose;
+use local_ai_manager\local\requestoptions\conversationcontext;
 use local_ai_manager\request_options;
 use Locale;
 
@@ -40,7 +41,14 @@ use Locale;
 class purpose extends base_purpose {
     #[\Override]
     public function get_additional_purpose_options(): array {
-        return ['conversationcontext' => base_purpose::PARAM_ARRAY];
+        return \core\di::get(conversationcontext::class)->get_option_definition();
+    }
+
+    #[\Override]
+    public function validate_purpose_options(array $options): void {
+        if (array_key_exists(conversationcontext::OPTION_NAME, $options)) {
+            \core\di::get(conversationcontext::class)->validate($options[conversationcontext::OPTION_NAME]);
+        }
     }
 
     #[\Override]

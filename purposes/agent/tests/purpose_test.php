@@ -1821,4 +1821,53 @@ JSON;
         $this->assertEmpty($decoded['formelements'], 'Unrecoverable input must not produce form elements');
         $this->assertArrayHasKey('chatoutput', $decoded, 'Fallback must still contain chatoutput');
     }
+
+    /**
+     * Tests that a conversation context which is no array is rejected before the purpose processes it.
+     *
+     * @covers ::validate_purpose_options
+     */
+    public function test_request_options_conversationcontext_no_array(): void {
+        $this->resetAfterTest();
+        set_config('agentprompt', 'Prompt. {{formelementsjson}} {{pageid}} {{currentlang}}', 'aipurpose_agent');
+        $this->expectException(\coding_exception::class);
+        new \local_ai_manager\request_options(
+            \core\di::get(connector_factory::class)->get_purpose_by_purpose_string('agent'),
+            context_system::instance(),
+            'block_ai_chat',
+            [
+                'agentoptions' => [
+                    'formelements' => [
+                        ['id' => 'id_test', 'name' => 'test', 'label' => 'Test'],
+                    ],
+                    'pageid' => 'page-test',
+                ],
+                'conversationcontext' => 'no array',
+            ]
+        );
+    }
+
+    /**
+     * Tests that the conversation context is validated by the conversation context validator.
+     *
+     * @covers ::validate_purpose_options
+     */
+    public function test_validate_purpose_options_violation(): void {
+        $this->expectException(\coding_exception::class);
+        (new purpose())->validate_purpose_options(['conversationcontext' => [['sender' => 'admin', 'message' => 'Hello']]]);
+    }
+
+    /**
+     * Tests that a valid conversation context including markup is accepted.
+     *
+     * @covers ::validate_purpose_options
+     */
+    public function test_validate_purpose_options_verification(): void {
+        $this->expectNotToPerformAssertions();
+        (new purpose())->validate_purpose_options(['conversationcontext' => [
+            ['sender' => 'system', 'message' => 'Write it as <pre class="language-xxx"><code>...</code></pre>.'],
+            ['sender' => 'user', 'message' => 'Fill in <b>bold</b> text.'],
+            ['sender' => 'ai', 'message' => '{"formelements": []}'],
+        ]]);
+    }
 }
