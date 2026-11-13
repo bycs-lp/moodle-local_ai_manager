@@ -32,7 +32,7 @@ class vecstore_response {
     private string $errormessage = '';
 
     /** @var string If there has been an error, this variable contains additional debugging information. */
-    private string $debuginfo;
+    private string $debuginfo = '';
 
     /** @var ?vecstore_query_response Query payload if this response represents a query-like operation. */
     private ?vecstore_query_response $queryresponse = null;
