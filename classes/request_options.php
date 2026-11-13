@@ -42,6 +42,7 @@ class request_options {
         private array $options = []
     ) {
         $options = $this->sanitize_options($options);
+        $this->purpose->validate_general_options($options);
         $this->purpose->validate_purpose_options($options);
         $this->options = $this->purpose->get_request_options($options);
     }

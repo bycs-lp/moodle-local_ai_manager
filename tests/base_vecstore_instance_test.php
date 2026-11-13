@@ -47,7 +47,6 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $instance->set_endpoint('https://qdrant.example.com');
         $instance->set_apikey('secret');
         $instance->set_collection('moodle_rag');
-        $instance->set_distancemetric(base_vecstore::DISTANCE_COSINE);
         $instance->store();
 
         $id = $instance->get_id();
@@ -60,7 +59,6 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $this->assertSame('https://qdrant.example.com', $loaded->get_endpoint());
         $this->assertSame('secret', $loaded->get_apikey());
         $this->assertSame('moodle_rag', $loaded->get_collection());
-        $this->assertSame(base_vecstore::DISTANCE_COSINE, $loaded->get_distancemetric());
     }
 
     /**
@@ -103,14 +101,12 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $data->apikey = 'abc';
         $data->useglobalapikey = 0;
         $data->collection = 'col';
-        $data->distancemetric = base_vecstore::DISTANCE_DOT;
         $instance->store_formdata($data);
 
         $formdata = (new vecstore_factory())->get_vecstore_instance_by_id($instance->get_id())->get_formdata();
         $this->assertSame('Trimmed Name', $formdata->name);
         $this->assertSame('qdrant', $formdata->vecstore);
         $this->assertSame('col', $formdata->collection);
-        $this->assertSame(base_vecstore::DISTANCE_DOT, $formdata->distancemetric);
     }
 
     /**
@@ -220,7 +216,6 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $data->vecstore = 'postgres';
         $data->connectionstring = $dsn;
         $data->collection = 'embeddings';
-        $data->distancemetric = base_vecstore::DISTANCE_COSINE;
         $instance->store_formdata($data);
 
         $reloaded = (new vecstore_factory())->get_vecstore_instance_by_id($instance->get_id());

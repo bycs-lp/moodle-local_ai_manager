@@ -155,7 +155,6 @@ class vecstore extends base_vecstore {
             return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
         }
         $table = pg_escape_identifier($connection, $collection);
-        [$operator, $scoreexpr] = $this->distance_sql();
         $managed = $this->is_managed_collection($collection);
 
         // Parameter $1 is reserved for the query vector; filter values are bound from $2 onwards.
@@ -192,11 +191,11 @@ class vecstore extends base_vecstore {
         $columns = $managed ? 'id, documentid, payload' : 'id, payload';
         // The nearest neighbours are determined first, only their vectors are converted to text and their payloads read.
         // Otherwise this is done for every candidate row before sorting, which makes searches over large sources
-        // (thousands of chunks) several times slower.
-        $sql = "SELECT {$columns}, embedding::text AS vector, {$scoreexpr} AS score "
+        // (thousands of chunks) several times slower. The operator <=> is the cosine distance, the score the cosine similarity.
+        $sql = "SELECT {$columns}, embedding::text AS vector, 1 - (embedding <=> \$1::vector) AS score "
             . "FROM (SELECT {$columns}, embedding FROM {$table} {$where} "
-            . "ORDER BY embedding {$operator} \$1::vector ASC LIMIT " . (int) $topk . ') AS nearest '
-            . "ORDER BY embedding {$operator} \$1::vector ASC";
+            . "ORDER BY embedding <=> \$1::vector ASC LIMIT " . (int) $topk . ') AS nearest '
+            . "ORDER BY embedding <=> \$1::vector ASC";
 
         $result = @pg_query_params($connection, $sql, $params);
         if ($result === false) {
@@ -280,7 +279,8 @@ class vecstore extends base_vecstore {
     /**
      * Converts the result rows of a collection table into vector records.
      *
-     * @param \PgSql\Result $result the result containing the columns vector, payload and (managed tables only) documentid
+     * @param \PgSql\Result $result the result containing the columns vector, payload, (managed tables only) documentid and
+     *  (similarity searches only) score
      * @return vector_record[] the vector records
      */
     protected function rows_to_records(\PgSql\Result $result): array {
@@ -291,7 +291,9 @@ class vecstore extends base_vecstore {
             if (array_key_exists('documentid', $row)) {
                 $payload[vector_record::PAYLOAD_DOCUMENTID] = (int) $row['documentid'];
             }
-            $records[] = vector_record::from_payload($row['vector'], $payload);
+            // Only similarity searches select a score.
+            $score = array_key_exists('score', $row) ? (float) $row['score'] : null;
+            $records[] = vector_record::from_payload($row['vector'], $payload, $score);
         }
         return $records;
     }
@@ -328,21 +330,6 @@ class vecstore extends base_vecstore {
             return $this->create_error_response(401, 'PostgreSQL authentication failed.', $this->connectionerror);
         }
         return $this->create_error_response(503, 'Could not connect to postgres vecstore backend.', $this->connectionerror);
-    }
-
-    /**
-     * Returns the pgvector distance operator and the (similarity) score expression for the configured metric.
-     *
-     * The score is normalised so that a higher value always means "more similar", to match the other backends.
-     *
-     * @return array{0: string, 1: string} the [operator, scoreexpr] pair
-     */
-    protected function distance_sql(): array {
-        return match ($this->get_distance_metric()) {
-            base_vecstore::DISTANCE_DOT => ['<#>', '(embedding <#> $1::vector) * -1'],
-            base_vecstore::DISTANCE_EUCLIDEAN => ['<->', '(embedding <-> $1::vector) * -1'],
-            default => ['<=>', '1 - (embedding <=> $1::vector)'],
-        };
     }
 
     /**

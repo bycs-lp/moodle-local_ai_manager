@@ -47,6 +47,8 @@ class vector_record {
      * @param string $content The textual content associated with the vector.
      * @param int $documentid The caller defined id of the document the vector belongs to, 0 if unknown.
      * @param array $metadata Additional scalar payload values indexed by payload key, stored next to the content.
+     * @param ?float $score The cosine similarity of a search match to the query vector, null if the record is no search
+     *  match.
      * @throws \coding_exception If the metadata uses a reserved payload key.
      */
     public function __construct(
@@ -58,6 +60,8 @@ class vector_record {
         private readonly int $documentid,
         /** @var array Additional scalar payload values indexed by payload key. */
         private readonly array $metadata = [],
+        /** @var ?float The cosine similarity of a search match to the query vector, null if the record is no search match. */
+        private readonly ?float $score = null,
     ) {
         if (array_key_exists(self::PAYLOAD_CONTENT, $metadata) || array_key_exists(self::PAYLOAD_DOCUMENTID, $metadata)) {
             throw new \coding_exception('The metadata of a vector record must not use the reserved payload keys.');
@@ -69,14 +73,16 @@ class vector_record {
      *
      * @param string $vector The (JSON string representation of the) embedding vector.
      * @param array $payload The stored payload.
+     * @param ?float $score The similarity of a search match to the query vector, see {@see self::get_score()}, null if the
+     *  record is no search match.
      * @return self The vector record.
      */
-    public static function from_payload(string $vector, array $payload): self {
+    public static function from_payload(string $vector, array $payload, ?float $score = null): self {
         // Vectors of collections managed outside of Moodle may lack any of these keys.
         $content = (string) ($payload[self::PAYLOAD_CONTENT] ?? '');
         $documentid = (int) ($payload[self::PAYLOAD_DOCUMENTID] ?? 0);
         unset($payload[self::PAYLOAD_CONTENT], $payload[self::PAYLOAD_DOCUMENTID]);
-        return new self($vector, $content, $documentid, $payload);
+        return new self($vector, $content, $documentid, $payload, $score);
     }
 
     /**
@@ -125,6 +131,18 @@ class vector_record {
      */
     public function get_metadata(): array {
         return $this->metadata;
+    }
+
+    /**
+     * Returns the cosine similarity of a search match to the query vector.
+     *
+     * All vecstore subplugins measure similarity as cosine similarity (-1 to 1, higher means more similar), so scores of
+     * matches of the same embedding model are comparable across vector stores.
+     *
+     * @return ?float The cosine similarity, null if the record is no search match.
+     */
+    public function get_score(): ?float {
+        return $this->score;
     }
 }
 

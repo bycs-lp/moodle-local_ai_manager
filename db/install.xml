@@ -158,7 +158,6 @@
         <FIELD NAME="apikey" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="useglobalapikey" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="collection" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Prefix of the collection/index/table names the vectors live in, one collection per embedding model"/>
-        <FIELD NAME="distancemetric" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="One of the base_vecstore::DISTANCE_* constants"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>

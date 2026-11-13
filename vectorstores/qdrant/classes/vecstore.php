@@ -26,8 +26,8 @@ use local_ai_manager\local\vector_record;
 /**
  * Vector store implementation for the Qdrant vector database.
  *
- * Talks to a Qdrant server over its REST API using the connection details (endpoint, API key,
- * distance metric) of the configured {@see base_vecstore_instance}.
+ * Talks to a Qdrant server over its REST API using the connection details (endpoint, API key) of the configured
+ * {@see base_vecstore_instance}. Collections use the cosine metric.
  *
  * @package    aivecstore_qdrant
  * @copyright  2026 ISB Bayern
@@ -50,7 +50,7 @@ class vecstore extends base_vecstore {
         $body = [
             'vectors' => [
                 'size' => $dimensions,
-                'distance' => $this->map_distance(),
+                'distance' => 'Cosine',
             ],
         ];
         $response = $this->request('PUT', '/collections/' . rawurlencode($collection), $body);
@@ -125,8 +125,13 @@ class vecstore extends base_vecstore {
             return $this->create_error_response($response, 'Could not run qdrant similarity query.');
         }
         $matches = [];
+        // The collections use the cosine metric, so the score is the cosine similarity.
         foreach ($response['data']['result'] as $hit) {
-            $matches[] = vector_record::from_payload(json_encode(array_values($hit['vector'])), $hit['payload'] ?? []);
+            $matches[] = vector_record::from_payload(
+                json_encode(array_values($hit['vector'])),
+                $hit['payload'] ?? [],
+                (float) $hit['score']
+            );
         }
         return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($matches));
     }
@@ -188,19 +193,6 @@ class vecstore extends base_vecstore {
         $code = $response['status'] > 0 ? $response['status'] : 500;
         $errormessage = $response['data']['status']['error'] ?? $fallbackmessage;
         return vecstore_response::create_from_error($code, $errormessage, json_encode($response['data'], JSON_THROW_ON_ERROR));
-    }
-
-    /**
-     * Maps the instance's distance metric to the value expected by the Qdrant API.
-     *
-     * @return string the Qdrant distance name
-     */
-    protected function map_distance(): string {
-        return match ($this->get_distance_metric()) {
-            base_vecstore::DISTANCE_DOT => 'Dot',
-            base_vecstore::DISTANCE_EUCLIDEAN => 'Euclid',
-            default => 'Cosine',
-        };
     }
 
     /**

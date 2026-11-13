@@ -779,4 +779,17 @@ final class base_purpose_test extends \advanced_testcase {
         $this->assertSame(PARAM_SEQUENCE, $purpose->get_available_purpose_options()['sourceids']);
         $this->assertSame('3,5', $purpose->get_request_options(['sourceids' => '3,5'])['sourceids']);
     }
+
+    /**
+     * Test that the general retrieval options are available for every purpose and passed on as request options, also if 0.
+     */
+    public function test_retrieval_options_are_available(): void {
+        $purpose = new base_purpose();
+
+        $this->assertSame(PARAM_FLOAT, $purpose->get_available_purpose_options()['minsimilarity']);
+        $this->assertSame(PARAM_INT, $purpose->get_available_purpose_options()['maxretrievedchars']);
+        $requestoptions = $purpose->get_request_options(['minsimilarity' => 0.0, 'maxretrievedchars' => 20000]);
+        $this->assertSame(0.0, $requestoptions['minsimilarity']);
+        $this->assertSame(20000, $requestoptions['maxretrievedchars']);
+    }
 }
