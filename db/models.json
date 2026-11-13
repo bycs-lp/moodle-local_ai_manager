@@ -635,6 +635,7 @@
         "displayname": "Text Embedding 3 Small",
         "description": "OpenAI text-embedding-3-small efficient embedding model for semantic search and retrieval",
         "mimetypes": "",
+        "textgeneration": 0,
         "vision": 0,
         "imggen": 0,
         "tts": 0,
@@ -649,6 +650,7 @@
         "displayname": "Text Embedding 3 Large",
         "description": "OpenAI text-embedding-3-large most capable embedding model for highest accuracy",
         "mimetypes": "",
+        "textgeneration": 0,
         "vision": 0,
         "imggen": 0,
         "tts": 0,
@@ -663,6 +665,7 @@
         "displayname": "Text Embedding Ada 002",
         "description": "OpenAI text-embedding-ada-002 previous generation embedding model",
         "mimetypes": "",
+        "textgeneration": 0,
         "vision": 0,
         "imggen": 0,
         "tts": 0,
@@ -1726,17 +1729,15 @@
         "displayname": "BGE-M3",
         "description": "BAAI BGE-M3 multilingual embedding model",
         "mimetypes": "",
-        "textgeneration": 1,
+        "textgeneration": 0,
         "vision": 0,
         "imggen": 0,
         "tts": 0,
         "stt": 0,
         "embedding": 1,
-        "deprecated": 1,
         "connectors": [
             "telli"
-        ],
-        "temperature": "0.0-2.0"
+        ]
     },
     {
         "name": "meta-llama/CodeLlama-13b-Instruct-hf",
