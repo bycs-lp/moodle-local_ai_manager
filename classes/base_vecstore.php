@@ -28,21 +28,15 @@ use local_ai_manager\local\vecstore_response;
  * querying vector embeddings, for example to implement retrieval augmented generation (RAG) use cases.
  * Each backend (Qdrant, PostgreSQL/pgvector, ...) implements the abstract methods defined here.
  *
+ * Similarity is always measured as cosine similarity, so the scores of all backends share the same scale (-1 to 1) and can be
+ * compared with each other (see {@see vector_record::get_score()}).
+ *
  * @package    local_ai_manager
  * @copyright  2026 ISB Bayern
  * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 abstract class base_vecstore {
-    /** @var string Distance metric: cosine similarity. */
-    const DISTANCE_COSINE = 'cosine';
-
-    /** @var string Distance metric: dot product. */
-    const DISTANCE_DOT = 'dot';
-
-    /** @var string Distance metric: euclidean distance. */
-    const DISTANCE_EUCLIDEAN = 'euclidean';
-
     /** @var int Maximum length of a collection name, PostgreSQL limits identifiers to 63 bytes. */
     const MAX_COLLECTION_NAME_LENGTH = 63;
 
@@ -94,17 +88,6 @@ abstract class base_vecstore {
      */
     final public static function get_all_vectorstores(): array {
         return core_plugin_manager::instance()->get_enabled_plugins('aivecstore');
-    }
-
-    /**
-     * Returns the distance metric configured for this vector store instance.
-     *
-     * Subclasses may override this if their backend uses or requires a different metric.
-     *
-     * @return string one of the self::DISTANCE_* constants
-     */
-    public function get_distance_metric(): string {
-        return $this->instance->get_distancemetric();
     }
 
     /**
@@ -233,7 +216,8 @@ abstract class base_vecstore {
      *
      * Use {@see self::query()} for vectors stored by Moodle. This method is meant for collections managed outside of
      * Moodle, the caller is responsible for the query vector fitting the vectors of the collection. A missing collection
-     * leads to an empty result.
+     * leads to an empty result. Backends fixing the metric per collection (Qdrant) require the collection to use the cosine
+     * metric, otherwise the scores have another meaning.
      *
      * @param string $collection the backend name of the collection
      * @param array $vector the query embedding vector as array of floats

@@ -138,4 +138,44 @@ final class request_options_test extends \advanced_testcase {
 
         $this->assertSame($expected, $requestoptions->get_options()['sourceids']);
     }
+
+    /**
+     * Data provider for test_construct_retrieval_option_validation.
+     *
+     * @return array Datasets with the submitted options and whether they are valid.
+     */
+    public static function construct_retrieval_option_validation_provider(): array {
+        return [
+            'minsimilarity_lower_bound' => ['options' => ['minsimilarity' => -1], 'valid' => true],
+            'minsimilarity_upper_bound' => ['options' => ['minsimilarity' => 1], 'valid' => true],
+            'minsimilarity_zero' => ['options' => ['minsimilarity' => 0], 'valid' => true],
+            'minsimilarity_below' => ['options' => ['minsimilarity' => -1.01], 'valid' => false],
+            'minsimilarity_above' => ['options' => ['minsimilarity' => 1.5], 'valid' => false],
+            'maxretrievedchars_positive' => ['options' => ['maxretrievedchars' => 50000], 'valid' => true],
+            'maxretrievedchars_zero' => ['options' => ['maxretrievedchars' => 0], 'valid' => false],
+            'maxretrievedchars_negative' => ['options' => ['maxretrievedchars' => -10], 'valid' => false],
+        ];
+    }
+
+    /**
+     * Test that the general retrieval options are validated against their domain for every purpose.
+     *
+     * @param array $options The submitted options.
+     * @param bool $valid Whether the options are valid.
+     */
+    #[DataProvider('construct_retrieval_option_validation_provider')]
+    public function test_construct_retrieval_option_validation(array $options, bool $valid): void {
+        if (!$valid) {
+            $this->expectException(\coding_exception::class);
+        }
+        // A purpose overriding validate_purpose_options must not be able to skip the validation of the general options.
+        $requestoptions = new request_options(
+            new array_option_purpose(),
+            \core\context\system::instance(),
+            'block_ai_chat',
+            $options
+        );
+
+        $this->assertEquals($options, array_intersect_key($requestoptions->get_options(), $options));
+    }
 }

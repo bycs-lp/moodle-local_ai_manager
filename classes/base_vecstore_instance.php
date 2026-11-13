@@ -64,9 +64,6 @@ class base_vecstore_instance {
     /** @var ?string The prefix of the collection/index/table names the vectors live in */
     protected ?string $collection = null;
 
-    /** @var ?string The distance metric, one of the base_vecstore::DISTANCE_* constants */
-    protected ?string $distancemetric = null;
-
     /**
      * Create an object for this vector store instance and - if the instance already exists - load all data from database.
      *
@@ -96,7 +93,6 @@ class base_vecstore_instance {
         $this->apikey = $record->apikey;
         $this->useglobalapikey = $record->useglobalapikey;
         $this->collection = $record->collection;
-        $this->distancemetric = $record->distancemetric;
     }
 
     /**
@@ -114,7 +110,6 @@ class base_vecstore_instance {
         $record->apikey = $this->apikey;
         $record->useglobalapikey = $this->get_useglobalapikey() ? 1 : 0;
         $record->collection = $this->collection;
-        $record->distancemetric = $this->distancemetric;
         $currenttime = $clock->time();
         $record->timemodified = $currenttime;
         if (is_null($this->record)) {
@@ -323,24 +318,6 @@ class base_vecstore_instance {
     }
 
     /**
-     * Standard getter.
-     *
-     * @return string the distance metric, one of the base_vecstore::DISTANCE_* constants
-     */
-    public function get_distancemetric(): string {
-        return empty($this->distancemetric) ? base_vecstore::DISTANCE_COSINE : $this->distancemetric;
-    }
-
-    /**
-     * Standard setter.
-     *
-     * @param string $distancemetric one of the base_vecstore::DISTANCE_* constants
-     */
-    public function set_distancemetric(string $distancemetric): void {
-        $this->distancemetric = $distancemetric;
-    }
-
-    /**
      * Returns if we have already a database record for this object.
      *
      * @return bool true if there is a database record
@@ -373,7 +350,6 @@ class base_vecstore_instance {
         $data->apikey = $this->get_apikey();
         $data->useglobalapikey = $this->get_useglobalapikey();
         $data->collection = $this->get_collection();
-        $data->distancemetric = $this->get_distancemetric();
         foreach ($this->get_extended_formdata() as $key => $value) {
             $data->{$key} = $value;
         }
@@ -486,21 +462,6 @@ class base_vecstore_instance {
         $mform->setType('collection', PARAM_TEXT);
         $mform->addHelpButton('collection', 'collection', 'local_ai_manager');
 
-        $distanceoptions = [
-            base_vecstore::DISTANCE_COSINE => get_string('distance_cosine', 'local_ai_manager'),
-            base_vecstore::DISTANCE_DOT => get_string('distance_dot', 'local_ai_manager'),
-            base_vecstore::DISTANCE_EUCLIDEAN => get_string('distance_euclidean', 'local_ai_manager'),
-        ];
-        $mform->addElement(
-            'select',
-            'distancemetric',
-            get_string('distancemetric', 'local_ai_manager'),
-            $distanceoptions,
-            $textelementparams
-        );
-        $mform->setDefault('distancemetric', base_vecstore::DISTANCE_COSINE);
-        $mform->addHelpButton('distancemetric', 'distancemetric', 'local_ai_manager');
-
         $this->extend_form_definition($mform);
     }
 
@@ -522,7 +483,6 @@ class base_vecstore_instance {
             $this->set_global(!empty($data->isglobal));
         }
         $this->set_collection(!empty($data->collection) ? trim($data->collection) : null);
-        $this->set_distancemetric(empty($data->distancemetric) ? base_vecstore::DISTANCE_COSINE : $data->distancemetric);
         $this->extend_store_formdata($data);
         $this->store();
     }

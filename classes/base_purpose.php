@@ -88,6 +88,12 @@ class base_purpose {
         if (!empty($options['sourceids'])) {
             $newoptions['sourceids'] = $options['sourceids'];
         }
+        // Zero is a valid value of these options.
+        foreach (['minsimilarity', 'maxretrievedchars'] as $key) {
+            if (array_key_exists($key, $options)) {
+                $newoptions[$key] = $options[$key];
+            }
+        }
         return $newoptions + $this->get_additional_request_options($options);
     }
 
@@ -151,6 +157,14 @@ class base_purpose {
         $options['forcenewitemid'] = PARAM_BOOL;
         // Comma separated ids of sources selected by the user, evaluated by listeners of the additional_prompt_context hook.
         $options['sourceids'] = PARAM_SEQUENCE;
+        // Retrieval parameters for the content listeners of the additional_prompt_context hook retrieve from the selected
+        // sources, listeners fall back to their own defaults if not set:
+        // - minsimilarity: the minimum cosine similarity a retrieved excerpt must have to the prompt,
+        // - maxretrievedchars: the maximum number of characters of the retrieved excerpts. This only limits the content
+        //   retrieved from the sources, not the whole prompt (prompt, conversation history, system message and other added
+        //   contexts are not counted).
+        $options['minsimilarity'] = PARAM_FLOAT;
+        $options['maxretrievedchars'] = PARAM_INT;
         $additionalpurposeoptions = $this->get_additional_purpose_options();
         foreach (array_keys($additionalpurposeoptions) as $purposeoption) {
             if (in_array($purposeoption, $options)) {
@@ -177,14 +191,35 @@ class base_purpose {
     }
 
     /**
+     * Validates the general options defined by this base class for all purposes.
+     *
+     * Called when creating the {@see request_options} object after the submitted options have been sanitized and before the
+     * purpose specific validation in {@see self::validate_purpose_options}. Final, so purposes overriding
+     * {@see self::validate_purpose_options} cannot skip it.
+     *
+     * @param array $options associative array of the sanitized options, keyed by option name
+     * @throws \coding_exception if a general option has a value outside of its domain
+     */
+    final public function validate_general_options(array $options): void {
+        // The cosine similarity is defined between -1 and 1.
+        if (array_key_exists('minsimilarity', $options) && ($options['minsimilarity'] < -1 || $options['minsimilarity'] > 1)) {
+            throw new \coding_exception('Option minsimilarity must be between -1 and 1');
+        }
+        if (array_key_exists('maxretrievedchars', $options) && $options['maxretrievedchars'] < 1) {
+            throw new \coding_exception('Option maxretrievedchars must be a positive number');
+        }
+    }
+
+    /**
      * Hook for the purpose specific validation of the submitted request options.
      *
      * Called when creating the {@see request_options} object AFTER the submitted options have been sanitized by
      * {@see request_options::sanitize_options} and BEFORE they are being processed by {@see self::get_additional_request_options}.
      * So at this point only options defined by the purpose are present, their values have been cleaned according to their
      * types and options of type {@see self::PARAM_ARRAY} are guaranteed to be arrays. The purpose can rely on valid options
-     * when processing them. Options added by the purpose itself in {@see self::get_additional_request_options} are not being
-     * validated.
+     * when processing them. The general options of this base class have already been validated by
+     * {@see self::validate_general_options}. Options added by the purpose itself in {@see self::get_additional_request_options}
+     * are not being validated.
      *
      * Purposes should override this for additional (for example domain specific) validations, especially for validating the
      * structure of array options whose content is not being cleaned.

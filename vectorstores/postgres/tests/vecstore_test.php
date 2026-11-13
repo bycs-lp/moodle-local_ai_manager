@@ -16,7 +16,6 @@
 
 namespace aivecstore_postgres;
 
-use local_ai_manager\base_vecstore;
 use local_ai_manager\base_vecstore_instance;
 use local_ai_manager\local\vector_record;
 
@@ -57,7 +56,6 @@ final class vecstore_test extends \advanced_testcase {
         $instance = new base_vecstore_instance();
         $instance->set_vecstore('postgres');
         $instance->set_apikey($dsn);
-        $instance->set_distancemetric(base_vecstore::DISTANCE_COSINE);
         // Every embedding model gets its own collection named after this prefix.
         $instance->set_collection($this->collection);
         $instance->store();
@@ -100,11 +98,15 @@ final class vecstore_test extends \advanced_testcase {
         $this->assertSame(102, $matches[0]->get_documentid());
         $this->assertEquals(['chunk' => 2, 'locator' => 'p. 3'], $matches[0]->get_metadata());
         $this->assertNotSame('', $matches[0]->get_vector());
+        // The score is the cosine similarity, the closest match comes first.
+        $this->assertEqualsWithDelta(0.9 / sqrt(0.82), $matches[0]->get_score(), 0.0001);
+        $this->assertGreaterThan($matches[1]->get_score(), $matches[0]->get_score());
 
         // The get_all() call returns all stored vectors.
         $allresponse = $this->driver->get_all($collection);
         $this->assertSame(200, $allresponse->get_code());
         $this->assertCount(3, $allresponse->get_queryresponse()->get_matches());
+        $this->assertNull($allresponse->get_queryresponse()->get_matches()[0]->get_score());
 
         $this->assertSame(200, $this->driver->drop_collection(self::MODEL)->get_code());
         $this->assertSame([], $this->driver->get_collections());
