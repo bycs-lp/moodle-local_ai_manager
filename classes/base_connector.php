@@ -84,7 +84,6 @@ abstract class base_connector {
 
         $result = array_fill_keys(array_keys(base_purpose::get_installed_purposes_array()), []);
         $textpurposes = ['agent', 'chat', 'feedback', 'questiongeneration', 'singleprompt', 'translate'];
-        $embeddingmodels = [];
 
         foreach ($models as $model) {
             $name = $model->get_name();
@@ -96,11 +95,9 @@ abstract class base_connector {
                 foreach ($textpurposes as $purpose) {
                     if (array_key_exists($purpose, $result)) {
                         $result[$purpose][] = $name;
+                    }
+                }
             }
-            if ($model->supports_embedding()) {
-                $embeddingmodels[] = $name;
-            }
-        }}
 
             if ($model->supports_tts() && array_key_exists('tts', $result)) {
                 $result['tts'][] = $name;
