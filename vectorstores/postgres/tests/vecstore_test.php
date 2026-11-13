@@ -43,12 +43,16 @@ final class vecstore_test extends \advanced_testcase {
     /** @var string the unique collection (table) name prefix used for this test run */
     private string $collection;
 
+    /** @var string the connection string of the test database */
+    private string $dsn;
+
     #[\Override]
     protected function setUp(): void {
         parent::setUp();
         $this->resetAfterTest();
 
-        $dsn = getenv('PGVECTOR_TEST_DSN') ?: 'postgresql://vectors:vectors@pgvector:5432/vectors';
+        $this->dsn = getenv('PGVECTOR_TEST_DSN') ?: 'postgresql://vectors:vectors@pgvector:5432/vectors';
+        $dsn = $this->dsn;
         $this->collection = 'moodle_test_' . uniqid();
         $instance = new base_vecstore_instance();
         $instance->set_vecstore('postgres');
@@ -202,5 +206,45 @@ final class vecstore_test extends \advanced_testcase {
         $queryresponse = $this->driver->query_collection($this->collection . '_external', [1.0, 0.0, 0.0, 0.0], 5);
         $this->assertSame(200, $queryresponse->get_code());
         $this->assertSame([], $queryresponse->get_queryresponse()->get_matches());
+    }
+
+    /**
+     * The document id of Moodle managed collections is stored in its own column and not duplicated in the payload.
+     */
+    public function test_documentid_is_stored_in_column(): void {
+        $this->driver->insert_embeddings(self::MODEL, [
+            new vector_record(json_encode([1.0, 0.0, 0.0, 0.0]), 'x', 101, ['chunk' => 1]),
+        ]);
+
+        $connection = pg_connect($this->dsn, PGSQL_CONNECT_FORCE_NEW);
+        $table = pg_escape_identifier($connection, $this->driver->get_collections()[self::MODEL]);
+        $row = pg_fetch_assoc(pg_query($connection, "SELECT documentid, payload FROM {$table}"));
+        pg_close($connection);
+        $this->assertSame('101', $row['documentid']);
+        $this->assertSame(['chunk' => 1, 'content' => 'x'], json_decode($row['payload'], true));
+    }
+
+    /**
+     * Tables written outside of Moodle keep the document id in the payload and can be filtered by it.
+     */
+    public function test_query_external_collection_filters_payload(): void {
+        $external = $this->collection . '_external';
+        $connection = pg_connect($this->dsn, PGSQL_CONNECT_FORCE_NEW);
+        $table = pg_escape_identifier($connection, $external);
+        pg_query($connection, "CREATE TABLE {$table} (id text PRIMARY KEY, embedding vector(4), payload jsonb)");
+        try {
+            pg_query($connection, "INSERT INTO {$table} VALUES "
+                . "('a', '[1,0,0,0]', '{\"content\": \"seven\", \"documentid\": 7}'), "
+                . "('b', '[0.9,0.1,0,0]', '{\"content\": \"nine\", \"documentid\": 9}')");
+
+            $matches = $this->driver->query_collection($external, [1.0, 0.0, 0.0, 0.0], 5, ['documentid' => [9]])
+                ->get_queryresponse()->get_matches();
+            $this->assertCount(1, $matches);
+            $this->assertSame('nine', $matches[0]->get_content());
+            $this->assertSame(9, $matches[0]->get_documentid());
+        } finally {
+            pg_query($connection, "DROP TABLE {$table}");
+            pg_close($connection);
+        }
     }
 }
