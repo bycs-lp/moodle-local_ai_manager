@@ -209,6 +209,29 @@ final class vecstore_test extends \advanced_testcase {
     }
 
     /**
+     * The connection of a driver is closed as soon as the driver is released, not only at the end of the request.
+     */
+    public function test_connection_is_closed_when_driver_is_released(): void {
+        $monitor = pg_connect($this->dsn, PGSQL_CONNECT_FORCE_NEW);
+        $countconnections = static fn(): int => (int) pg_fetch_result(pg_query($monitor,
+            "SELECT count(*) FROM pg_stat_activity WHERE usename = current_user AND backend_type = 'client backend' "
+            . 'AND pid <> pg_backend_pid()'), 0, 0);
+        $before = $countconnections();
+
+        $driver = new vecstore($this->driver->get_instance());
+        $this->assertSame(200, $driver->is_available()->get_code());
+        $this->assertSame($before + 1, $countconnections());
+
+        unset($driver);
+        // The backend process of the closed connection ends asynchronously.
+        for ($i = 0; $i < 50 && $countconnections() > $before; $i++) {
+            usleep(20000);
+        }
+        $this->assertSame($before, $countconnections());
+        pg_close($monitor);
+    }
+
+    /**
      * The document id of Moodle managed collections is stored in its own column and not duplicated in the payload.
      */
     public function test_documentid_is_stored_in_column(): void {

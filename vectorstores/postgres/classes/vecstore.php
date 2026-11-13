@@ -41,6 +41,19 @@ class vecstore extends base_vecstore {
     /** @var string The last connection error message captured during {@see self::get_connection()}. */
     protected string $connectionerror = '';
 
+    /**
+     * Closes the connection as soon as the driver is no longer used.
+     *
+     * Otherwise PHP keeps the connection open until the end of the request, i.e. also during the long running AI request
+     * following a vector search, and the number of database connections grows with the number of concurrent AI requests
+     * instead of the number of concurrent vector store operations.
+     */
+    public function __destruct() {
+        if ($this->connection) {
+            pg_close($this->connection);
+        }
+    }
+
     #[\Override]
     public function is_available(): vecstore_response {
         $connection = $this->get_connection();
@@ -177,8 +190,13 @@ class vecstore extends base_vecstore {
         $where = empty($conditions) ? '' : ('WHERE ' . implode(' AND ', $conditions));
 
         $columns = $managed ? 'id, documentid, payload' : 'id, payload';
-        $sql = "SELECT {$columns}, embedding::text AS vector, {$scoreexpr} AS score FROM {$table} {$where} "
-            . "ORDER BY embedding {$operator} \$1::vector ASC LIMIT " . (int) $topk;
+        // The nearest neighbours are determined first, only their vectors are converted to text and their payloads read.
+        // Otherwise this is done for every candidate row before sorting, which makes searches over large sources
+        // (thousands of chunks) several times slower.
+        $sql = "SELECT {$columns}, embedding::text AS vector, {$scoreexpr} AS score "
+            . "FROM (SELECT {$columns}, embedding FROM {$table} {$where} "
+            . "ORDER BY embedding {$operator} \$1::vector ASC LIMIT " . (int) $topk . ') AS nearest '
+            . "ORDER BY embedding {$operator} \$1::vector ASC";
 
         $result = @pg_query_params($connection, $sql, $params);
         if ($result === false) {
@@ -372,7 +390,9 @@ class vecstore extends base_vecstore {
             $this->connection = false;
             return false;
         }
-        $connection = @pg_connect($dsn);
+        // A new connection per driver: pg_connect() would otherwise share the connection of other drivers with the same
+        // connection string, which would be closed for all of them when one driver is destroyed.
+        $connection = @pg_connect($dsn, PGSQL_CONNECT_FORCE_NEW);
         if ($connection === false) {
             $this->connectionerror = pg_last_error() ?: 'Connection failed.';
             $this->connection = false;
