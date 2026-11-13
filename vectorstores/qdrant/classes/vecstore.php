@@ -54,10 +54,16 @@ class vecstore extends base_vecstore {
             ],
         ];
         $response = $this->request('PUT', '/collections/' . rawurlencode($collection), $body);
-        if ($response['status'] === 200) {
-            return vecstore_response::create_from_result();
+        if ($response['status'] !== 200) {
+            return $this->create_error_response($response, 'Could not create qdrant collection.');
         }
-        return $this->create_error_response($response, 'Could not create qdrant collection.');
+        // Retrieval and deletion always filter by document id, without a payload index Qdrant filters inefficiently.
+        $indexbody = ['field_name' => vector_record::PAYLOAD_DOCUMENTID, 'field_schema' => 'integer'];
+        $response = $this->request('PUT', '/collections/' . rawurlencode($collection) . '/index?wait=true', $indexbody);
+        if ($response['status'] !== 200) {
+            return $this->create_error_response($response, 'Could not create qdrant payload index.');
+        }
+        return vecstore_response::create_from_result();
     }
 
     #[\Override]

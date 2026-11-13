@@ -63,10 +63,18 @@ class vecstore extends base_vecstore {
         // The vector type requires the pgvector extension; create it if the user is allowed to.
         pg_query($connection, 'CREATE EXTENSION IF NOT EXISTS vector');
         $table = pg_escape_identifier($connection, $collection);
+        // The document id is stored in its own column (not in the payload): it is used for every retrieval, replacement and
+        // deletion, so it is typed, indexed and could serve as partition key of very large tables.
         $sql = "CREATE TABLE IF NOT EXISTS {$table} "
-            . '(id text PRIMARY KEY, embedding vector(' . $dimensions . '), payload jsonb)';
+            . '(id text PRIMARY KEY, documentid bigint NOT NULL, embedding vector(' . $dimensions . '), payload jsonb)';
         if (pg_query($connection, $sql) === false) {
             return $this->create_error_response(500, 'Could not create postgres vecstore collection table.',
+                pg_last_error($connection));
+        }
+        // Retrieval and deletion always filter by document id, without this index every query scans the whole table.
+        $index = pg_escape_identifier($connection, self::get_documentid_index_name($collection));
+        if (pg_query($connection, "CREATE INDEX IF NOT EXISTS {$index} ON {$table} (documentid)") === false) {
+            return $this->create_error_response(500, 'Could not create postgres vecstore collection index.',
                 pg_last_error($connection));
         }
         return vecstore_response::create_from_result();
@@ -96,15 +104,19 @@ class vecstore extends base_vecstore {
             throw new collection_not_found_exception();
         }
         $table = pg_escape_identifier($connection, $collection);
-        $sql = "INSERT INTO {$table} (id, embedding, payload) VALUES ($1, $2::vector, $3::jsonb)";
+        $sql = "INSERT INTO {$table} (id, documentid, embedding, payload) VALUES ($1, $2, $3::vector, $4::jsonb)";
 
         $success = pg_query($connection, 'BEGIN') !== false;
         foreach ($embeddings as $embedding) {
+            // The document id has its own column, so it is not duplicated in the payload.
+            $payload = $embedding->to_payload();
+            unset($payload[vector_record::PAYLOAD_DOCUMENTID]);
             $params = [
                 // The id column is the table's primary key; we generate a UUID as callers do not manage references.
                 \core\uuid::generate(),
+                $embedding->get_documentid(),
                 $this->normalize_vector_literal($embedding->get_vector()),
-                json_encode($embedding->to_payload()),
+                json_encode($payload),
             ];
             if (@pg_query_params($connection, $sql, $params) === false) {
                 $success = false;
@@ -131,14 +143,17 @@ class vecstore extends base_vecstore {
         }
         $table = pg_escape_identifier($connection, $collection);
         [$operator, $scoreexpr] = $this->distance_sql();
+        $managed = $this->is_managed_collection($collection);
 
         // Parameter $1 is reserved for the query vector; filter values are bound from $2 onwards.
-        // Keys and values are parameterized (payload->>$k) so arbitrary filter keys can't inject SQL.
+        // Keys are escaped literals instead of parameters, so arbitrary filter keys can't inject SQL.
         $params = [$this->vector_to_literal($vector)];
         $conditions = [];
         foreach ($filters as $key => $value) {
-            $params[] = (string) $key;
-            $keyparam = '$' . count($params);
+            // Tables created by Moodle store the document id in its own (indexed) column, all other keys in the payload.
+            $field = $managed && $key === vector_record::PAYLOAD_DOCUMENTID
+                ? 'documentid'
+                : 'payload->>' . pg_escape_literal($connection, (string) $key);
             if (is_array($value)) {
                 if (empty($value)) {
                     // An empty value set matches nothing.
@@ -151,17 +166,18 @@ class vecstore extends base_vecstore {
                     $params[] = (string) $item;
                     $placeholders[] = '$' . count($params);
                 }
-                $conditions[] = "payload->>{$keyparam} IN (" . implode(', ', $placeholders) . ')';
+                $conditions[] = "{$field} IN (" . implode(', ', $placeholders) . ')';
             } else {
                 // Scalar value → exact match.
                 $params[] = (string) $value;
                 $valueparam = '$' . count($params);
-                $conditions[] = "payload->>{$keyparam} = {$valueparam}";
+                $conditions[] = "{$field} = {$valueparam}";
             }
         }
         $where = empty($conditions) ? '' : ('WHERE ' . implode(' AND ', $conditions));
 
-        $sql = "SELECT id, payload, embedding::text AS vector, {$scoreexpr} AS score FROM {$table} {$where} "
+        $columns = $managed ? 'id, documentid, payload' : 'id, payload';
+        $sql = "SELECT {$columns}, embedding::text AS vector, {$scoreexpr} AS score FROM {$table} {$where} "
             . "ORDER BY embedding {$operator} \$1::vector ASC LIMIT " . (int) $topk;
 
         $result = @pg_query_params($connection, $sql, $params);
@@ -169,13 +185,9 @@ class vecstore extends base_vecstore {
             return $this->create_error_response(500, 'Could not run postgres vecstore similarity query.',
                 pg_last_error($connection));
         }
-        $matches = [];
-        foreach (pg_fetch_all($result) as $row) {
-            // Rows of external sources are written outside of Moodle and may come without payload.
-            $payload = $row['payload'] === null ? [] : json_decode($row['payload'], true, flags: JSON_THROW_ON_ERROR);
-            $matches[] = vector_record::from_payload($row['vector'], $payload);
-        }
-        return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($matches));
+        return vecstore_response::create_from_query_result(
+            vecstore_query_response::create_from_result($this->rows_to_records($result))
+        );
     }
 
     #[\Override]
@@ -188,18 +200,15 @@ class vecstore extends base_vecstore {
             return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
         }
         $table = pg_escape_identifier($connection, $collection);
-        $result = @pg_query($connection, "SELECT id, payload, embedding::text AS vector FROM {$table}");
+        $columns = $this->is_managed_collection($collection) ? 'id, documentid, payload' : 'id, payload';
+        $result = @pg_query($connection, "SELECT {$columns}, embedding::text AS vector FROM {$table}");
         if ($result === false) {
             return $this->create_error_response(500, 'Could not fetch vectors from postgres vecstore collection.',
                 pg_last_error($connection));
         }
-        $vectors = [];
-        foreach (pg_fetch_all($result) as $row) {
-            // Rows of external sources are written outside of Moodle and may come without payload.
-            $payload = $row['payload'] === null ? [] : json_decode($row['payload'], true, flags: JSON_THROW_ON_ERROR);
-            $vectors[] = vector_record::from_payload($row['vector'], $payload);
-        }
-        return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($vectors));
+        return vecstore_response::create_from_query_result(
+            vecstore_query_response::create_from_result($this->rows_to_records($result))
+        );
     }
 
     #[\Override]
@@ -215,15 +224,58 @@ class vecstore extends base_vecstore {
             return vecstore_response::create_from_result();
         }
         $table = pg_escape_identifier($connection, $collection);
-        $params = array_map(static fn(int $documentid): string => (string) $documentid, array_values($documentids));
-        $placeholders = array_map(static fn(int $index): string => '$' . ($index + 2), array_keys($params));
-        array_unshift($params, vector_record::PAYLOAD_DOCUMENTID);
-        $sql = "DELETE FROM {$table} WHERE payload->>\$1 IN (" . implode(', ', $placeholders) . ')';
+        $params = array_values($documentids);
+        $placeholders = array_map(static fn(int $index): string => '$' . ($index + 1), array_keys($params));
+        $sql = "DELETE FROM {$table} WHERE documentid IN (" . implode(', ', $placeholders) . ')';
         if (@pg_query_params($connection, $sql, $params) === false) {
             return $this->create_error_response(500, 'Could not delete embeddings from postgres vecstore collection.',
                 pg_last_error($connection));
         }
         return vecstore_response::create_from_result();
+    }
+
+    /**
+     * Returns the name of the document id index of a collection table.
+     *
+     * Index names are unique per schema and limited to 63 bytes like table names, so the name is derived from a hash of
+     * the table name instead of appending a suffix to it.
+     *
+     * @param string $collection the backend name of the collection
+     * @return string the index name
+     */
+    protected static function get_documentid_index_name(string $collection): string {
+        return 'documentid_' . substr(sha1($collection), 0, 20);
+    }
+
+    /**
+     * Checks whether a collection table has been created by Moodle and thus stores the document id in its own column.
+     *
+     * Tables of external sources are written outside of Moodle and keep all values (if any) in the payload.
+     *
+     * @param string $collection the backend name of the collection
+     * @return bool true if the collection is registered for this vector store instance
+     */
+    protected function is_managed_collection(string $collection): bool {
+        return in_array($collection, $this->get_collections(), true);
+    }
+
+    /**
+     * Converts the result rows of a collection table into vector records.
+     *
+     * @param \PgSql\Result $result the result containing the columns vector, payload and (managed tables only) documentid
+     * @return vector_record[] the vector records
+     */
+    protected function rows_to_records(\PgSql\Result $result): array {
+        $records = [];
+        foreach (pg_fetch_all($result) as $row) {
+            // Rows of external sources are written outside of Moodle and may come without payload.
+            $payload = $row['payload'] === null ? [] : json_decode($row['payload'], true, flags: JSON_THROW_ON_ERROR);
+            if (array_key_exists('documentid', $row)) {
+                $payload[vector_record::PAYLOAD_DOCUMENTID] = (int) $row['documentid'];
+            }
+            $records[] = vector_record::from_payload($row['vector'], $payload);
+        }
+        return $records;
     }
 
     /**
