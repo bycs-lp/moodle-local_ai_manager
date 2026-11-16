@@ -23,8 +23,13 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['connectionstring'] = 'Connection string';
-$string['connectionstring_help'] = 'The full PostgreSQL connection string (libpq DSN) used to reach your pgvector database, including credentials — for example postgresql://user:password@host:5432/dbname?sslmode=require. The collection name below is used as the table name.';
-$string['formvalidation_connectionstring'] = 'Please enter a PostgreSQL connection string';
+$string['connectionrefused'] = 'The connection settings are not allowed: {$a}';
+$string['endpoint'] = 'Database server';
+$string['endpointdescription'] = 'Server, port and database of your pgvector database as URL, for example postgresql://your-db-host:5432/dbname. Without the parameter sslmode an encrypted connection (sslmode=require) is used unless insecure connections are allowed in the settings. The collection name below is used as the table name.';
+$string['formvalidation_endpoint'] = 'Please enter the database server';
+$string['formvalidation_endpointformat'] = 'Please enter the database server as postgresql://host:port/database. The user name and the password have their own fields, "sslmode" is the only allowed parameter.';
+$string['formvalidation_endpointsslmode'] = 'For security and data privacy reasons only encrypted connections are allowed: use sslmode=require, verify-ca or verify-full.';
+$string['formvalidation_username'] = 'Please enter the user name';
+$string['password'] = 'Password';
 $string['pluginname'] = 'PostgreSQL (pgvector)';
 $string['privacy:metadata'] = 'The local ai_manager vector store subplugin "PostgreSQL (pgvector)" does not store any personal data in Moodle itself.';

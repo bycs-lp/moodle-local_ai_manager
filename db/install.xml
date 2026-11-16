@@ -155,8 +155,8 @@
         <FIELD NAME="vecstore" TYPE="char" LENGTH="50" NOTNULL="false" SEQUENCE="false" COMMENT="The aivecstore subplugin name, e.g. qdrant or postgres"/>
         <FIELD NAME="isglobal" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 if the instance is available for all tenants"/>
         <FIELD NAME="endpoint" TYPE="char" LENGTH="1000" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="apikey" TYPE="text" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="useglobalapikey" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="username" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="User name of backends with user/password authentication"/>
+        <FIELD NAME="secret" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Secret of the backend: API key, token or (together with username) password"/>
         <FIELD NAME="collection" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Prefix of the collection/index/table names the vectors live in, one collection per embedding model"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>

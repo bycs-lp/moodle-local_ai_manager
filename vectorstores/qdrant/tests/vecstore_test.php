@@ -52,7 +52,7 @@ final class vecstore_test extends \advanced_testcase {
         $instance = new base_vecstore_instance();
         $instance->set_vecstore('qdrant');
         $instance->set_endpoint($endpoint);
-        $instance->set_apikey('');
+        $instance->set_secret('');
         // Every embedding model gets its own collection named after this prefix.
         $instance->set_collection($this->collection);
         $instance->store();

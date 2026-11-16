@@ -45,7 +45,7 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $instance->set_tenant('sometenant');
         $instance->set_vecstore('qdrant');
         $instance->set_endpoint('https://qdrant.example.com');
-        $instance->set_apikey('secret');
+        $instance->set_secret('secret');
         $instance->set_collection('moodle_rag');
         $instance->store();
 
@@ -57,7 +57,7 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $this->assertSame('sometenant', $loaded->get_tenant());
         $this->assertSame('qdrant', $loaded->get_vecstore());
         $this->assertSame('https://qdrant.example.com', $loaded->get_endpoint());
-        $this->assertSame('secret', $loaded->get_apikey());
+        $this->assertSame('secret', $loaded->get_secret());
         $this->assertSame('moodle_rag', $loaded->get_collection());
     }
 
@@ -98,8 +98,7 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $data->tenant = 'tenantx';
         $data->vecstore = 'qdrant';
         $data->endpoint = 'https://qdrant.example.com';
-        $data->apikey = 'abc';
-        $data->useglobalapikey = 0;
+        $data->secret = 'abc';
         $data->collection = 'col';
         $instance->store_formdata($data);
 
@@ -200,40 +199,115 @@ final class base_vecstore_instance_test extends \advanced_testcase {
     }
 
     /**
-     * Tests that the Postgres backend stores its connection string in the apikey column and surfaces it back.
+     * Tests that the Postgres backend stores the endpoint, user name and password in the shared fields and builds the
+     * connection string from them.
      *
-     * @covers \aivecstore_postgres\instance::extend_store_formdata
-     * @covers \aivecstore_postgres\instance::get_extended_formdata
+     * @covers \aivecstore_postgres\instance::get_connection_string
      */
-    public function test_postgres_connection_string_maps_to_apikey(): void {
+    public function test_postgres_connection_settings(): void {
         $this->resetAfterTest();
+        set_config('curlsecurityblockedhosts', '');
+        set_config('curlsecurityallowedport', '');
 
-        $dsn = 'postgresql://u:p@host:5432/db?sslmode=require';
         $instance = new \aivecstore_postgres\instance();
         $data = new stdClass();
         $data->name = 'PG';
         $data->tenant = 'tn';
         $data->vecstore = 'postgres';
-        $data->connectionstring = $dsn;
+        $data->endpoint = 'postgresql://db.example.com:5433/vectors?sslmode=verify-full';
+        $data->username = 'moodle';
+        $data->secret = "pa'ss\\word";
         $data->collection = 'embeddings';
         $instance->store_formdata($data);
 
         $reloaded = (new vecstore_factory())->get_vecstore_instance_by_id($instance->get_id());
-        $this->assertSame($dsn, $reloaded->get_apikey());
-        $this->assertSame($dsn, $reloaded->get_formdata()->connectionstring);
+        $this->assertSame('moodle', $reloaded->get_username());
+        $this->assertSame("pa'ss\\word", $reloaded->get_secret());
+        $this->assertSame('moodle', $reloaded->get_formdata()->username);
+        $this->assertSame(
+            "host='db.example.com' port='5433' dbname='vectors' user='moodle' password='pa\\'ss\\\\word' sslmode='verify-full'",
+            $reloaded->get_connection_string()
+        );
     }
 
     /**
-     * Tests that the Postgres backend requires a connection string.
+     * Tests that the Postgres backend requires encryption unless insecure connections are allowed.
+     *
+     * @covers \aivecstore_postgres\instance::get_connection_string
+     */
+    public function test_postgres_requires_ssl_by_default(): void {
+        $this->resetAfterTest();
+        set_config('curlsecurityblockedhosts', '');
+        set_config('curlsecurityallowedport', '');
+
+        $instance = new \aivecstore_postgres\instance();
+        $instance->set_endpoint('postgresql://db.example.com/vectors');
+        $instance->set_username('moodle');
+        $this->assertSame("host='db.example.com' port='5432' dbname='vectors' user='moodle' sslmode='require'",
+            $instance->get_connection_string());
+
+        $instance->set_endpoint('postgresql://db.example.com/vectors?sslmode=disable');
+        try {
+            $instance->get_connection_string();
+            $this->fail('A connection without encryption must be refused');
+        } catch (\moodle_exception $exception) {
+            $this->assertSame('connectionrefused', $exception->errorcode);
+        }
+
+        set_config('allowinsecurevecstore', 1, 'local_ai_manager');
+        $this->assertSame("host='db.example.com' port='5432' dbname='vectors' user='moodle' sslmode='disable'",
+            $instance->get_connection_string());
+        $instance->set_endpoint('postgresql://db.example.com/vectors');
+        $this->assertSame("host='db.example.com' port='5432' dbname='vectors' user='moodle'", $instance->get_connection_string());
+    }
+
+    /**
+     * Tests the validation of the Postgres endpoint.
+     *
+     * @dataProvider postgres_endpoint_provider
+     * @covers \aivecstore_postgres\instance::validate_endpoint
+     * @param string $endpoint the endpoint to validate
+     * @param bool $valid whether the endpoint is expected to be accepted
+     */
+    public function test_postgres_validate_endpoint(string $endpoint, bool $valid): void {
+        $this->resetAfterTest();
+        set_config('curlsecurityblockedhosts', '');
+        set_config('curlsecurityallowedport', '');
+
+        $instance = new \aivecstore_postgres\instance();
+        $this->assertSame($valid, $instance->validate_endpoint($endpoint) === null);
+    }
+
+    /**
+     * Data provider for {@see self::test_postgres_validate_endpoint()}.
+     *
+     * @return array the endpoints and whether they are valid
+     */
+    public static function postgres_endpoint_provider(): array {
+        return [
+            'plain' => ['postgresql://db.example.com:5432/vectors', true],
+            'secure sslmode' => ['postgresql://db.example.com/vectors?sslmode=verify-ca', true],
+            'insecure sslmode' => ['postgresql://db.example.com/vectors?sslmode=prefer', false],
+            'credentials in url' => ['postgresql://user:pw@db.example.com/vectors', false],
+            'other parameter' => ['postgresql://db.example.com/vectors?sslrootcert=/etc/passwd', false],
+            'no database' => ['postgresql://db.example.com', false],
+            'wrong scheme' => ['https://db.example.com/vectors', false],
+            'no url' => ['db.example.com', false],
+        ];
+    }
+
+    /**
+     * Tests that the Postgres backend requires an endpoint and a user name.
      *
      * @covers \aivecstore_postgres\instance::extend_validation
      */
-    public function test_postgres_validation_requires_connection_string(): void {
+    public function test_postgres_validation_requires_endpoint_and_username(): void {
         $this->resetAfterTest();
 
         $instance = new \aivecstore_postgres\instance();
-        $errors = $instance->validation(['name' => 'PG', 'connectionstring' => ''], []);
-        $this->assertArrayHasKey('connectionstring', $errors);
+        $errors = $instance->validation(['name' => 'PG', 'endpoint' => '', 'username' => ''], []);
+        $this->assertArrayHasKey('endpoint', $errors);
+        $this->assertArrayHasKey('username', $errors);
     }
 
     /**

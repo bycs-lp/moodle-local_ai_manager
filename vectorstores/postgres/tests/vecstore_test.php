@@ -16,7 +16,6 @@
 
 namespace aivecstore_postgres;
 
-use local_ai_manager\base_vecstore_instance;
 use local_ai_manager\local\vector_record;
 
 /**
@@ -51,11 +50,17 @@ final class vecstore_test extends \advanced_testcase {
         $this->resetAfterTest();
 
         $this->dsn = getenv('PGVECTOR_TEST_DSN') ?: 'postgresql://vectors:vectors@pgvector:5432/vectors';
-        $dsn = $this->dsn;
+        $url = parse_url($this->dsn);
+        // The test database is a local, unencrypted server.
+        set_config('allowinsecurevecstore', 1, 'local_ai_manager');
+        set_config('curlsecurityblockedhosts', '');
+        set_config('curlsecurityallowedport', '');
         $this->collection = 'moodle_test_' . uniqid();
-        $instance = new base_vecstore_instance();
+        $instance = new instance();
         $instance->set_vecstore('postgres');
-        $instance->set_apikey($dsn);
+        $instance->set_endpoint("postgresql://{$url['host']}:" . ($url['port'] ?? 5432) . $url['path']);
+        $instance->set_username(rawurldecode($url['user'] ?? ''));
+        $instance->set_secret(rawurldecode($url['pass'] ?? ''));
         // Every embedding model gets its own collection named after this prefix.
         $instance->set_collection($this->collection);
         $instance->store();

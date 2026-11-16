@@ -55,11 +55,11 @@ class base_vecstore_instance {
     /** @var ?string The endpoint of the instance */
     protected ?string $endpoint = null;
 
-    /** @var ?string The API key of the instance */
-    protected ?string $apikey = null;
+    /** @var ?string The user name of the instance (backends with user/password authentication only) */
+    protected ?string $username = null;
 
-    /** @var ?string If an eventually configured global API key should be used */
-    protected ?string $useglobalapikey = null;
+    /** @var ?string The secret of the instance: API key, token or - together with the user name - password */
+    protected ?string $secret = null;
 
     /** @var ?string The prefix of the collection/index/table names the vectors live in */
     protected ?string $collection = null;
@@ -90,8 +90,8 @@ class base_vecstore_instance {
         $this->isglobal = !empty($record->isglobal);
         $this->vecstore = $record->vecstore;
         $this->endpoint = $record->endpoint;
-        $this->apikey = $record->apikey;
-        $this->useglobalapikey = $record->useglobalapikey;
+        $this->username = $record->username;
+        $this->secret = $record->secret;
         $this->collection = $record->collection;
     }
 
@@ -107,8 +107,8 @@ class base_vecstore_instance {
         $record->isglobal = $this->isglobal ? 1 : 0;
         $record->vecstore = $this->vecstore;
         $record->endpoint = $this->endpoint;
-        $record->apikey = $this->apikey;
-        $record->useglobalapikey = $this->get_useglobalapikey() ? 1 : 0;
+        $record->username = $this->username;
+        $record->secret = $this->secret;
         $record->collection = $this->collection;
         $currenttime = $clock->time();
         $record->timemodified = $currenttime;
@@ -266,37 +266,59 @@ class base_vecstore_instance {
     /**
      * Standard getter.
      *
-     * @return ?string the api key or null if not set
+     * @return ?string the user name or null if not set
      */
-    public function get_apikey(): ?string {
-        return $this->apikey;
+    public function get_username(): ?string {
+        return $this->username;
     }
 
     /**
      * Standard setter.
      *
-     * @param ?string $apikey The API key of this instance
+     * @param ?string $username the user name of this instance
      */
-    public function set_apikey(?string $apikey): void {
-        $this->apikey = $apikey;
+    public function set_username(?string $username): void {
+        $this->username = $username;
     }
 
     /**
      * Standard getter.
      *
-     * @return bool if an eventually global api key should be used
+     * @return ?string the secret (API key, token or password depending on the backend) or null if not set
      */
-    public function get_useglobalapikey(): bool {
-        return !empty($this->useglobalapikey);
+    public function get_secret(): ?string {
+        return $this->secret;
     }
 
     /**
      * Standard setter.
      *
-     * @param bool $useglobalapikey if the global API key should be used for this instance
+     * @param ?string $secret the secret of this instance
      */
-    public function set_useglobalapikey(bool $useglobalapikey): void {
-        $this->useglobalapikey = $useglobalapikey ? '1' : '0';
+    public function set_secret(?string $secret): void {
+        $this->secret = $secret;
+    }
+
+    /**
+     * Returns whether the backend authenticates with a user name (and the secret as password).
+     *
+     * Backends authenticating only with a token or API key keep the default.
+     *
+     * @return bool true if the form should contain the user name field
+     */
+    protected function uses_username(): bool {
+        return false;
+    }
+
+    /**
+     * Returns the label of the secret field in the form.
+     *
+     * Should be overwritten by subclasses where the secret is not an API key.
+     *
+     * @return string the label
+     */
+    protected function get_secret_label(): string {
+        return get_string('apikey', 'local_ai_manager');
     }
 
     /**
@@ -347,8 +369,8 @@ class base_vecstore_instance {
         $data->isglobal = $this->is_global();
         $data->vecstore = $this->get_vecstore();
         $data->endpoint = $this->get_endpoint();
-        $data->apikey = $this->get_apikey();
-        $data->useglobalapikey = $this->get_useglobalapikey();
+        $data->username = $this->get_username();
+        $data->secret = $this->get_secret();
         $data->collection = $this->get_collection();
         foreach ($this->get_extended_formdata() as $key => $value) {
             $data->{$key} = $value;
@@ -438,20 +460,17 @@ class base_vecstore_instance {
             get_string('vecstoreendpointdesc', 'local_ai_manager')
         );
 
-        if (get_config($vecstorecomponentname, 'globalapikey')) {
-            // Only show the "use global apikey" checkbox if there is a global apikey configured.
+        if ($this->uses_username()) {
             $mform->addElement(
-                'advcheckbox',
-                'useglobalapikey',
-                get_string('globalapikey', 'local_ai_manager'),
-                get_string('useglobalapikey', 'local_ai_manager')
+                'text',
+                'username',
+                get_string('username', 'local_ai_manager'),
+                array_merge($textelementparams, ['autocomplete' => 'off'])
             );
-            $mform->setType('useglobalapikey', PARAM_BOOL);
-            $mform->hideIf('apikey', 'useglobalapikey', 'checked');
+            $mform->setType('username', PARAM_RAW_TRIMMED);
         }
-
-        $mform->addElement('passwordunmask', 'apikey', get_string('apikey', 'local_ai_manager'), $textelementparams);
-        $mform->setType('apikey', PARAM_TEXT);
+        $mform->addElement('passwordunmask', 'secret', $this->get_secret_label(), $textelementparams);
+        $mform->setType('secret', PARAM_RAW_TRIMMED);
 
         $mform->addElement(
             'text',
@@ -473,8 +492,9 @@ class base_vecstore_instance {
     final public function store_formdata(stdClass $data): void {
         $this->set_name(trim($data->name));
         $this->set_endpoint(!empty($data->endpoint) ? trim($data->endpoint) : null);
-        $this->set_apikey(!empty($data->apikey) ? trim($data->apikey) : '');
-        $this->set_useglobalapikey(!empty($data->useglobalapikey));
+        // The user name is only part of the form of backends with user/password authentication.
+        $this->set_username(!empty($data->username) ? trim($data->username) : null);
+        $this->set_secret(!empty($data->secret) ? trim($data->secret) : '');
         $this->set_vecstore($data->vecstore);
         $tenantvalue = trim($data->tenant);
         $this->set_tenant(empty($tenantvalue) ? tenant::DEFAULT_IDENTIFIER : $tenantvalue);
@@ -510,15 +530,29 @@ class base_vecstore_instance {
         if (empty($data['name'])) {
             $errors['name'] = get_string('formvalidation_editinstance_name', 'local_ai_manager');
         }
-        if (
-            !empty($data['endpoint'])
-            && str_starts_with($data['endpoint'], 'http://')
-            && !str_starts_with($data['endpoint'], 'https://')
-            && empty(get_config('local_ai_manager', 'allowinsecurevecstore'))
-        ) {
-            $errors['endpoint'] = get_string('formvalidation_editinstance_endpointnossl', 'local_ai_manager');
+        if (!empty($data['endpoint'])) {
+            $endpointerror = $this->validate_endpoint($data['endpoint']);
+            if ($endpointerror !== null) {
+                $errors['endpoint'] = $endpointerror;
+            }
         }
         return $errors + $this->extend_validation($data, $files);
+    }
+
+    /**
+     * Checks whether an endpoint may be used, depending on the backend and the admin settings.
+     *
+     * Plain http endpoints are only allowed if the admin setting `allowinsecurevecstore` is enabled. Subclasses overwrite
+     * this method to apply the same rules to their endpoint format.
+     *
+     * @param string $endpoint the endpoint to check
+     * @return ?string the localized error message if the endpoint must not be used, null if it is allowed
+     */
+    public function validate_endpoint(string $endpoint): ?string {
+        if (str_starts_with($endpoint, 'http://') && empty(get_config('local_ai_manager', 'allowinsecurevecstore'))) {
+            return get_string('formvalidation_editinstance_endpointnossl', 'local_ai_manager');
+        }
+        return null;
     }
 
     /**

@@ -25,8 +25,8 @@ use local_ai_manager\local\vector_record;
 /**
  * Vector store implementation backed by PostgreSQL using the pgvector extension.
  *
- * Connects to an external PostgreSQL database using the libpq connection string configured on the
- * {@see base_vecstore_instance} (stored in its masked apikey field). A "collection" maps to a table
+ * Connects to an external PostgreSQL database using the endpoint, user name and password configured on the
+ * {@see instance}. A "collection" maps to a table
  * with an `id text`, an `embedding vector(N)` and a `payload jsonb` column.
  *
  * @package    aivecstore_postgres
@@ -40,6 +40,9 @@ class vecstore extends base_vecstore {
 
     /** @var string The last connection error message captured during {@see self::get_connection()}. */
     protected string $connectionerror = '';
+
+    /** @var bool Whether the last connection attempt was refused because the connection settings are not allowed. */
+    protected bool $connectionrefused = false;
 
     /**
      * Closes the connection as soon as the driver is no longer used.
@@ -315,16 +318,15 @@ class vecstore extends base_vecstore {
      * from the connection error message captured during {@see self::get_connection()}.
      *
      * The codes follow HTTP semantics:
-     * - 400 Bad Request: no connection string configured
+     * - 400 Bad Request: the connection settings are missing or not allowed (e.g. no encryption, blocked host)
      * - 401 Unauthorized: authentication or password failure
      * - 503 Service Unavailable: backend not reachable
      *
      * @return vecstore_response the standardized connection error response
      */
     protected function create_connection_error_response(): vecstore_response {
-        $dsn = trim((string) $this->instance->get_apikey());
-        if (empty($dsn)) {
-            return $this->create_error_response(400, 'No PostgreSQL connection string configured.');
+        if ($this->connectionrefused) {
+            return $this->create_error_response(400, 'The PostgreSQL connection settings are not allowed.', $this->connectionerror);
         }
         if (preg_match('/\b(authentication|password|pg_hba)\b/i', $this->connectionerror)) {
             return $this->create_error_response(401, 'PostgreSQL authentication failed.', $this->connectionerror);
@@ -361,7 +363,7 @@ class vecstore extends base_vecstore {
     }
 
     /**
-     * Lazily opens (and caches) the PostgreSQL connection from the instance's libpq connection string.
+     * Lazily opens (and caches) the PostgreSQL connection from the connection settings of the instance.
      *
      * On failure the libpq error message is stored in {@see self::$connectionerror} so that
      * {@see self::create_connection_error_response()} can derive a meaningful status code.
@@ -372,8 +374,15 @@ class vecstore extends base_vecstore {
         if ($this->connection !== null) {
             return $this->connection;
         }
-        $dsn = trim((string) $this->instance->get_apikey());
-        if (empty($dsn)) {
+        $instance = $this->instance;
+        if (!$instance instanceof instance) {
+            throw new \coding_exception('The postgres vecstore needs an instance of ' . instance::class);
+        }
+        try {
+            $dsn = $instance->get_connection_string();
+        } catch (\moodle_exception $exception) {
+            $this->connectionerror = $exception->getMessage();
+            $this->connectionrefused = true;
             $this->connection = false;
             return false;
         }

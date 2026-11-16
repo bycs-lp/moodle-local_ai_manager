@@ -348,6 +348,7 @@ $string['useconfirmlink'] = 'Please confirm here: {$a}.';
 $string['useglobalapikey'] = 'Use global API key';
 $string['userconfig'] = 'User configuration';
 $string['userconfirmation_headline'] = 'Confirmation for usage of AI tools';
+$string['username'] = 'User name';
 $string['userstatistics'] = 'User overview';
 $string['userstatusupdated'] = 'The user\'s/users\' status has been updated';
 $string['userwithusageonlyshown'] = 'Only users who already have used this purpose are being shown in this table.';

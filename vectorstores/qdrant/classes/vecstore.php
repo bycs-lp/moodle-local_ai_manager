@@ -244,7 +244,7 @@ class vecstore extends base_vecstore {
      */
     protected function get_headers(): array {
         $headers = [];
-        $apikey = $this->instance->get_apikey();
+        $apikey = $this->instance->get_secret();
         if (!empty($apikey)) {
             $headers['api-key'] = $apikey;
         }
