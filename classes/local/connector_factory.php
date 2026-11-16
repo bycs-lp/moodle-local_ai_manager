@@ -192,11 +192,15 @@ class connector_factory {
      *  only, if you need a purpose internally, not by the user (for example, for internal checks).
      *  If you want to use a purpose for a user-facing action, you should not ignore disabled purposes.
      * @return base_purpose the corresponding purpose object
-     * @throws \coding_exception if there is no purpose with this name or the purpose subplugin is not enabled
+     * @throws \coding_exception if there is no purpose with this name, the purpose subplugin is not installed or not enabled
      */
     public function get_purpose_by_purpose_string(string $purpose, bool $ignoredisabled = false): base_purpose {
         if (empty($purpose)) {
             throw new \coding_exception('No purpose string passed');
+        }
+        $installedpurposes = \core_plugin_manager::instance()->get_installed_plugins('aipurpose');
+        if (!array_key_exists($purpose, $installedpurposes)) {
+            throw new \coding_exception('Purpose ' . $purpose . ' is not installed');
         }
         if (!$ignoredisabled && !in_array($purpose, \local_ai_manager\plugininfo\aipurpose::get_enabled_plugins())) {
             throw new \coding_exception('Purpose ' . $purpose . ' is not enabled');
