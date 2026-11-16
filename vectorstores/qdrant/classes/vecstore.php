@@ -146,6 +146,10 @@ class vecstore extends base_vecstore {
                 $body['offset'] = $offset;
             }
             $response = $this->request('POST', '/collections/' . rawurlencode($collection) . '/points/scroll', $body);
+            // A missing collection contains no vectors.
+            if ($response['status'] === 404) {
+                return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
+            }
             if ($response['status'] !== 200) {
                 return $this->create_error_response($response, 'Could not fetch vectors from qdrant collection.');
             }
@@ -213,10 +217,6 @@ class vecstore extends base_vecstore {
             'timeout' => (int) (get_config('local_ai_manager', 'requesttimeout') ?: 30),
             'verify' => !empty(get_config('local_ai_manager', 'verifyssl')),
             'http_errors' => false,
-            // The endpoint is configured by the operator (not a user-supplied URL), and Qdrant commonly
-            // runs on a private host / non-standard port (6333) that Moodle's SSRF protection blocks by
-            // default. Bypass that check for this trusted, admin-configured connection.
-            'ignoresecurity' => true,
         ]);
 
         $options = ['headers' => $this->get_headers()];
