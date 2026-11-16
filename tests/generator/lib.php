@@ -117,7 +117,7 @@ class local_ai_manager_generator extends component_generator_base {
         $default = [
             'connector' => 'chatgpt',
             'name' => 'Test instance',
-            'tenant' => \core\di::get(\local_ai_manager\local\tenant::class)->get_identifier(),
+            'tenant' => \core\di::get(\local_ai_manager\local\tenant_factory::class)->get()->get_identifier(),
             'modelid' => null,
         ];
         $data = array_merge($default, $record);
