@@ -70,9 +70,9 @@ class vecstoretable implements renderable, templatable {
                         '/local/ai_manager/edit_vecstore.php',
                         ['id' => $instance->get_id(), 'tenant' => $tenant->get_identifier()]
                     ),
-                    $instance->get_name()
+                    s($instance->get_name())
                 )
-                : $instance->get_name();
+                : s($instance->get_name());
 
             $vecstores[] = [
                 'name' => $linkedname,

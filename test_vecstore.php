@@ -55,8 +55,8 @@ $available = $availabilityresponse->get_code() === 200;
 redirect(
     $returnurl,
     $available
-        ? get_string('vecstoreconnectionok', 'local_ai_manager', $instance->get_name())
-        : get_string('vecstoreconnectionfailed', 'local_ai_manager', $instance->get_name()),
+        ? get_string('vecstoreconnectionok', 'local_ai_manager', s($instance->get_name()))
+        : get_string('vecstoreconnectionfailed', 'local_ai_manager', s($instance->get_name())),
     null,
     $available ? \core\output\notification::NOTIFY_SUCCESS : \core\output\notification::NOTIFY_ERROR
 );
