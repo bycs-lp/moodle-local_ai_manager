@@ -126,4 +126,20 @@ final class submit_query_test extends \advanced_testcase {
             $context
         );
     }
+
+    /**
+     * Tests that internal purposes cannot be requested by clients.
+     */
+    public function test_execute_rejects_internal_purpose(): void {
+        $this->resetAfterTest();
+        $this->setUser($this->getDataGenerator()->create_user());
+
+        $result = submit_query::execute('searchquery', 'Hello', 'block_ai_chat', SYSCONTEXTID, '');
+
+        $this->assertSame(403, $result['code']);
+        $this->assertSame(
+            get_string('error_internalpurpose', 'local_ai_manager'),
+            json_decode($result['result'], true)['message']
+        );
+    }
 }

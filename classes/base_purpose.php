@@ -114,10 +114,32 @@ class base_purpose {
     /**
      * Returns all enabled purpose subplugins.
      *
+     * @param ?bool $internal null for all enabled purposes, true for only internal purposes, false for only purposes which are
+     *  not internal, see {@see self::is_internal()}
      * @return array array of purpose subplugin names
      */
-    public static function get_all_purposes(): array {
-        return core_plugin_manager::instance()->get_enabled_plugins('aipurpose');
+    public static function get_all_purposes(?bool $internal = null): array {
+        $purposes = core_plugin_manager::instance()->get_enabled_plugins('aipurpose');
+        if ($internal === null) {
+            return $purposes;
+        }
+        return array_filter(
+            $purposes,
+            fn(string $purpose): bool => (new ('\\aipurpose_' . $purpose . '\\purpose')())->is_internal() === $internal
+        );
+    }
+
+    /**
+     * Whether this purpose is only used internally by other purposes or plugins and not directly by users.
+     *
+     * Internal purposes (for example creating embeddings or generating search queries) are not shown in places where users
+     * would have to understand or control them (for example the course AI control center), cannot be called by clients via
+     * the external function {@see external\submit_query} and have no request limit by default.
+     *
+     * @return bool true if the purpose is internal
+     */
+    public function is_internal(): bool {
+        return false;
     }
 
     /**

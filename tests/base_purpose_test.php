@@ -792,4 +792,20 @@ final class base_purpose_test extends \advanced_testcase {
         $this->assertSame(0.0, $requestoptions['minsimilarity']);
         $this->assertSame(20000, $requestoptions['maxretrievedchars']);
     }
+
+    /**
+     * Test that get_all_purposes can be filtered by internal and not internal purposes.
+     */
+    public function test_get_all_purposes_internal_filter(): void {
+        $all = base_purpose::get_all_purposes();
+        $internal = base_purpose::get_all_purposes(true);
+        $notinternal = base_purpose::get_all_purposes(false);
+
+        $this->assertContains('embedding', $internal);
+        $this->assertContains('searchquery', $internal);
+        $this->assertNotContains('chat', $internal);
+        $this->assertContains('chat', $notinternal);
+        $this->assertEmpty(array_intersect($internal, $notinternal));
+        $this->assertEqualsCanonicalizing($all, array_merge($internal, $notinternal));
+    }
 }

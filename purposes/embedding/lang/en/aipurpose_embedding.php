@@ -22,6 +22,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['limitrequestswarning'] = 'We recommend not to limit this purpose. It is not used directly by users, but automatically in the background, for example when a source is being prepared so that the AI can use its content. Larger sources need many requests, so a limit can be reached quickly and the source can then not be used. A limit is not needed anyway, because the functions users work with (for example the chat) already have their own limit.';
 $string['pluginname'] = 'Embedding';
 $string['privacy:metadata'] = 'The local ai_manager purpose subplugin "Embedding" does not store any personal data.';
 $string['purposedescription'] = 'The purpose "Embedding" is being used to turn text into numerical vector representations that capture semantic meaning. A text prompt is being sent to the external AI system and it will return an embedding vector, typically used for semantic search, clustering and retrieval-augmented generation.';

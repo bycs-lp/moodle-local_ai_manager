@@ -119,6 +119,10 @@
     width: 100%;
 }
 
+#page-local-ai_manager-quota_config #region-main form fieldset + fieldset {
+    margin-top: 3rem;
+}
+
 body.path-local-ai_manager .secondary-navigation {
     padding-bottom: 3.5rem;
 }

@@ -59,6 +59,11 @@ class purpose extends base_purpose {
     public function requires_same_model_for_all_roles(): bool {
         return true;
     }
+
+    #[\Override]
+    public function is_internal(): bool {
+        return true;
+    }
 }
 
 
