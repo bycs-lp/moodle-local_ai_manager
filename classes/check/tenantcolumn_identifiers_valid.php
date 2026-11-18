@@ -68,7 +68,11 @@ class tenantcolumn_identifiers_valid extends check {
 
         $invalidtenants = [];
         foreach ($identifiers as $identifier) {
-            if (!\local_ai_manager\local\tenant::is_valid_identifier($identifier)) {
+            // No user must belong to the reserved template tenant.
+            if (
+                !\local_ai_manager\local\tenant::is_valid_identifier($identifier)
+                || $identifier === \local_ai_manager\local\tenant::TEMPLATE_IDENTIFIER
+            ) {
                 $invalidtenants[] = $identifier;
             }
         }

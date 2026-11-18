@@ -98,6 +98,7 @@ if ($editinstanceform->is_cancelled()) {
     );
 } else {
     echo $OUTPUT->header();
+    echo \local_ai_manager\local\tenant_config_output_utils::render_template_tenant_hint();
     echo html_writer::start_div('w-75 d-flex flex-column align-items-center ms-auto me-auto');
     echo $OUTPUT->render_from_template(
         'local_ai_manager/edit_instance_heading',

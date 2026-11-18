@@ -22,32 +22,18 @@
     Example context (json):
     {
         "tenant": "sometenantname",
-        "purposesheading": "Purposes (3 of 6 configured)",
+        "purposesheadingrolebasic": "Purposes basic role (3 of 6 configured)",
+        "purposesheadingroleextended": "Purposes extended role (2 of 6 configured)",
+        "templatetenantmodal": false,
         "instances": [
             {
-                "name": "my first instance",
-                "toolname": "chatgpt",
-                "model": "chatgpt4o",
-                "purposes": [
-                    {
-                        "fullname": "Chat"
-                    },
-                    {
-                        "fullname": "Translate"
-                    }
-                ],
-                "nopurposeslink": "<a href=\"...\">Not assigned to any purposes</a>"
-            },
-            {
-                "name": "my second instance",
-                "toolname": "dalle",
-                "model": "dalle-3",
-                "purposes": [
-                    {
-                        "fullname": "Image generation"
-                    }
-                ],
-                "nopurposeslink": "<a href=\"...\">Not assigned to any purposes</a>"
+                "name": "<a href=\"...\">my first instance</a>",
+                "toolname": "ChatGPT",
+                "model": "gpt-4o",
+                "enabled": true,
+                "purposesrolebasic": [{"fullname": "Chat"}, {"fullname": "Translate"}],
+                "purposesroleextended": [],
+                "nopurposeslink": "<a href=\"...\">Assign purposes</a>"
             }
         ]
     }
@@ -57,54 +43,26 @@
     <div class="d-flex justify-content-between mb-5 align-items-center">
         <div><h3>{{#str}} currentlyusedaitools, local_ai_manager {{/str}}</h3></div>
         <div>
+            {{#templatetenantmodal}}
+                <button class="btn btn-secondary me-2" data-action="local_ai_manager-showtemplatetenant"><i class="fa fa-wand-magic-sparkles"></i> {{#str}}templatetenant_show, local_ai_manager{{/str}}</button>
+            {{/templatetenantmodal}}
             <button id="local_ai_manager-instanceadd_button" class="btn btn-primary"><i class="fa fa-plus"></i> {{#str}}addinstance, local_ai_manager{{/str}}</button>
         </div>
     </div>
-    <div class="table-rensposive">
-        <table class="table table-hover">
-            <thead>
-            <tr>
-                <th scope="col">{{#str}} instancename, local_ai_manager {{/str}}</th>
-                <th scope="col">{{#str}} aitool, local_ai_manager {{/str}}</th>
-                <th scope="col">{{#str}} model, local_ai_manager {{/str}}</th>
-                <th scope="col">{{purposesheadingrolebasic}}</th>
-                <th scope="col">{{purposesheadingroleextended}}</th>
-                <th scope="col">{{#str}} instanceavailable, local_ai_manager {{/str}}</th>
-            </tr>
-            </thead>
-            <tbody>
-            {{#instances}}
-                <tr>
-                        <td>{{{name}}}</td>
-                        <td>{{toolname}}</td>
-                        <td>{{model}}</td>
-                    <td>
-                        {{#purposesrolebasic}}
-                            <span class="badge badge-pill badge-secondary">{{fullname}}</span>
-                        {{/purposesrolebasic}}
-                        {{^purposesrolebasic}}
-                            {{{nopurposeslink}}}
-                        {{/purposesrolebasic}}
-                    </td>
-                    <td>
-                        {{#purposesroleextended}}
-                            <span class="badge badge-pill badge-secondary">{{fullname}}</span>
-                        {{/purposesroleextended}}
-                        {{^purposesroleextended}}
-                            {{{nopurposeslink}}}
-                        {{/purposesroleextended}}
-                    </td>
-                    <td>
-                        {{#enabled}}<span class="text-success"><i class="fa fa-check" title="{{#str}}instanceenabled, local_ai_manager{{/str}}"></i></span>{{/enabled}}
-                        {{^enabled}}<span class="text-danger"><i class="fa fa-ban" title="{{#str}}instancedisabled, local_ai_manager{{/str}}"></i></span>{{/enabled}}</td>
-                </tr>
-            {{/instances}}
-            </tbody>
-        </table>
-    </div>
+    {{> local_ai_manager/instancetable_table }}
+    {{#templatetenantmodal}}
+        <template data-region="local_ai_manager-templatetenantmodal">
+            {{> local_ai_manager/templatetenantmodal }}
+        </template>
+    {{/templatetenantmodal}}
 </div>
 {{#js}}
     require(['local_ai_manager/instanceaddmodal'], function(InstanceAddModal) {
         InstanceAddModal.renderInstanceAddModal('#local_ai_manager-instancetable-{{uniqid}}');
     });
+    {{#templatetenantmodal}}
+    require(['local_ai_manager/templatetenantmodal'], function(TemplateTenantModal) {
+        TemplateTenantModal.init('#local_ai_manager-instancetable-{{uniqid}}');
+    });
+    {{/templatetenantmodal}}
 {{/js}}

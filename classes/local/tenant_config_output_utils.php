@@ -28,6 +28,24 @@ use moodle_url;
  */
 class tenant_config_output_utils {
     /**
+     * @var string[] the tenant config pages (relative to '/local/ai_manager/') available for the template tenant
+     *
+     * No user belongs to the template tenant, so only the pages for configuring AI tools and purposes make sense.
+     */
+    private const TEMPLATE_TENANT_PAGES = ['tenant_config.php', 'edit_instance.php', 'purpose_config.php'];
+
+    /**
+     * Returns if a tenant config page is available for the given tenant.
+     *
+     * @param tenant $tenant the tenant to check
+     * @param string $page the file name of the page relative to '/local/ai_manager/', for example 'quota_config.php'
+     * @return bool true if the page is available for the tenant
+     */
+    public static function is_page_available(tenant $tenant, string $page): bool {
+        return !$tenant->is_template_tenant() || in_array($page, self::TEMPLATE_TENANT_PAGES, true);
+    }
+
+    /**
      * Helper function which is being called from every tenant config (sub)page.
      *
      * Important to control access and set important basic settings which are identical for all the pages.
@@ -65,5 +83,23 @@ class tenant_config_output_utils {
         if (!$tenant->is_tenant_allowed()) {
             throw new \moodle_exception('exception_tenantnotallowed', 'local_ai_manager');
         }
+        if (!self::is_page_available($tenant, basename($url->get_path()))) {
+            throw new \moodle_exception('exception_templatetenantpage', 'local_ai_manager');
+        }
+    }
+
+    /**
+     * Renders the hint shown below the heading of the tenant config pages of the template tenant.
+     *
+     * Has to be called on every page available for the template tenant, directly after the page header has been printed.
+     *
+     * @return string the HTML of the hint, empty string if the current tenant is not the template tenant
+     */
+    public static function render_template_tenant_hint(): string {
+        global $OUTPUT;
+        if (!\core\di::get(tenant_factory::class)->get()->is_template_tenant()) {
+            return '';
+        }
+        return $OUTPUT->render_from_template('local_ai_manager/templatetenanthint', []);
     }
 }
