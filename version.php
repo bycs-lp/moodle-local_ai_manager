@@ -24,9 +24,9 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2026102305;
+$plugin->version  = 2026111800;
 $plugin->requires = 2025041400;
 $plugin->supported = [500, 503];
-$plugin->release = '5.1.1';
+$plugin->release = '5.2';
 $plugin->component = 'local_ai_manager';
 $plugin->maturity = MATURITY_STABLE;
