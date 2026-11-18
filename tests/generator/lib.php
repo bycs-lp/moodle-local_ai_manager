@@ -130,4 +130,56 @@ class local_ai_manager_generator extends component_generator_base {
         $instance->store();
         return $instance;
     }
+
+    /**
+     * Allows a user to use the AI manager in the current tenant.
+     *
+     * Assigns a role with the capability 'local/ai_manager:use' in the system context, enables the current tenant and stores
+     * a confirmed, unlocked user info with scope "everywhere". The current tenant is the tenant of the current user, unless it
+     * has been set explicitly (see {@see \local_ai_manager\local\tenant_factory}), so set the user before.
+     *
+     * @param stdClass $user the user
+     * @param int $role the AI manager role of the user, one of the userinfo::ROLE_* constants
+     */
+    public function enable_ai_usage(stdClass $user, int $role = \local_ai_manager\local\userinfo::ROLE_BASIC): void {
+        global $DB;
+        $roleid = $DB->get_field('role', 'id', ['shortname' => 'aiuser'])
+            ?: $this->datagenerator->create_role(['shortname' => 'aiuser']);
+        role_assign($roleid, $user->id, SYSCONTEXTID);
+        assign_capability('local/ai_manager:use', CAP_ALLOW, $roleid, SYSCONTEXTID);
+
+        \core\di::get(\local_ai_manager\local\config_manager::class)->set_config('tenantenabled', true);
+
+        $userinfo = new \local_ai_manager\local\userinfo($user->id);
+        $userinfo->set_confirmed(true);
+        $userinfo->set_locked(false);
+        $userinfo->set_role($role);
+        $userinfo->set_scope(\local_ai_manager\local\userinfo::SCOPE_EVERYWHERE);
+        $userinfo->store();
+    }
+
+    /**
+     * Creates an AI tool instance in the current tenant and assigns it to a purpose for a role.
+     *
+     * @param string $purpose the purpose name
+     * @param int $role the role the tool is assigned for, one of the userinfo::ROLE_* constants
+     * @param string $connector the name of the aitool subplugin
+     * @param string $model the name of the model of the instance
+     * @return \local_ai_manager\base_instance the stored instance
+     */
+    public function create_purpose_tool(
+        string $purpose,
+        int $role = \local_ai_manager\local\userinfo::ROLE_BASIC,
+        string $connector = 'chatgpt',
+        string $model = 'gpt-4o'
+    ): \local_ai_manager\base_instance {
+        $instance = \core\di::get(\local_ai_manager\local\connector_factory::class)->get_new_instance($connector);
+        $instance->set_model_id_from_name($model);
+        $instance->store();
+        \core\di::get(\local_ai_manager\local\config_manager::class)->set_config(
+            \local_ai_manager\base_purpose::get_purpose_tool_config_key($purpose, $role),
+            $instance->get_id()
+        );
+        return $instance;
+    }
 }
