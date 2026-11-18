@@ -17,6 +17,7 @@
 namespace local_ai_manager\output;
 
 use local_ai_manager\base_purpose;
+use local_ai_manager\local\tenant_config_output_utils;
 use renderable;
 use renderer_base;
 use stdClass;
@@ -62,7 +63,11 @@ class tenantnavbar implements renderable, \templatable {
         $data->userstatisticsactive = $this->relativeactiveurl === 'user_statistics.php';
         $data->viewpromptsactive = $this->relativeactiveurl === 'view_prompts.php';
 
-        $data->showstatistics = has_capability('local/ai_manager:viewstatistics', $tenant->get_context());
+        // The dropdowns are only shown if their pages are available for the tenant (not the case for the template tenant).
+        $data->showuserconfig = tenant_config_output_utils::is_page_available($tenant, 'quota_config.php')
+            && tenant_config_output_utils::is_page_available($tenant, 'rights_config.php');
+        $data->showstatistics = tenant_config_output_utils::is_page_available($tenant, 'statistics.php')
+            && has_capability('local/ai_manager:viewstatistics', $tenant->get_context());
         $data->showuserstatistics = has_capability('local/ai_manager:viewuserstatistics', $tenant->get_context());
         $data->showviewprompts = has_capability('local/ai_manager:viewtenantprompts', $tenant->get_context());
         $statisticspurposes = [];

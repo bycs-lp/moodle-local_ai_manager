@@ -15,6 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace local_ai_manager\local;
+use local_ai_manager\hook\custom_tenant;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -174,5 +175,60 @@ final class tenant_test extends \advanced_testcase {
                 'valid' => true,
             ],
         ];
+    }
+
+    /**
+     * Tests that the template tenant is not being passed to plugins implementing the custom_tenant hook.
+     *
+     * All other tenants still have to be passed to the hook, so plugins are able to validate them.
+     */
+    public function test_template_tenant_not_passed_to_custom_tenant_hook(): void {
+        $this->resetAfterTest();
+        // Simulates a plugin implementing the custom_tenant hook which validates the tenant by throwing an exception for
+        // tenants it does not know.
+        $this->redirectHook(custom_tenant::class, function (custom_tenant $customtenant) {
+            if ($customtenant->get_tenantidentifier() !== 'tenanta') {
+                throw new \coding_exception('Unknown tenant');
+            }
+        });
+
+        $templatetenant = new tenant(tenant::TEMPLATE_IDENTIFIER);
+        $this->assertTrue($templatetenant->is_template_tenant());
+        $this->assertFalse($templatetenant->is_default_tenant());
+        $this->assertSame(\context_system::instance(), $templatetenant->get_context());
+        $this->assertSame(get_string('templatetenantname', 'local_ai_manager'), $templatetenant->get_fullname());
+
+        $knowntenant = new tenant('tenanta');
+        $this->assertFalse($knowntenant->is_template_tenant());
+        $this->assertSame(\context_system::instance(), $knowntenant->get_context());
+
+        $this->expectException(\coding_exception::class);
+        (new tenant('unknowntenant'))->get_context();
+    }
+
+    /**
+     * Tests that the template tenant cannot be restricted.
+     */
+    public function test_template_tenant_always_allowed(): void {
+        $this->resetAfterTest();
+        set_config('restricttenants', 1, 'local_ai_manager');
+        set_config('allowedtenants', 'tenanta', 'local_ai_manager');
+        $this->assertTrue((new tenant('tenanta'))->is_tenant_allowed());
+        $this->assertFalse((new tenant('tenantb'))->is_tenant_allowed());
+        $this->assertTrue((new tenant(tenant::TEMPLATE_IDENTIFIER))->is_tenant_allowed());
+    }
+
+    /**
+     * Tests that a user cannot belong to the template tenant.
+     */
+    public function test_user_cannot_belong_to_template_tenant(): void {
+        $this->resetAfterTest();
+        $tenantfield = get_config('local_ai_manager', 'tenantcolumn');
+        $this->setUser($this->getDataGenerator()->create_user([$tenantfield => 'tenanta']));
+        $this->assertSame('tenanta', (new tenant())->get_identifier());
+
+        $this->setUser($this->getDataGenerator()->create_user([$tenantfield => tenant::TEMPLATE_IDENTIFIER]));
+        $this->expectException(\invalid_parameter_exception::class);
+        new tenant();
     }
 }

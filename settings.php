@@ -231,6 +231,19 @@ if ($hassiteconfig) {
 
     $ADMIN->add(
         'local_ai_manager_settings',
+        new admin_externalpage(
+            'local_ai_manager_templatetenant',
+            get_string('templatetenantname', 'local_ai_manager'),
+            new moodle_url(
+                '/local/ai_manager/tenant_config.php',
+                ['tenant' => \local_ai_manager\local\tenant::TEMPLATE_IDENTIFIER]
+            ),
+            'local/ai_manager:managetenants'
+        )
+    );
+
+    $ADMIN->add(
+        'local_ai_manager_settings',
         new admin_category(
             'aitoolplugins',
             new lang_string('aitoolplugins', 'local_ai_manager')
