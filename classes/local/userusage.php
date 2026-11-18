@@ -32,7 +32,7 @@ class userusage {
     public const UNLIMITED_REQUESTS_PER_USER = 999999;
 
     /** @var int Constant for defining the default period until the requests of the users are being reset */
-    public const MAX_REQUESTS_DEFAULT_PERIOD = DAYSECS;
+    public const MAX_REQUESTS_DEFAULT_PERIOD = HOURSECS;
 
     /**
      * @var int Constant for defining the minimum period the tenant manager can select until
@@ -41,10 +41,10 @@ class userusage {
     public const MAX_REQUESTS_MIN_PERIOD = HOURSECS;
 
     /** @var int The default value for the max requests for the basic role */
-    public const MAX_REQUESTS_DEFAULT_ROLE_BASE = 10;
+    public const MAX_REQUESTS_DEFAULT_ROLE_BASE = 50;
 
     /** @var int The default value for the max requests for the extended role */
-    public const MAX_REQUESTS_DEFAULT_ROLE_EXTENDED = 50;
+    public const MAX_REQUESTS_DEFAULT_ROLE_EXTENDED = 200;
 
     /** @var false|stdClass The database record or false if none exists (yet) */
     private false|stdClass $record;
