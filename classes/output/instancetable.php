@@ -19,6 +19,8 @@ namespace local_ai_manager\output;
 use html_writer;
 use local_ai_manager\base_instance;
 use local_ai_manager\local\config_manager;
+use local_ai_manager\local\template_tenant_manager;
+use local_ai_manager\local\tenant;
 use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\userinfo;
 use moodle_url;
@@ -36,10 +38,28 @@ use templatable;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class instancetable implements renderable, templatable {
+    /**
+     * Constructor.
+     *
+     * @param ?tenant $tenant the tenant whose instances should be shown, null to use the current tenant
+     * @param bool $preview true if the table should only be shown read-only, for example the table of the template tenant
+     */
+    public function __construct(
+        /** @var ?tenant $tenant the tenant whose instances should be shown, null to use the current tenant */
+        private readonly ?tenant $tenant = null,
+        /** @var bool $preview true if the table should only be shown read-only */
+        private readonly bool $preview = false
+    ) {
+    }
+
     #[\Override]
     public function export_for_template(renderer_base $output): stdClass {
-        $tenant = \core\di::get(tenant_factory::class)->get();
-        $configmanager = \core\di::get(config_manager::class);
+        $tenant = $this->tenant ?? \core\di::get(tenant_factory::class)->get();
+        // We intentionally do not use the config manager from the DI container, because it always works with the current
+        // tenant of the request, but this table may show another tenant (the template tenant in the preview).
+        $tenantfactory = new tenant_factory();
+        $tenantfactory->set($tenant);
+        $configmanager = new config_manager($tenantfactory);
 
         $instances = [];
 
@@ -71,7 +91,7 @@ class instancetable implements renderable, templatable {
             'maxcount' => count($purposeconfigroleextended),
         ]);
 
-        foreach (base_instance::get_all_instances() as $instance) {
+        foreach (base_instance::get_all_instances(tenant: $tenant) as $instance) {
             $purposesrolebasic = [];
             foreach ($purposeconfigrolebasic as $purpose => $instanceid) {
                 if (intval($instanceid) === $instance->get_id()) {
@@ -84,15 +104,15 @@ class instancetable implements renderable, templatable {
                     $purposesroleextended[] = ['fullname' => get_string('pluginname', 'aipurpose_' . $purpose)];
                 }
             }
-            $linkedname = $instance->is_enabled()
+            $linkedname = $instance->is_enabled() && !$this->preview
                 ? html_writer::link(
                     new moodle_url(
                         '/local/ai_manager/edit_instance.php',
                         ['id' => $instance->get_id(), 'tenant' => $tenant->get_identifier()]
                     ),
-                    $instance->get_name()
+                    s($instance->get_name())
                 )
-                : $instance->get_name();
+                : s($instance->get_name());
 
             $instances[] = [
                 'name' => $linkedname,
@@ -103,7 +123,7 @@ class instancetable implements renderable, templatable {
                 'enabled' => $instance->is_enabled(),
                 'purposesrolebasic' => $purposesrolebasic,
                 'purposesroleextended' => $purposesroleextended,
-                'nopurposeslink' => html_writer::link(
+                'nopurposeslink' => $this->preview ? '' : html_writer::link(
                     new moodle_url(
                         '/local/ai_manager/purpose_config.php',
                         ['tenant' => $tenant->get_identifier()]
@@ -117,6 +137,28 @@ class instancetable implements renderable, templatable {
             'purposesheadingrolebasic' => $purposesheadingrolebasic,
             'purposesheadingroleextended' => $purposesheadingroleextended,
             'instances' => $instances,
+            'templatetenantmodal' => $this->preview ? false : $this->get_template_tenant_modal_context($tenant, $output),
+        ];
+    }
+
+    /**
+     * Returns the context for the modal showing the configuration of the template tenant.
+     *
+     * @param tenant $tenant the tenant this table is being shown for
+     * @param renderer_base $output the renderer
+     * @return array|false the context for the modal, false if there is no template tenant to offer
+     */
+    private function get_template_tenant_modal_context(tenant $tenant, renderer_base $output): array|false {
+        $templatetenantmanager = \core\di::get(template_tenant_manager::class);
+        if ($tenant->is_template_tenant() || !$templatetenantmanager->has_template_configuration()) {
+            return false;
+        }
+        return [
+            'instancetable' => (new self($templatetenantmanager->get_template_tenant(), true))->export_for_template($output),
+            'applyurl' => (new moodle_url(
+                '/local/ai_manager/tenant_config.php',
+                ['tenant' => $tenant->get_identifier(), 'applytemplatetenant' => 1, 'sesskey' => sesskey()]
+            ))->out(false),
         ];
     }
 }

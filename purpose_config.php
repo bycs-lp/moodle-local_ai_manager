@@ -61,6 +61,7 @@ if ($purposeconfigform->is_cancelled()) {
     redirect($PAGE->url, get_string('configsaved', 'repository'));
 } else {
     echo $OUTPUT->header();
+    echo tenant_config_output_utils::render_template_tenant_hint();
     $tenantnavbar = new tenantnavbar('purpose_config.php');
     echo $OUTPUT->render($tenantnavbar);
 

@@ -293,8 +293,8 @@ final class manager_test extends \advanced_testcase {
                     'local_ai_manager',
                     [
                         'count' => $defaultoptions['maxrequests'],
-                        // This is the default value for an unlimited account.
-                        'period' => format_time(DAYSECS),
+                        // This is the default period, because the test does not configure one.
+                        'period' => format_time(\local_ai_manager\local\userusage::MAX_REQUESTS_DEFAULT_PERIOD),
                     ]
                 ),
             ],

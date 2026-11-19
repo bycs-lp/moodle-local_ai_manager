@@ -1,0 +1,92 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_ai_manager/instancetable_table
+
+    Table listing the AI tools (instances) of a tenant and the purposes they are assigned to.
+
+    Used by the instance table on the tenant config page and by the modal showing the template configuration.
+
+    Example context (json):
+    {
+        "purposesheadingrolebasic": "Purposes basic role (3 of 6 configured)",
+        "purposesheadingroleextended": "Purposes extended role (2 of 6 configured)",
+        "instances": [
+            {
+                "name": "<a href=\"...\">my first instance</a>",
+                "toolname": "ChatGPT",
+                "model": "gpt-4o",
+                "enabled": true,
+                "purposesrolebasic": [{"fullname": "Chat"}, {"fullname": "Translate"}],
+                "purposesroleextended": [],
+                "nopurposeslink": "<a href=\"...\">Assign purposes</a>"
+            },
+            {
+                "name": "my second instance",
+                "toolname": "DALL-E",
+                "model": "dall-e-3",
+                "enabled": false,
+                "purposesrolebasic": [],
+                "purposesroleextended": [{"fullname": "Image generation"}],
+                "nopurposeslink": ""
+            }
+        ]
+    }
+}}
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th scope="col">{{#str}} instancename, local_ai_manager {{/str}}</th>
+                <th scope="col">{{#str}} aitool, local_ai_manager {{/str}}</th>
+                <th scope="col">{{#str}} model, local_ai_manager {{/str}}</th>
+                <th scope="col">{{purposesheadingrolebasic}}</th>
+                <th scope="col">{{purposesheadingroleextended}}</th>
+                <th scope="col">{{#str}} instanceavailable, local_ai_manager {{/str}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#instances}}
+                <tr>
+                    <td>{{{name}}}</td>
+                    <td>{{toolname}}</td>
+                    <td>{{model}}</td>
+                    <td>
+                        {{#purposesrolebasic}}
+                            <span class="badge badge-pill badge-secondary">{{fullname}}</span>
+                        {{/purposesrolebasic}}
+                        {{^purposesrolebasic}}
+                            {{{nopurposeslink}}}
+                        {{/purposesrolebasic}}
+                    </td>
+                    <td>
+                        {{#purposesroleextended}}
+                            <span class="badge badge-pill badge-secondary">{{fullname}}</span>
+                        {{/purposesroleextended}}
+                        {{^purposesroleextended}}
+                            {{{nopurposeslink}}}
+                        {{/purposesroleextended}}
+                    </td>
+                    <td>
+                        {{#enabled}}<span class="text-success"><i class="fa fa-check" title="{{#str}}instanceenabled, local_ai_manager{{/str}}"></i></span>{{/enabled}}
+                        {{^enabled}}<span class="text-danger"><i class="fa fa-ban" title="{{#str}}instancedisabled, local_ai_manager{{/str}}"></i></span>{{/enabled}}
+                    </td>
+                </tr>
+            {{/instances}}
+        </tbody>
+    </table>
+</div>

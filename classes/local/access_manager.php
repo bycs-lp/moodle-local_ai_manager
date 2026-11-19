@@ -17,7 +17,6 @@
 namespace local_ai_manager\local;
 
 use local_ai_manager\base_instance;
-use local_ai_manager\hook\custom_tenant;
 
 /**
  * Class for managing the configuration of tenants.
@@ -111,9 +110,6 @@ class access_manager {
             $tenant = $this->tenantfactory->get();
         }
 
-        $customtenant = new custom_tenant($tenant);
-        \core\di::get(\core\hook\manager::class)->dispatch($customtenant);
-
         // In case of default tenant we get system context here, admin should have all capabilities, so we need no admin check.
         $tenantcontext = $tenant->get_context();
 
@@ -138,9 +134,14 @@ class access_manager {
      */
     public function is_tenant_member(): bool {
         global $USER;
+        $tenant = $this->tenantfactory->get();
+        // No user belongs to the template tenant, even if the tenant field of a user is (wrongly) set to its identifier.
+        if ($tenant->is_template_tenant()) {
+            return false;
+        }
         $tenantfield = get_config('local_ai_manager', 'tenantcolumn');
 
-        return $USER->{$tenantfield} === $this->tenantfactory->get()->get_sql_identifier();
+        return $USER->{$tenantfield} === $tenant->get_sql_identifier();
     }
 
     /**
@@ -158,11 +159,11 @@ class access_manager {
             return;
         }
 
-        $customtenant = new custom_tenant($tenant);
-        \core\di::get(\core\hook\manager::class)->dispatch($customtenant);
+        // Determining the context lets plugins implementing the custom_tenant hook validate the tenant.
+        $tenant->get_context();
 
         $tenantfield = get_config('local_ai_manager', 'tenantcolumn');
-        if (empty($USER->{$tenantfield}) || $USER->{$tenantfield} !== $tenant->get_sql_identifier()) {
+        if (empty($USER->{$tenantfield}) || !$this->is_tenant_member()) {
             throw new \moodle_exception('exception_tenantaccessdenied', 'local_ai_manager', '', $tenant->get_identifier());
         }
     }

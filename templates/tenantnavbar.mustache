@@ -29,6 +29,7 @@
         "userstatisticsactive": false,
         "purposestatisticsactive": false,
         "statisticsoverviewactive": false,
+        "showuserconfig": true,
         "showstatistics": true,
         "showuserstatistics": true,
         "showviewprompts": true,
@@ -61,6 +62,7 @@
                 </a>
             </li>
 
+            {{#showuserconfig}}
             <li class="navitem dropdown">
                 <a class="nav-link dropdown-toggle{{#userconfigactive}} active active_tree_node{{/userconfigactive}}" href="#" id="local_ai_manager_user_configuration_dropdown"
                    role="button" data-bs-toggle="dropdown" aria-haspopup="true"
@@ -78,6 +80,7 @@
                     </a>
                 </div>
             </li>
+            {{/showuserconfig}}
 
             {{#showstatistics}}
                 <li class="navitem dropdown">

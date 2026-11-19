@@ -50,20 +50,20 @@ final class ai_manager_utils_test extends \advanced_testcase {
      */
     public function test_is_tenant_allowed(): void {
         $this->resetAfterTest();
-        $this->setUser($this->getDataGenerator()->create_user(['institution' => 'schoola']));
+        $this->setUser($this->getDataGenerator()->create_user(['institution' => 'tenanta']));
 
         // Without restriction every tenant is allowed.
         $this->assertTrue(ai_manager_utils::is_tenant_allowed());
 
         set_config('restricttenants', 1, 'local_ai_manager');
-        set_config('allowedtenants', "schoolb\nschoolc", 'local_ai_manager');
+        set_config('allowedtenants', "tenantb\ntenantc", 'local_ai_manager');
         $this->assertFalse(ai_manager_utils::is_tenant_allowed());
 
-        set_config('allowedtenants', "schoola\nschoolc", 'local_ai_manager');
+        set_config('allowedtenants', "tenanta\ntenantc", 'local_ai_manager');
         $this->assertTrue(ai_manager_utils::is_tenant_allowed());
 
         // The tenant set via the tenant factory is being respected.
-        \core\di::get(\local_ai_manager\local\tenant_factory::class)->set(new \local_ai_manager\local\tenant('schoolb'));
+        \core\di::get(\local_ai_manager\local\tenant_factory::class)->set(new \local_ai_manager\local\tenant('tenantb'));
         $this->assertFalse(ai_manager_utils::is_tenant_allowed());
     }
 

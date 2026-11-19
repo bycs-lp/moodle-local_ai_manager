@@ -86,29 +86,29 @@ final class tenant_parameter_test extends \advanced_testcase {
      * Tests that get_ai_config denies a foreign tenant to users who are neither member nor manager of it.
      */
     public function test_get_ai_config_denies_foreign_tenant(): void {
-        $this->setup_tenant_user('schoola');
+        $this->setup_tenant_user('tenanta');
 
         $this->assertEquals(
             get_ai_config::execute(null, SYSCONTEXTID, ['chat']),
-            get_ai_config::execute('schoola', SYSCONTEXTID, ['chat'])
+            get_ai_config::execute('tenanta', SYSCONTEXTID, ['chat'])
         );
         try {
-            get_ai_config::execute('schoolb', SYSCONTEXTID, ['chat']);
+            get_ai_config::execute('tenantb', SYSCONTEXTID, ['chat']);
             $this->fail('Accessing a foreign tenant must not be possible');
         } catch (\moodle_exception $exception) {
             $this->assertEquals('exception_tenantaccessdenied', $exception->errorcode);
         }
-        $this->assertEquals('schoola', $this->get_current_tenant_identifier());
+        $this->assertEquals('tenanta', $this->get_current_tenant_identifier());
     }
 
     /**
      * Tests that get_ai_info denies a foreign tenant to users who are neither member nor manager of it.
      */
     public function test_get_ai_info_denies_foreign_tenant(): void {
-        $this->setup_tenant_user('schoola');
+        $this->setup_tenant_user('tenanta');
 
-        $this->assertArrayHasKey('tools', get_ai_info::execute('schoola'));
-        foreach (['schoolb', tenant::DEFAULT_IDENTIFIER] as $foreigntenant) {
+        $this->assertArrayHasKey('tools', get_ai_info::execute('tenanta'));
+        foreach (['tenantb', tenant::DEFAULT_IDENTIFIER] as $foreigntenant) {
             try {
                 get_ai_info::execute($foreigntenant);
                 $this->fail('Accessing a foreign tenant must not be possible');
@@ -116,24 +116,24 @@ final class tenant_parameter_test extends \advanced_testcase {
                 $this->assertEquals('exception_tenantaccessdenied', $exception->errorcode);
             }
         }
-        $this->assertEquals('schoola', $this->get_current_tenant_identifier());
+        $this->assertEquals('tenanta', $this->get_current_tenant_identifier());
     }
 
     /**
      * Tests that tenant managers get the info and config of a foreign tenant.
      */
     public function test_manager_can_access_foreign_tenant(): void {
-        $this->setup_tenant_user('schoola', true);
+        $this->setup_tenant_user('tenanta', true);
         // Only the foreign tenant is enabled, so the availability shows which tenant configuration has been used.
-        $this->enable_tenant('schoolb');
+        $this->enable_tenant('tenantb');
 
-        $availability = get_ai_config::execute('schoolb', SYSCONTEXTID, ['chat'])['availability'];
+        $availability = get_ai_config::execute('tenantb', SYSCONTEXTID, ['chat'])['availability'];
         $this->assertNotEquals(ai_manager_utils::AVAILABILITY_HIDDEN, $availability['available']);
 
-        $info = get_ai_info::execute('schoolb');
+        $info = get_ai_info::execute('tenantb');
         $this->assertNotEmpty($info['tools']);
         foreach ($info['tools'] as $tool) {
-            $this->assertStringContainsString('tenant=schoolb', $tool['addurl']);
+            $this->assertStringContainsString('tenant=tenantb', $tool['addurl']);
         }
     }
 
@@ -154,18 +154,18 @@ final class tenant_parameter_test extends \advanced_testcase {
         assign_capability('local/ai_manager:manage', CAP_ALLOW, $roleid, SYSCONTEXTID);
 
         // A user without the manager role in the tenant context is denied.
-        $this->setup_tenant_user('schoola');
+        $this->setup_tenant_user('tenanta');
         try {
-            get_ai_info::execute('schoolb');
+            get_ai_info::execute('tenantb');
             $this->fail('Accessing a foreign tenant must not be possible');
         } catch (\moodle_exception $exception) {
             $this->assertEquals('exception_tenantaccessdenied', $exception->errorcode);
         }
 
-        $manager = $this->setup_tenant_user('schoola');
+        $manager = $this->setup_tenant_user('tenanta');
         role_assign($roleid, $manager->id, $categorycontext->id);
-        $this->assertArrayHasKey('tools', get_ai_info::execute('schoolb'));
-        $this->assertArrayHasKey('availability', get_ai_config::execute('schoolb', SYSCONTEXTID, ['chat']));
+        $this->assertArrayHasKey('tools', get_ai_info::execute('tenantb'));
+        $this->assertArrayHasKey('availability', get_ai_config::execute('tenantb', SYSCONTEXTID, ['chat']));
     }
 
     /**
@@ -173,31 +173,31 @@ final class tenant_parameter_test extends \advanced_testcase {
      */
     public function test_managetenants_user_with_malformed_own_tenant(): void {
         $this->setup_tenant_user(' malformed tenant!', true);
-        $this->enable_tenant('schoolb');
+        $this->enable_tenant('tenantb');
 
-        $this->assertArrayHasKey('tools', get_ai_info::execute('schoolb'));
-        $availability = get_ai_config::execute('schoolb', SYSCONTEXTID, ['chat'])['availability'];
+        $this->assertArrayHasKey('tools', get_ai_info::execute('tenantb'));
+        $availability = get_ai_config::execute('tenantb', SYSCONTEXTID, ['chat'])['availability'];
         $this->assertNotEquals(ai_manager_utils::AVAILABILITY_HIDDEN, $availability['available']);
     }
 
     /**
      * Tests that the web services cannot be used as an oracle for enumerating existing tenants.
      *
-     * Plugins providing the tenant context (like local_bycsauth) throw an exception for non-existing tenants. This must not
-     * result in a different answer than for an existing foreign tenant.
+     * Plugins implementing the custom_tenant hook may validate the tenant by throwing an exception for non-existing tenants.
+     * This must not result in a different answer than for an existing foreign tenant.
      */
     public function test_no_oracle_for_existing_tenants(): void {
         $this->redirectHook(
             \local_ai_manager\hook\custom_tenant::class,
             function (\local_ai_manager\hook\custom_tenant $customtenant) {
-                if (!in_array($customtenant->get_tenantidentifier(), ['schoola', 'schoolb'])) {
-                    throw new \moodle_exception('Invalid school id');
+                if (!in_array($customtenant->get_tenantidentifier(), ['tenanta', 'tenantb'])) {
+                    throw new \moodle_exception('Unknown tenant');
                 }
             }
         );
-        $this->setup_tenant_user('schoola');
+        $this->setup_tenant_user('tenanta');
 
-        foreach (['schoolb', 'notexisting', ' invalid identifier!'] as $foreigntenant) {
+        foreach (['tenantb', 'notexisting', ' invalid identifier!'] as $foreigntenant) {
             $calls = [
                 fn() => get_ai_info::execute($foreigntenant),
                 fn() => get_ai_config::execute($foreigntenant, SYSCONTEXTID, ['chat']),
@@ -209,7 +209,7 @@ final class tenant_parameter_test extends \advanced_testcase {
                 } catch (\moodle_exception $exception) {
                     $this->assertEquals('exception_tenantaccessdenied', $exception->errorcode);
                 }
-                $this->assertEquals('schoola', $this->get_current_tenant_identifier());
+                $this->assertEquals('tenanta', $this->get_current_tenant_identifier());
             }
         }
     }
@@ -220,14 +220,14 @@ final class tenant_parameter_test extends \advanced_testcase {
      * This simulates a batch request via lib/ajax/service.php which executes several external functions in the same process.
      */
     public function test_tenant_does_not_leak_into_next_external_function(): void {
-        $this->setup_tenant_user('schoola', true);
+        $this->setup_tenant_user('tenanta', true);
         // Only the foreign tenant is enabled, so the availability shows which tenant configuration has been used.
-        $this->enable_tenant('schoolb');
+        $this->enable_tenant('tenantb');
         $_POST['sesskey'] = sesskey();
 
         $response = external_api::call_external_function(
             'local_ai_manager_get_ai_config',
-            ['tenant' => 'schoolb', 'contextid' => SYSCONTEXTID, 'purposes' => ['chat']]
+            ['tenant' => 'tenantb', 'contextid' => SYSCONTEXTID, 'purposes' => ['chat']]
         );
         $this->assertFalse($response['error']);
         $this->assertNotEquals(ai_manager_utils::AVAILABILITY_HIDDEN, $response['data']['availability']['available']);
@@ -239,6 +239,6 @@ final class tenant_parameter_test extends \advanced_testcase {
         $this->assertFalse($response['error']);
         // The own tenant is not enabled, so the second call must not have used the tenant of the first call.
         $this->assertEquals(ai_manager_utils::AVAILABILITY_HIDDEN, $response['data']['availability']['available']);
-        $this->assertEquals('schoola', $this->get_current_tenant_identifier());
+        $this->assertEquals('tenanta', $this->get_current_tenant_identifier());
     }
 }
