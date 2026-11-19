@@ -68,9 +68,9 @@ class statistics_overview_table extends table_sql {
         // using azure.
         // We need a unique first column which we combine out of the three grouped columns. We do not display the first column
         // anyway so it does not really matter how it is shaped as long as it is guaranteed to be unique.
-        $uniquefirstcolumn = $DB->sql_concat('modelinfo', '"-"', 'model', '"-"', 'connector');
+        $uniquefirstcolumn = $DB->sql_concat('modelinfo', "'-'", 'model', "'-'", 'connector');
         $fields =
-            $uniquefirstcolumn . 'AS id, modelinfo, model, connector, COUNT(modelinfo) AS requestcount, SUM(value) AS userusage';
+            $uniquefirstcolumn . ' AS id, modelinfo, model, connector, COUNT(modelinfo) AS requestcount, SUM(value) AS userusage';
         $from = '{local_ai_manager_request_log}';
         $tenant = \core\di::get(tenant_factory::class)->get();
         $where = 'tenant = :tenant GROUP BY modelinfo, model, connector';
