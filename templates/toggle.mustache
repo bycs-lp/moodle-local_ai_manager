@@ -25,13 +25,13 @@
         "text": "Toggle this to enable/disable what you want"
     }
 }}
-<div class="custom-control custom-switch" data-toggle-identifier="{{identifier}}" {{#checked}} data-checked="1" {{/checked}}{{^checked}} data-checked="0" {{/checked}}>
-    <input type="checkbox" class="custom-control-input"{{!
+<div class="form-check form-switch" data-toggle-identifier="{{identifier}}" {{#checked}} data-checked="1" {{/checked}}{{^checked}} data-checked="0" {{/checked}}>
+    <input type="checkbox" class="form-check-input" role="switch" id="local_ai_manager-toggle-{{uniqid}}-{{identifier}}"{{!
                 }} {{#checked}}checked{{/checked}}{{!
                 }} data-targetwhenchecked="{{{targetwhenchecked}}}"{{!
                 }} data-targetwhennotchecked="{{{targetwhennotchecked}}}"{{!>
                 }}>
-    <span class="custom-control-label">{{text}}</span>
+    <label class="form-check-label" for="local_ai_manager-toggle-{{uniqid}}-{{identifier}}">{{text}}</label>
 </div>
 {{#js}}
     require(['local_ai_manager/toggle_handler'], function(ToggleHandler) {

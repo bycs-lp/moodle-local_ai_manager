@@ -34,11 +34,8 @@ export const init = (inputSelector) => {
         }
         controllers[identifier] = new AbortController();
         const {signal} = controllers[identifier];
-        toggleContainer.addEventListener('click', () => {
-            // Click event will fire before status is being updated, so we have to invert 0 and 1 here.
-            toggleContainer.dataset.checked = toggle.checked ? '0' : '1';
-            toggle.checked = !toggle.checked;
-            toggle.dispatchEvent(new Event('change'));
+        toggle.addEventListener('change', () => {
+            toggleContainer.dataset.checked = toggle.checked ? '1' : '0';
         }, {signal});
 
         // To make the toggle also usable without directly loading a page on changing the state
