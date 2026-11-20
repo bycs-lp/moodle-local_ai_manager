@@ -18,6 +18,7 @@ namespace local_ai_manager\plugininfo;
 
 use core\plugininfo\base;
 use core_plugin_manager;
+use local_ai_manager\local\vecstore_factory;
 
 /**
  * Plugininfo class for the subplugintype aivecstore.
@@ -74,6 +75,12 @@ class aivecstore extends base {
 
             add_to_config_log('enabled', $oldvalue, $enabled, $plugin);
             \core_plugin_manager::reset_caches();
+
+            // Enabling the backend of the global primary vector store makes it active again, which degrades the tenant primaries.
+            $factory = \core\di::get(vecstore_factory::class);
+            if ($enabled === 1 && $factory->find_global_primary_instance()?->get_vecstore() === $pluginname) {
+                $factory->reset_tenant_primaries();
+            }
         }
 
         return $haschanged;

@@ -18,6 +18,7 @@ namespace local_ai_manager;
 
 use local_ai_manager\local\tenant;
 use local_ai_manager\local\tenant_factory;
+use local_ai_manager\local\vecstore_factory;
 use local_ai_manager\plugininfo\aivecstore;
 use stdClass;
 
@@ -119,6 +120,10 @@ class base_vecstore_instance {
         } else {
             $record->id = $this->id;
             $DB->update_record('local_ai_manager_vecstore', $record);
+            // An instance which is not global anymore cannot be the primary vector store of all tenants.
+            if (!$this->isglobal && $this->is_global_primary()) {
+                unset_config(vecstore_factory::CONFIG_GLOBAL_PRIMARY, 'local_ai_manager');
+            }
         }
         $this->record = $record;
     }
@@ -225,6 +230,16 @@ class base_vecstore_instance {
      */
     public function set_global(bool $isglobal): void {
         $this->isglobal = $isglobal;
+    }
+
+    /**
+     * Returns if the instance is set as primary vector store of all tenants.
+     *
+     * @return bool true if the instance is the global primary vector store, no matter if its backend is enabled
+     */
+    public function is_global_primary(): bool {
+        // Instances not stored yet have the id 0, which is also the value of the unset config.
+        return $this->id !== 0 && (int) get_config('local_ai_manager', vecstore_factory::CONFIG_GLOBAL_PRIMARY) === $this->id;
     }
 
     /**
@@ -433,6 +448,14 @@ class base_vecstore_instance {
                 get_string('vecstoreglobaldesc', 'local_ai_manager')
             );
             $mform->setType('isglobal', PARAM_BOOL);
+            if ($this->is_global_primary()) {
+                $mform->addElement(
+                    'static',
+                    'isglobalprimarydesc',
+                    '',
+                    get_string('vecstoreglobalprimaryformdesc', 'local_ai_manager')
+                );
+            }
         }
 
         $vecstore = $customdata['vecstore'];
@@ -583,9 +606,12 @@ class base_vecstore_instance {
             }
         }
         // Remove this instance as primary vector store of all tenants, global instances can be the primary one of many tenants.
+        if ($this->is_global_primary()) {
+            unset_config(vecstore_factory::CONFIG_GLOBAL_PRIMARY, 'local_ai_manager');
+        }
         $DB->delete_records(
             'local_ai_manager_config',
-            ['configkey' => \local_ai_manager\local\vecstore_factory::CONFIG_PRIMARY, 'configvalue' => $this->id]
+            ['configkey' => vecstore_factory::CONFIG_PRIMARY, 'configvalue' => $this->id]
         );
         // The collections stay in the backend, only our bookkeeping of them is removed.
         $DB->delete_records('local_ai_manager_collection', ['vecstoreid' => $this->id]);

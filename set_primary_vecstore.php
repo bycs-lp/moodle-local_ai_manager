@@ -50,11 +50,20 @@ if (empty($instances)) {
 }
 $instance = reset($instances);
 
-// Sources already indexed in the previous primary vector store stay there, so there is nothing to confirm.
-\core\di::get(vecstore_factory::class)->set_primary($instance->get_id());
+// Sources already indexed in the previous primary vector store stay there, so there is nothing to confirm for a tenant.
+$factory = \core\di::get(vecstore_factory::class);
+if ($instance->is_global() && has_capability('local/ai_manager:manageglobalvecstores', context_system::instance())) {
+    // A global vector store set as primary by a site administrator is forced as primary vector store of all tenants, the
+    // confirmation modal of the button on the tenant config page explains the consequences.
+    $factory->set_global_primary($instance->get_id());
+    $message = get_string('vecstoreglobalprimaryset', 'local_ai_manager', format_string($instance->get_name()));
+} else {
+    $factory->set_primary($instance->get_id());
+    $message = get_string('vecstoreprimaryset', 'local_ai_manager', format_string($instance->get_name()));
+}
 redirect(
     $returnurl,
-    get_string('vecstoreprimaryset', 'local_ai_manager', format_string($instance->get_name())),
+    $message,
     null,
     \core\output\notification::NOTIFY_SUCCESS
 );

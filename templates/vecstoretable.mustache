@@ -37,10 +37,15 @@
                 "collection": "moodle_rag",
                 "enabled": true,
                 "isprimary": true,
-                "isglobal": false
+                "isglobal": false,
+                "setprimaryurl": null,
+                "setsglobalprimary": false,
+                "globalprimaryconfirmtitle": null,
+                "globalprimaryconfirmcontent": null
             }
         ],
-        "noprimary": false
+        "noprimary": false,
+        "globalprimaryinfo": "The vector database \"Central Qdrant\" is the primary vector database of all tenants."
     }
 }}
 <hr>
@@ -69,6 +74,9 @@
     {{#noprimary}}
         <div class="alert alert-warning" role="alert">{{#str}} vecstorenoprimary, local_ai_manager {{/str}}</div>
     {{/noprimary}}
+    {{#globalprimaryinfo}}
+        <div class="alert alert-info" role="alert">{{globalprimaryinfo}}</div>
+    {{/globalprimaryinfo}}
     <div class="table-responsive">
         <table class="table table-hover">
             <thead>
@@ -102,8 +110,15 @@
                     </td>
                     <td>
                         {{#setprimaryurl}}
-                            <a class="btn btn-outline-secondary btn-sm" href="{{setprimaryurl}}">
-                                {{#str}}setasprimary, local_ai_manager{{/str}}
+                            <a class="btn btn-outline-secondary btn-sm" href="{{setprimaryurl}}"
+                                {{#setsglobalprimary}}
+                                    data-modal="confirmation"
+                                    data-modal-title="{{globalprimaryconfirmtitle}}"
+                                    data-modal-content="{{globalprimaryconfirmcontent}}"
+                                    data-modal-yes-button-str='["setasglobalprimary", "local_ai_manager"]'
+                                {{/setsglobalprimary}}>
+                                {{#setsglobalprimary}}{{#str}}setasglobalprimary, local_ai_manager{{/str}}{{/setsglobalprimary}}
+                                {{^setsglobalprimary}}{{#str}}setasprimary, local_ai_manager{{/str}}{{/setsglobalprimary}}
                             </a>
                         {{/setprimaryurl}}
                         {{#testurl}}

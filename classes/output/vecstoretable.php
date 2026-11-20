@@ -57,11 +57,19 @@ class vecstoretable implements renderable, templatable {
         $accessmanager = \core\di::get(access_manager::class);
         $primaryinstance = $factory->find_primary_instance();
         $primaryid = $primaryinstance ? $primaryinstance->get_id() : 0;
+        $globalprimary = $factory->find_global_primary_instance();
+        $canmanageglobal = has_capability('local/ai_manager:manageglobalvecstores', \context_system::instance());
 
         $instances = base_vecstore_instance::get_all_instances();
         $vecstores = [];
         foreach ($instances as $instance) {
             $isprimary = $instance->get_id() === $primaryid;
+            // While a global primary is forced, only site administrators can switch it to another global vector store.
+            $cansetprimary = !$isprimary && $instance->is_enabled()
+                && ($globalprimary === null || ($canmanageglobal && $instance->is_global()));
+            // Site administrators setting a global vector store as primary force it as primary of all tenants.
+            $setsglobalprimary = $cansetprimary && $canmanageglobal && $instance->is_global();
+            $instancename = format_string($instance->get_name());
             // Users not allowed to manage an instance (e.g. tenant managers for global ones) must not see its connection data.
             $canmanage = $accessmanager->can_manage_vecstoreinstance($instance);
             $linkedname = ($canmanage && $instance->is_enabled())
@@ -88,13 +96,30 @@ class vecstoretable implements renderable, templatable {
                         ['id' => $instance->get_id(), 'sesskey' => sesskey()]
                     ))->out(false)
                     : null,
-                'setprimaryurl' => (!$isprimary && $instance->is_enabled())
+                'setprimaryurl' => $cansetprimary
                     ? (new moodle_url(
                         '/local/ai_manager/set_primary_vecstore.php',
                         ['id' => $instance->get_id(), 'tenant' => $tenant->get_identifier(), 'sesskey' => sesskey()]
                     ))->out(false)
                     : null,
+                // Site administrators setting a global vector store as primary force it as primary of all tenants.
+                'setsglobalprimary' => $setsglobalprimary,
+                'globalprimaryconfirmtitle' => $setsglobalprimary
+                    ? get_string('vecstoreglobalprimaryheading', 'local_ai_manager', $instancename)
+                    : null,
+                'globalprimaryconfirmcontent' => $setsglobalprimary
+                    ? get_string('vecstoreglobalprimaryconfirm', 'local_ai_manager', $instancename)
+                    : null,
             ];
+        }
+
+        $globalprimaryinfo = null;
+        if ($globalprimary) {
+            $globalprimaryinfo = get_string(
+                $canmanageglobal ? 'vecstoreglobalprimaryinfo_admin' : 'vecstoreglobalprimaryinfo',
+                'local_ai_manager',
+                format_string($globalprimary->get_name())
+            );
         }
 
         return (object) [
@@ -103,6 +128,7 @@ class vecstoretable implements renderable, templatable {
             'addoptions' => $addoptions,
             'vecstores' => $vecstores,
             'noprimary' => !empty($instances) && $primaryinstance === null,
+            'globalprimaryinfo' => $globalprimaryinfo,
         ];
     }
 }

@@ -36,6 +36,9 @@ class vecstore_factory {
     /** @var string Config key (per tenant, in config_manager) storing the primary vector store instance id. */
     public const CONFIG_PRIMARY = 'primary_vecstore';
 
+    /** @var string Plugin config key storing the id of the global vector store instance forced as primary of all tenants. */
+    public const CONFIG_GLOBAL_PRIMARY = 'globalprimaryvecstore';
+
     /**
      * Returns the vector store instance object for a given instance id.
      *
@@ -95,30 +98,45 @@ class vecstore_factory {
     }
 
     /**
+     * Returns the global primary vector store instance forced as primary vector store of all tenants or null if there is none.
+     *
+     * The global primary vector store is set by a site administrator, see {@see set_global_primary()}. It is only active as
+     * long as its backend is enabled.
+     *
+     * @return ?base_vecstore_instance the global primary instance or null if there is no active global primary vector store
+     */
+    public function find_global_primary_instance(): ?base_vecstore_instance {
+        // Setting a global primary vector store is optional.
+        $id = (int) get_config('local_ai_manager', self::CONFIG_GLOBAL_PRIMARY);
+        if ($id === 0) {
+            return null;
+        }
+        $instance = $this->get_vecstore_instance_by_id($id);
+        return $instance->is_enabled() ? $instance : null;
+    }
+
+    /**
      * Returns the primary vector store instance for the current tenant or null if it has none.
      *
-     * The primary vector store is stored in the tenant config, see {@see set_primary()}. It can be one of the own or of the
-     * global vector store instances of the tenant. If the tenant has no valid config entry and exactly one enabled vector store
-     * instance is available for the tenant (own and global ones together), this instance is stored as primary vector store of
-     * the tenant and returned.
+     * An active global primary vector store (see {@see find_global_primary_instance()}) is the primary vector store of every
+     * tenant, so Moodle contents are only indexed there. Otherwise the primary vector store is the one a tenant manager has
+     * actively set in the tenant config, see {@see set_primary()}. It can be one of the own or of the global vector store
+     * instances of the tenant.
      *
      * @return ?base_vecstore_instance the primary instance or null if the tenant has no primary vector store
      */
     public function find_primary_instance(): ?base_vecstore_instance {
-        $configmanager = \core\di::get(config_manager::class);
-        $availableinstances = base_vecstore_instance::get_all_instances();
-        $primaryid = (int) $configmanager->get_config(self::CONFIG_PRIMARY);
-        foreach ($availableinstances as $instance) {
+        $globalprimary = $this->find_global_primary_instance();
+        if ($globalprimary !== null) {
+            return $globalprimary;
+        }
+        $primaryid = (int) \core\di::get(config_manager::class)->get_config(self::CONFIG_PRIMARY);
+        foreach (base_vecstore_instance::get_all_instances() as $instance) {
             if ($instance->get_id() === $primaryid) {
                 return $instance->is_enabled() ? $instance : null;
             }
         }
-        $enabledinstances = array_values(array_filter($availableinstances, fn($instance) => $instance->is_enabled()));
-        if (count($enabledinstances) !== 1) {
-            return null;
-        }
-        $this->set_primary($enabledinstances[0]->get_id());
-        return $enabledinstances[0];
+        return null;
     }
 
     /**
@@ -153,9 +171,42 @@ class vecstore_factory {
      * Sources already indexed in the previous primary vector store stay there, only new indexings use the new one.
      *
      * @param int $id the id of the vector store instance available for the current tenant to make primary
+     * @throws \moodle_exception if a global primary vector store is forced for all tenants
      */
     public function set_primary(int $id): void {
+        if ($this->find_global_primary_instance() !== null) {
+            throw new \moodle_exception('exception_globalprimaryvecstoreforced', 'local_ai_manager');
+        }
         \core\di::get(config_manager::class)->set_config(self::CONFIG_PRIMARY, (string) $id);
+    }
+
+    /**
+     * Forces the given global instance as primary vector store of all tenants.
+     *
+     * The primary vector stores of the tenants are degraded to normal ones, see {@see reset_tenant_primaries()}.
+     *
+     * @param int $id the id of the global vector store instance to force as primary of all tenants
+     * @throws \coding_exception if the instance is not a global one
+     */
+    public function set_global_primary(int $id): void {
+        if (!$this->get_vecstore_instance_by_id($id)->is_global()) {
+            throw new \coding_exception('Only global vector store instances can be the primary vector store of all tenants');
+        }
+        set_config(self::CONFIG_GLOBAL_PRIMARY, $id, 'local_ai_manager');
+        $this->reset_tenant_primaries();
+    }
+
+    /**
+     * Degrades the primary vector stores of all tenants to normal ones.
+     *
+     * Called whenever a global primary vector store becomes active, so a tenant has no primary vector store anymore once the
+     * global primary vector store is not active anymore and a tenant manager has to actively set one again.
+     */
+    public function reset_tenant_primaries(): void {
+        global $DB;
+        $DB->delete_records('local_ai_manager_config', ['configkey' => self::CONFIG_PRIMARY]);
+        // Also reloads the config of the current tenant cached in the config manager.
+        \core\di::get(config_manager::class)->unset_config(self::CONFIG_PRIMARY);
     }
 
     /**

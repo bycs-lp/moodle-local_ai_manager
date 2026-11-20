@@ -329,7 +329,7 @@ final class base_vecstore_instance_test extends \advanced_testcase {
     }
 
     /**
-     * Tests the resolving of the primary vector store of a tenant: none, auto-single, explicit selection and deletion.
+     * Tests the resolving of the primary vector store of a tenant: none, explicit selection and deletion.
      *
      * @covers \local_ai_manager\local\vecstore_factory::find_primary_instance
      * @covers \local_ai_manager\local\vecstore_factory::get_primary_instance
@@ -345,8 +345,10 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         // No instances configured yet.
         $this->assertNull($factory->find_primary_instance());
 
-        // Exactly one instance: It becomes the primary one and is stored in the tenant config.
+        // Even a single instance is no primary one until a tenant manager actively sets it.
         $a = $this->create_instance('A', 'tn');
+        $this->assertNull($factory->find_primary_instance());
+        $factory->set_primary($a->get_id());
         $this->assertSame($a->get_id(), $factory->get_primary_instance()->get_id());
         $this->assertSame((string) $a->get_id(), $configmanager->get_config(vecstore_factory::CONFIG_PRIMARY));
 
@@ -358,14 +360,8 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $factory->set_primary($b->get_id());
         $this->assertSame($b->get_id(), $factory->get_primary_instance()->get_id());
 
-        // Deleting the primary one removes the config entry, the only remaining instance becomes the primary one.
+        // Deleting the primary one removes the config entry, the remaining instance does not become the primary one.
         $b->delete();
-        $this->assertSame($a->get_id(), $factory->get_primary_instance()->get_id());
-
-        // Several instances without a valid config entry: There is no primary one.
-        $this->create_instance('C', 'tn');
-        $a->delete();
-        $this->create_instance('D', 'tn');
         $this->assertNull($factory->find_primary_instance());
         $this->expectException(\moodle_exception::class);
         $factory->get_primary_instance();
@@ -386,25 +382,93 @@ final class base_vecstore_instance_test extends \advanced_testcase {
         $global = $this->create_instance('Global', 'admintenant', true);
         $local = $this->create_instance('Local', 'tenanta');
 
-        // Global and own instances count together, so tenanta has to choose its primary vector store.
+        // Global and own instances are available, tenanta can choose the global one as its primary vector store.
         $tenantfactory->set(new tenant('tenanta'));
         $this->assertCount(2, base_vecstore_instance::get_all_instances());
         $this->assertNull($factory->find_primary_instance());
         $factory->set_primary($global->get_id());
         $this->assertSame($global->get_id(), $factory->find_primary_instance()->get_id());
 
-        // The global instance is the only one available for tenantb, so it becomes its primary vector store.
+        // The global instance is available for tenantb, but tenantb has not chosen a primary vector store.
         $tenantfactory->set(new tenant('tenantb'));
         $this->assertCount(1, base_vecstore_instance::get_all_instances());
-        $this->assertSame($global->get_id(), $factory->find_primary_instance()->get_id());
+        $this->assertNull($factory->find_primary_instance());
 
-        // An instance of another tenant is no valid config entry, so the only available instance is used instead.
+        // An instance of another tenant is no valid config entry.
         $factory->set_primary($local->get_id());
-        $this->assertSame($global->get_id(), $factory->find_primary_instance()->get_id());
+        $this->assertNull($factory->find_primary_instance());
 
         // Deleting the global instance removes it as primary vector store of all tenants.
         $global->delete();
         $tenantfactory->set(new tenant('tenanta'));
-        $this->assertSame($local->get_id(), $factory->find_primary_instance()->get_id());
+        $this->assertNull($factory->find_primary_instance());
+    }
+
+    /**
+     * Tests that a global primary vector store is forced as primary vector store of all tenants.
+     */
+    public function test_global_primary(): void {
+        $this->resetAfterTest();
+
+        $factory = new vecstore_factory();
+        $tenantfactory = \core\di::get(tenant_factory::class);
+        $global = $this->create_instance('Global', 'admintenant', true);
+        $global->set_vecstore('postgres');
+        $global->store();
+        $locala1 = $this->create_instance('Local A1', 'tenanta');
+        $locala2 = $this->create_instance('Local A2', 'tenanta');
+        $tenantfactory->set(new tenant('tenanta'));
+        $factory->set_primary($locala1->get_id());
+
+        // Only global instances can be forced as primary vector store of all tenants.
+        try {
+            $factory->set_global_primary($locala1->get_id());
+            $this->fail('Expected coding_exception');
+        } catch (\coding_exception $e) {
+            $this->assertNull($factory->find_global_primary_instance());
+        }
+
+        // The global primary vector store is the primary one of every tenant, even of tenants without own instances.
+        $factory->set_global_primary($global->get_id());
+        $this->assertTrue($global->is_global_primary());
+        $this->assertSame($global->get_id(), $factory->find_primary_instance()->get_id());
+        $tenantfactory->set(new tenant('tenantb'));
+        $this->assertSame($global->get_id(), $factory->find_primary_instance()->get_id());
+
+        // Tenants cannot set an own primary vector store while the global one is forced.
+        $tenantfactory->set(new tenant('tenanta'));
+        try {
+            $factory->set_primary($locala2->get_id());
+            $this->fail('Expected moodle_exception');
+        } catch (\moodle_exception $e) {
+            $this->assertSame('exception_globalprimaryvecstoreforced', $e->errorcode);
+        }
+
+        // Disabling the backend of the global primary leaves the tenant without primary, the former one has been degraded.
+        \local_ai_manager\plugininfo\aivecstore::enable_plugin('postgres', 0);
+        $this->assertNull($factory->find_global_primary_instance());
+        $this->assertNull($factory->find_primary_instance());
+        $factory->set_primary($locala2->get_id());
+        $this->assertSame($locala2->get_id(), $factory->find_primary_instance()->get_id());
+
+        // Enabling the backend again makes the global primary active again and degrades the tenant primary once more.
+        \local_ai_manager\plugininfo\aivecstore::enable_plugin('postgres', 1);
+        $this->assertSame($global->get_id(), $factory->find_primary_instance()->get_id());
+
+        // Removing the global flag of the global primary releases it, the tenant has to set its primary again.
+        $global->set_global(false);
+        $global->store();
+        $this->assertFalse($global->is_global_primary());
+        $this->assertNull($factory->find_primary_instance());
+        $factory->set_primary($locala2->get_id());
+        $this->assertSame($locala2->get_id(), $factory->find_primary_instance()->get_id());
+
+        // Deleting the global primary releases it as well.
+        $global->set_global(true);
+        $global->store();
+        $factory->set_global_primary($global->get_id());
+        $global->delete();
+        $this->assertNull($factory->find_global_primary_instance());
+        $this->assertNull($factory->find_primary_instance());
     }
 }
