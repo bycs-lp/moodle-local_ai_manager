@@ -424,5 +424,42 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026102301, 'local', 'ai_manager');
     }
 
+    if ($oldversion < 2026111300) {
+        // Add the embedding capability field to the model table.
+        $table = new xmldb_table('local_ai_manager_model');
+        $field = new xmldb_field('embedding', XMLDB_TYPE_INTEGER, '1', null, null, null, null, 'stt');
+
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // Re-import the models from the JSON seed file so the embedding flag gets populated.
+        \local_ai_manager\local\utils::import_models_from_json();
+
+        // Create the local_ai_manager_vecstore table storing vector database connection instances.
+        $table = new xmldb_table('local_ai_manager_vecstore');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('name', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+        $table->add_field('tenant', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+        $table->add_field('vecstore', XMLDB_TYPE_CHAR, '50', null, null, null, null);
+        $table->add_field('endpoint', XMLDB_TYPE_CHAR, '1000', null, null, null, null);
+        $table->add_field('apikey', XMLDB_TYPE_TEXT, null, null, null, null, null);
+        $table->add_field('useglobalapikey', XMLDB_TYPE_INTEGER, '1', null, null, null, null);
+        $table->add_field('collection', XMLDB_TYPE_CHAR, '255', null, null, null, null);
+        $table->add_field('dimensions', XMLDB_TYPE_INTEGER, '10', null, null, null, null);
+        $table->add_field('distancemetric', XMLDB_TYPE_CHAR, '20', null, null, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_index('tenant', XMLDB_INDEX_NOTUNIQUE, ['tenant']);
+
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // AI manager savepoint reached.
+        upgrade_plugin_savepoint(true, 2026111300, 'local', 'ai_manager');
+    }
+
     return true;
 }

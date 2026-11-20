@@ -27,7 +27,6 @@ namespace aipurpose_agent;
 
 use local_ai_manager\base_purpose;
 use local_ai_manager\local\requestoptions\conversationcontext;
-use local_ai_manager\request_options;
 use Locale;
 
 /**
@@ -111,11 +110,6 @@ class purpose extends base_purpose {
         if (array_key_exists(conversationcontext::OPTION_NAME, $options)) {
             \core\di::get(conversationcontext::class)->validate($options[conversationcontext::OPTION_NAME]);
         }
-    }
-
-    #[\Override]
-    public function format_prompt_text(string $prompttext, request_options $requestoptions): string {
-        return $prompttext;
     }
 
     /**

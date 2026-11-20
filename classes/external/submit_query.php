@@ -94,6 +94,15 @@ class submit_query extends external_api {
         // We do not check the 'local/ai_manager:use' capability here, because this is being done inside manager::perform_request.
 
         try {
+            // Internal purposes must only be used by server side code, otherwise clients could bypass the restrictions
+            // (for example request limits or the course AI control center) applying to the purposes which use them.
+            if (\core\di::get(connector_factory::class)->get_purpose_by_purpose_string($purpose)->is_internal()) {
+                return [
+                    'code' => 403,
+                    'string' => 'error',
+                    'result' => json_encode(['message' => get_string('error_internalpurpose', 'local_ai_manager')]),
+                ];
+            }
             $aimanager = new \local_ai_manager\manager($purpose);
 
             $result = $aimanager->perform_request($prompt, $component, $contextid, $options);

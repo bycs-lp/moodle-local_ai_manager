@@ -41,47 +41,102 @@ class purpose_config_form extends \moodleform {
      * Form definition.
      */
     public function definition() {
-        global $OUTPUT;
         $tenant = \core\di::get(tenant_factory::class)->get();
         $mform = &$this->_form;
 
         $mform->addElement('hidden', 'tenant', $tenant->get_identifier());
         $mform->setType('tenant', PARAM_TEXT);
 
-        foreach (base_purpose::get_all_purposes() as $purpose) {
-            $factory = \core\di::get(connector_factory::class);
-            $instances = $factory::get_connector_instances_for_purpose($purpose);
-            $instances = array_map(fn($instance) => $instance->get_name(), $instances);
-            $instances[0] = get_string('notselected', 'local_ai_manager');
+        $mform->addElement('header', 'purpose_config_purposes_header', get_string('heading_purposes', 'local_ai_manager'));
+        $mform->setExpanded('purpose_config_purposes_header');
+        foreach (base_purpose::get_all_purposes(false) as $purpose) {
+            $this->add_purpose_elements($purpose);
+        }
 
+        // Internal purposes are only used by other purposes or plugins, so they get a separate section with an explanation.
+        $internalpurposes = base_purpose::get_all_purposes(true);
+        if (!empty($internalpurposes)) {
+            $mform->addElement('header', 'purpose_config_internal_header', get_string('internalpurposes', 'local_ai_manager'));
+            $mform->setExpanded('purpose_config_internal_header');
             $mform->addElement(
-                'header',
-                'purpose_config_purpose_' . $purpose . '_header',
-                get_string(
-                    'select_tool_for_purpose',
-                    'local_ai_manager',
-                    get_string('pluginname', 'aipurpose_' . $purpose)
-                )
+                'html',
+                \core\output\html_writer::div(get_string('internalpurposesdescription', 'local_ai_manager'), 'mb-3')
             );
-            $purposeinfoicon = $OUTPUT->render_from_template('local_ai_manager/purposeinfoicon', ['purposename' => $purpose]);
-            $purposeinfoicon = \core\output\html_writer::div($purposeinfoicon, 'w-100 d-flex justify-content-end mb-1');
-            $mform->addElement('html', $purposeinfoicon);
-
-            $mform->addElement(
-                'select',
-                base_purpose::get_purpose_tool_config_key($purpose, userinfo::ROLE_BASIC),
-                get_string('role_basic', 'local_ai_manager'),
-                $instances,
-            );
-            $mform->setDefault('purpose_' . $purpose . '_tool_role_basic', 0);
-            $mform->addElement(
-                'select',
-                base_purpose::get_purpose_tool_config_key($purpose, userinfo::ROLE_EXTENDED),
-                get_string('role_extended', 'local_ai_manager'),
-                $instances
-            );
-            $mform->setDefault('purpose_' . $purpose . '_tool_role_extended', 0);
+            foreach ($internalpurposes as $purpose) {
+                $this->add_purpose_elements($purpose);
+            }
         }
         $this->add_action_buttons();
+    }
+
+    /**
+     * Adds the heading with info icon and the AI tool selects for the user roles of a purpose to the form.
+     *
+     * @param string $purpose the purpose name
+     */
+    private function add_purpose_elements(string $purpose): void {
+        global $OUTPUT;
+        $mform = &$this->_form;
+
+        $factory = \core\di::get(connector_factory::class);
+        $instances = $factory::get_connector_instances_for_purpose($purpose);
+        $instances = array_map(fn($instance) => $instance->get_name(), $instances);
+        $instances[0] = get_string('notselected', 'local_ai_manager');
+
+        $heading = \core\output\html_writer::tag(
+            'h4',
+            get_string('select_tool_for_purpose', 'local_ai_manager', get_string('pluginname', 'aipurpose_' . $purpose)),
+            ['class' => 'h5 mb-0']
+        );
+        $purposeinfoicon = $OUTPUT->render_from_template('local_ai_manager/purposeinfoicon', ['purposename' => $purpose]);
+        $mform->addElement(
+            'html',
+            \core\output\html_writer::div($heading . $purposeinfoicon, 'd-flex justify-content-between align-items-center mt-4 mb-2')
+        );
+
+        $mform->addElement(
+            'select',
+            base_purpose::get_purpose_tool_config_key($purpose, userinfo::ROLE_BASIC),
+            get_string('role_basic', 'local_ai_manager'),
+            $instances,
+        );
+        $mform->setDefault('purpose_' . $purpose . '_tool_role_basic', 0);
+        $mform->addElement(
+            'select',
+            base_purpose::get_purpose_tool_config_key($purpose, userinfo::ROLE_EXTENDED),
+            get_string('role_extended', 'local_ai_manager'),
+            $instances
+        );
+        $mform->setDefault('purpose_' . $purpose . '_tool_role_extended', 0);
+    }
+
+    /**
+     * Ensures that purposes requiring the same model for all user roles get AI tools with the same model.
+     *
+     * @param array $data the submitted form data
+     * @param array $files the uploaded files
+     * @return array errors keyed by form element name
+     */
+    #[\Override]
+    public function validation($data, $files): array {
+        $errors = parent::validation($data, $files);
+        $factory = \core\di::get(connector_factory::class);
+        foreach (base_purpose::get_all_purposes() as $purpose) {
+            if (!$factory->get_purpose_by_purpose_string($purpose)->requires_same_model_for_all_roles()) {
+                continue;
+            }
+            $models = [];
+            foreach ([userinfo::ROLE_BASIC, userinfo::ROLE_EXTENDED] as $role) {
+                $instanceid = (int) ($data[base_purpose::get_purpose_tool_config_key($purpose, $role)] ?? 0);
+                if ($instanceid > 0) {
+                    $models[] = $factory->get_connector_instance_by_id($instanceid)->get_model_name();
+                }
+            }
+            if (count(array_unique($models)) > 1) {
+                $errors[base_purpose::get_purpose_tool_config_key($purpose, userinfo::ROLE_EXTENDED)] =
+                    get_string('formvalidation_purpose_samemodel', 'local_ai_manager');
+            }
+        }
+        return $errors;
     }
 }

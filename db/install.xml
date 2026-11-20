@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/ai_manager/db" VERSION="20251204" COMMENT="XMLDB file for Moodle local/ai_manager"
+<XMLDB PATH="local/ai_manager/db" VERSION="20260630" COMMENT="XMLDB file for Moodle local/ai_manager"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -118,6 +118,7 @@
         <FIELD NAME="imggen" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Whether the model supports image generation"/>
         <FIELD NAME="tts" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Whether the model supports text-to-speech"/>
         <FIELD NAME="stt" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Whether the model supports speech-to-text"/>
+        <FIELD NAME="embedding" TYPE="int" LENGTH="1" NOTNULL="false" SEQUENCE="false" COMMENT="Whether the model is an embedding model, only selectable for the embedding purpose"/>
         <FIELD NAME="temperature" TYPE="char" LENGTH="20" NOTNULL="false" SEQUENCE="false" COMMENT="Temperature range as min-max (e.g. 0.0-1.0), null if model does not support temperature"/>
         <FIELD NAME="deprecated" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Whether the model is deprecated and should not be selectable for new instances"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -144,6 +145,45 @@
       </KEYS>
       <INDEXES>
         <INDEX NAME="modelid_connector" UNIQUE="true" FIELDS="modelid, connector"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_ai_manager_vecstore" COMMENT="Table storing vector database connection instances">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="tenant" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="vecstore" TYPE="char" LENGTH="50" NOTNULL="false" SEQUENCE="false" COMMENT="The aivecstore subplugin name, e.g. qdrant or postgres"/>
+        <FIELD NAME="isglobal" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 if the instance is available for all tenants"/>
+        <FIELD NAME="endpoint" TYPE="char" LENGTH="1000" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="username" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="User name of backends with user/password authentication"/>
+        <FIELD NAME="secret" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Secret of the backend: API key, token or (together with username) password"/>
+        <FIELD NAME="collection" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Prefix of the collection/index/table names the vectors live in, one collection per embedding model"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="tenant" UNIQUE="false" FIELDS="tenant"/>
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_ai_manager_collection" COMMENT="Collections of a vector store instance, one per embedding model">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="vecstoreid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The vector store instance holding the collection"/>
+        <FIELD NAME="embeddingmodel" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Name of the embedding model whose vectors live in the collection"/>
+        <FIELD NAME="collection" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Name of the collection/index/table in the vector store backend"/>
+        <FIELD NAME="dimensions" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="Dimensionality of the vectors of the embedding model, detected when the collection has been created"/>
+        <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="vecstoreid" TYPE="foreign" FIELDS="vecstoreid" REFTABLE="local_ai_manager_vecstore" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="vecstoreid_embeddingmodel" UNIQUE="true" FIELDS="vecstoreid, embeddingmodel"/>
       </INDEXES>
     </TABLE>
   </TABLES>

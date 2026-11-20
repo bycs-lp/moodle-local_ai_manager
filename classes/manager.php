@@ -22,10 +22,12 @@ use core\clock;
 use core_plugin_manager;
 use local_ai_manager\event\get_ai_response_failed;
 use local_ai_manager\event\get_ai_response_succeeded;
+use local_ai_manager\hook\additional_prompt_context;
 use local_ai_manager\hook\additional_user_restriction;
 use local_ai_manager\local\config_manager;
 use local_ai_manager\local\connector_factory;
 use local_ai_manager\local\prompt_response;
+use local_ai_manager\local\requestoptions\conversationcontext;
 use local_ai_manager\local\userinfo;
 use local_ai_manager\local\userusage;
 use stdClass;
@@ -201,10 +203,36 @@ class manager {
             );
         }
 
-        // Give the purpose a chance to manipulate the prompt text.
-        $prompttext = $this->purpose->format_prompt_text($prompttext, $requestoptions);
-
         try {
+            // Give other plugins a chance to add context to the request, for example retrieved content (RAG).
+            $contexthook = new additional_prompt_context($prompttext, $requestoptions);
+            \core\di::get(\core\hook\manager::class)->dispatch($contexthook);
+            if (!empty($contexthook->get_result_data())) {
+                $requestoptions->set_options(
+                    ['contextdata' => $contexthook->get_result_data()] + $requestoptions->get_options()
+                );
+            }
+            if (!empty($contexthook->get_contexts())) {
+                $options = $requestoptions->get_options();
+                if (array_key_exists(conversationcontext::OPTION_NAME, $this->purpose->get_available_purpose_options())) {
+                    // Purposes with a conversation get the additional contexts as part of their system instructions.
+                    // The option is missing if the purpose did not build a conversation context for this request.
+                    $options[conversationcontext::OPTION_NAME] = \core\di::get(conversationcontext::class)
+                        ->append_to_system_message(
+                            $options[conversationcontext::OPTION_NAME] ?? [],
+                            implode("\n\n", $contexthook->get_contexts())
+                        );
+                    $requestoptions->set_options($options);
+                } else {
+                    $prompttext = $this->purpose->add_prompt_contexts(
+                        $prompttext,
+                        $requestoptions,
+                        $contexthook->get_contexts()
+                    );
+                }
+            }
+            // Give the purpose a chance to manipulate the prompt text.
+            $prompttext = $this->purpose->format_prompt_text($prompttext, $requestoptions);
             $promptdata = $this->connector->get_prompt_data($prompttext, $requestoptions);
         } catch (\moodle_exception $exception) {
             $errormessage = $exception->getMessage();

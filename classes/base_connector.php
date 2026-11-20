@@ -62,11 +62,12 @@ abstract class base_connector {
      * Returns the available models grouped by purpose based on the model management table.
      *
      * Purpose-to-capability mapping is based on model capability attributes:
-     * - 'agent', 'chat', 'feedback', 'questiongeneration', 'singleprompt', 'translate': textgeneration
+     * - 'agent', 'chat', 'feedback', 'questiongeneration', 'searchquery', 'singleprompt', 'translate': textgeneration
      * - 'tts': tts
      * - 'stt': stt
      * - 'imggen': imggen
      * - 'itt': vision
+     * - 'embedding': only models with the embedding attribute
      *
      * Installed purposes without explicit mapping return an empty model list.
      *
@@ -82,7 +83,7 @@ abstract class base_connector {
         $models = model::get_all_models($connectorname);
 
         $result = array_fill_keys(array_keys(base_purpose::get_installed_purposes_array()), []);
-        $textpurposes = ['agent', 'chat', 'feedback', 'questiongeneration', 'singleprompt', 'translate'];
+        $textpurposes = ['agent', 'chat', 'feedback', 'questiongeneration', 'searchquery', 'singleprompt', 'translate'];
 
         foreach ($models as $model) {
             $name = $model->get_name();
@@ -112,6 +113,10 @@ abstract class base_connector {
 
             if ($model->supports_vision() && array_key_exists('itt', $result)) {
                 $result['itt'][] = $name;
+            }
+
+            if ($model->supports_embedding() && array_key_exists('embedding', $result)) {
+                $result['embedding'][] = $name;
             }
         }
 
