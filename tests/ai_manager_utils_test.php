@@ -548,13 +548,16 @@ final class ai_manager_utils_test extends \advanced_testcase {
         $userusage->store();
         $chatpurposeconfig = ai_manager_utils::get_ai_config($user, $blockcontextid, null, ['chat'])['purposes'][0];
         $this->assertEquals($chatpurposeconfig['available'], ai_manager_utils::AVAILABILITY_DISABLED);
+        $this->assertEquals(get_string('error_limitreached', 'local_ai_manager'), $chatpurposeconfig['errormessage']);
         $userusage->set_currentusage(10);
         $userusage->store();
 
-        // Disable purpose for the basic role.
+        // Disable purpose for the basic role. The current usage (10) exceeds the max requests (0), but the user must be
+        // told that the purpose is disabled for the user type and not that the limit has been reached.
         $configmanager->set_config('chat_max_requests_basic', 0);
         $chatpurposeconfig = ai_manager_utils::get_ai_config($user, $blockcontextid, null, ['chat'])['purposes'][0];
         $this->assertEquals($chatpurposeconfig['available'], ai_manager_utils::AVAILABILITY_DISABLED);
+        $this->assertEquals(get_string('error_http403usertype', 'local_ai_manager'), $chatpurposeconfig['errormessage']);
         $configmanager->set_config('chat_max_requests_basic', 50);
 
         // Test the hook.
