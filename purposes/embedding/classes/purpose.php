@@ -35,6 +35,35 @@ use local_ai_manager\base_purpose;
  */
 class purpose extends base_purpose {
     /**
+     * @var string Option with several prompt texts to embed in one request instead of the single prompt text.
+     *
+     * If set, the prompt text has to be empty and the content of the response is a JSON array with one embedding vector per
+     * prompt text in the order of the prompt texts.
+     */
+    public const OPTION_PROMPTTEXTS = 'prompttexts';
+
+    #[\Override]
+    public function get_additional_purpose_options(): array {
+        return [self::OPTION_PROMPTTEXTS => base_purpose::PARAM_ARRAY];
+    }
+
+    #[\Override]
+    public function validate_purpose_options(array $options): void {
+        if (!array_key_exists(self::OPTION_PROMPTTEXTS, $options)) {
+            return;
+        }
+        $prompttexts = $options[self::OPTION_PROMPTTEXTS];
+        if (empty($prompttexts) || !array_is_list($prompttexts)) {
+            throw new \coding_exception('Option ' . self::OPTION_PROMPTTEXTS . ' must be a non-empty list of prompt texts');
+        }
+        foreach ($prompttexts as $prompttext) {
+            if (!is_string($prompttext) || trim($prompttext) === '') {
+                throw new \coding_exception('Option ' . self::OPTION_PROMPTTEXTS . ' must only contain non-empty strings');
+            }
+        }
+    }
+
+    /**
      * Returns the raw output unchanged.
      *
      * The embedding connector returns a JSON encoded vector, not Markdown text. We must not run it

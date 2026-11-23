@@ -16,6 +16,7 @@
 
 namespace aitool_openaiembedding;
 
+use aipurpose_embedding\purpose;
 use GuzzleHttp\Psr7\Utils;
 use local_ai_manager\request_options;
 
@@ -137,6 +138,81 @@ final class connector_test extends \advanced_testcase {
         $this->assertEquals(5.0, $response->get_usage()->value);
         $this->assertEquals(5.0, $response->get_usage()->customvalue1);
         $this->assertEquals(0.0, $response->get_usage()->customvalue2);
+    }
+
+    /**
+     * Creates request options mock with the option containing the prompt texts to embed.
+     *
+     * @param string[] $prompttexts the prompt texts to embed
+     * @return request_options the mocked request options
+     */
+    private function make_request_options_with_prompttexts(array $prompttexts): request_options {
+        $requestoptions = $this->createMock(request_options::class);
+        $requestoptions->method('get_options')->willReturn([purpose::OPTION_PROMPTTEXTS => $prompttexts]);
+        return $requestoptions;
+    }
+
+    /**
+     * Tests that get_prompt_data() sends the prompt texts of the option as list.
+     */
+    public function test_get_prompt_data_with_prompttexts_sends_list(): void {
+        $connector = $this->make_connector('');
+        $data = $connector->get_prompt_data('', $this->make_request_options_with_prompttexts(['first', 'second']));
+        $this->assertSame(['first', 'second'], $data['input']);
+    }
+
+    /**
+     * Tests that get_prompt_data() rejects a prompt text together with the prompt texts option.
+     */
+    public function test_get_prompt_data_with_prompttexts_and_prompt_text_throws(): void {
+        $connector = $this->make_connector('');
+        $this->expectException(\coding_exception::class);
+        $connector->get_prompt_data('hello world', $this->make_request_options_with_prompttexts(['first']));
+    }
+
+    /**
+     * Tests that execute_prompt_completion() returns the embeddings of all prompt texts in the order of the prompt texts.
+     */
+    public function test_execute_prompt_completion_with_prompttexts_returns_embeddings_in_order(): void {
+        $connector = $this->make_connector('');
+        $apiresponse = json_encode([
+            'model' => 'text-embedding-3-small',
+            'data' => [
+                ['object' => 'embedding', 'index' => 1, 'embedding' => [0.4, 0.5]],
+                ['object' => 'embedding', 'index' => 0, 'embedding' => [0.1, 0.2]],
+            ],
+            'usage' => ['prompt_tokens' => 8, 'total_tokens' => 8],
+        ]);
+
+        $response = $connector->execute_prompt_completion(
+            Utils::streamFor($apiresponse),
+            $this->make_request_options_with_prompttexts(['first', 'second'])
+        );
+
+        $this->assertSame(200, $response->get_code());
+        $this->assertSame([[0.1, 0.2], [0.4, 0.5]], json_decode($response->get_content(), true));
+        $this->assertEquals(8.0, $response->get_usage()->value);
+    }
+
+    /**
+     * Tests that execute_prompt_completion() fails if not every prompt text got an embedding.
+     */
+    public function test_execute_prompt_completion_with_prompttexts_fails_on_missing_embedding(): void {
+        $connector = $this->make_connector('');
+        $apiresponse = json_encode([
+            'data' => [
+                ['object' => 'embedding', 'index' => 0, 'embedding' => [0.1, 0.2]],
+                ['object' => 'embedding', 'index' => 1, 'embedding' => []],
+            ],
+        ]);
+
+        $response = $connector->execute_prompt_completion(
+            Utils::streamFor($apiresponse),
+            $this->make_request_options_with_prompttexts(['first', 'second', 'third'])
+        );
+
+        $this->assertSame(400, $response->get_code());
+        $this->assertSame($apiresponse, $response->get_debuginfo());
     }
 }
 

@@ -16,6 +16,7 @@
 
 namespace aitool_openaiembedding;
 
+use aipurpose_embedding\purpose;
 use local_ai_manager\base_connector;
 use local_ai_manager\local\prompt_response;
 use local_ai_manager\local\unit;
@@ -42,8 +43,13 @@ class connector extends base_connector {
 
     #[\Override]
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
+        $prompttexts = $this->get_prompttexts($requestoptions);
+        if ($prompttexts !== null && $prompttext !== '') {
+            throw new \coding_exception('The prompt text must be empty if the option ' . purpose::OPTION_PROMPTTEXTS . ' is set');
+        }
         $parameters = [
-            'input' => $prompttext,
+            // The API accepts a list of texts as input and returns one embedding per text.
+            'input' => $prompttexts ?? $prompttext,
         ];
         if (!$this->instance->azure_enabled()) {
             // If azure is enabled, the model will be preconfigured in the azure resource, so we do not need to send it.
@@ -54,16 +60,28 @@ class connector extends base_connector {
 
     #[\Override]
     public function execute_prompt_completion(StreamInterface $result, request_options $requestoptions): prompt_response {
-        $content = json_decode($result->getContents(), true);
+        $rawcontent = $result->getContents();
+        $content = json_decode($rawcontent, true);
 
-        $embedding = $content['data'][0]['embedding'] ?? [];
+        $prompttexts = $this->get_prompttexts($requestoptions);
+        if ($prompttexts === null) {
+            $embeddings = $content['data'][0]['embedding'] ?? [];
+            $valid = !empty($embeddings);
+        } else {
+            // The API returns the embeddings with the position of their text, not necessarily in the order of the texts.
+            $embeddings = array_column($content['data'] ?? [], 'embedding', 'index');
+            ksort($embeddings);
+            $valid = array_keys($embeddings) === array_keys($prompttexts)
+                && count(array_filter($embeddings)) === count($prompttexts);
+            $embeddings = array_values($embeddings);
+        }
 
-        if (empty($embedding)) {
-            // An empty embedding means the API did not return a usable result, which is an error.
+        if (!$valid) {
+            // A missing or empty embedding means the API did not return a usable result, which is an error.
             return prompt_response::create_from_error(
                 400,
                 get_string('error_emptyembedding', 'aitool_openaiembedding'),
-                $result->getContents()
+                $rawcontent
             );
         }
 
@@ -75,8 +93,18 @@ class connector extends base_connector {
                 (float) ($content['usage']['prompt_tokens'] ?? 0),
                 0.0
             ),
-            json_encode($embedding)
+            json_encode($embeddings)
         );
+    }
+
+    /**
+     * Returns the prompt texts to embed in one request, if the request has the option {@see purpose::OPTION_PROMPTTEXTS}.
+     *
+     * @param request_options $requestoptions the request options of the request
+     * @return ?array the list of prompt texts, or null for a request embedding the single prompt text
+     */
+    private function get_prompttexts(request_options $requestoptions): ?array {
+        return $requestoptions->get_options()[purpose::OPTION_PROMPTTEXTS] ?? null;
     }
 
     #[\Override]
