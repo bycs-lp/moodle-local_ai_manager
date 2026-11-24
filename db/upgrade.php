@@ -424,5 +424,25 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026102301, 'local', 'ai_manager');
     }
 
+    if ($oldversion < 2026112400) {
+        // Import all known models from the JSON seed file.
+        \local_ai_manager\local\utils::import_models_from_json();
+
+        // Get the model ID for the Azure Speech Text to speech model and store it in the disabledmodels config.
+        $modelid = $DB->get_field('local_ai_manager_model', 'id', ['name' => 'Azure Speech Text to speech'], MUST_EXIST);
+        $disabledmodels = get_config('aitool_telli', 'disabledmodels');
+        $disabled = explode(',', $disabledmodels);
+        if (!in_array($modelid, $disabled)) {
+            if ($disabled === ['']) {
+                $disabled = [];
+            }
+            $disabled[] = $modelid;
+            set_config('disabledmodels', implode(',', $disabled), 'aitool_telli');
+        }
+
+        // AI manager savepoint reached.
+        upgrade_plugin_savepoint(true, 2026112400, 'local', 'ai_manager');
+    }
+
     return true;
 }

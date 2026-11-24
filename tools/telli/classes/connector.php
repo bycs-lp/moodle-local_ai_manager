@@ -16,6 +16,7 @@
 
 namespace aitool_telli;
 
+use aitool_telli\local\modelinfo;
 use local_ai_manager\base_connector;
 use local_ai_manager\base_instance;
 use local_ai_manager\local\connector_factory;
@@ -57,7 +58,7 @@ class connector extends base_connector {
     protected function get_api_key(): string {
         // We intentionally override the default behavior and also handle the use of "globalapikey" admin setting differently,
         // see self::setup_wrapped_connector.
-        return $this->get_wrapped_connector()->instance->get_apikey();
+        return $this->get_wrapped_connector()->instance->get_apikey() ?? '';
     }
 
     #[\Override]
@@ -72,7 +73,11 @@ class connector extends base_connector {
 
     #[\Override]
     public function has_customvalue1(): bool {
-        if (in_array($this->instance->get_model_id(), $this->get_model_ids_by_purpose()['imggen'])) {
+        $modelid = $this->instance->get_model_id();
+        $modelids = $this->get_model_ids_by_purpose();
+        $isimggen = in_array($modelid, $modelids['imggen']);
+        $istts = in_array($modelid, $modelids['tts']);
+        if ($isimggen || $istts) {
             return false;
         } else {
             return true;
@@ -81,7 +86,21 @@ class connector extends base_connector {
 
     #[\Override]
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
-        return $this->get_wrapped_connector()->get_prompt_data($prompttext, $requestoptions);
+        $promptdata = $this->get_wrapped_connector()->get_prompt_data($prompttext, $requestoptions);
+        $modelid = $this->instance->get_model_id();
+        if (in_array($modelid, $this->get_model_ids_by_purpose()['tts'])) {
+            $calloptions = $requestoptions->get_options();
+            $voices = $this->get_available_options()['voices'];
+            $novoiceselected = empty($calloptions['voices']);
+            $novoicesavailable = empty($voices);
+            if ($novoiceselected && $novoicesavailable) {
+                throw new moodle_exception('err_novoices', 'aitool_telli');
+            }
+            if ($novoiceselected) {
+                $promptdata['voice'] = $voices[0]['key'];
+            }
+        }
+        return $promptdata;
     }
 
     #[\Override]
@@ -91,9 +110,18 @@ class connector extends base_connector {
 
     #[\Override]
     public function get_available_options(): array {
-        // The endpoint v1/chat/completions does not support any options anyway, but also v1/images/generations of the Telli API
-        // does not support any options like for example sizes which the OpenAI endpoint does, so we have to disable options here.
-        return [];
+        // The Telli endpoints v1/chat/completions and v1/images/generations do not support any options (e.g. image sizes like
+        // the OpenAI endpoint does). For TTS the voices come from the Telli model info, because every model has its own voices.
+        $options = [];
+        $modelid = $this->instance->get_model_id();
+        $istts = in_array($modelid, $this->get_model_ids_by_purpose()['tts']);
+        if ($istts) {
+            $modelinfo = \core\di::get(modelinfo::class);
+            $apikey = $this->get_api_key();
+            $modelname = $this->instance->get_model_name();
+            $options['voices'] = $modelinfo->get_voices($apikey, $modelname);
+        }
+        return $options;
     }
 
     #[\Override]
@@ -236,6 +264,9 @@ class connector extends base_connector {
         if (in_array($instance->get_model_id(), $this->get_model_ids_by_purpose()['imggen'])) {
             $this->wrappedconnector = $connectorfactory->get_connector_by_connectorname('dalle');
             $endpointsuffix = 'v1/images/generations';
+        } else if (in_array($instance->get_model_id(), $this->get_model_ids_by_purpose()['tts'])) {
+            $this->wrappedconnector = $connectorfactory->get_connector_by_connectorname('openaitts');
+            $endpointsuffix = 'v1/audio/speech';
         } else {
             $this->wrappedconnector = $connectorfactory->get_connector_by_connectorname('chatgpt');
             $endpointsuffix = 'v1/chat/completions';

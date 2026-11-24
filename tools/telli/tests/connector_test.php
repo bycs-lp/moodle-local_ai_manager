@@ -16,9 +16,11 @@
 
 namespace aitool_telli;
 
+use aitool_telli\local\modelinfo;
 use GuzzleHttp\Psr7\Response;
 use local_ai_manager\local\connector_factory;
 use local_ai_manager\local\unit;
+use local_ai_manager\request_options;
 use Psr\Http\Client\ClientExceptionInterface;
 
 /**
@@ -31,6 +33,18 @@ use Psr\Http\Client\ClientExceptionInterface;
  */
 #[\PHPUnit\Framework\Attributes\CoversClass(\aitool_telli\connector::class)]
 final class connector_test extends \advanced_testcase {
+    /** @var string Name of the text to speech model created for the tests. */
+    private const TTSMODEL = 'phpunit-telli-tts';
+
+    /** @var string Global API key configured for the tests. */
+    private const GLOBALAPIKEY = 'globalapikeyvalue';
+
+    /** @var array Voices the mocked model info returns for the text to speech model. */
+    private const VOICES = [
+        ['key' => 'de-DE-Klaus:MAI', 'displayname' => 'Klaus'],
+        ['key' => 'de-DE-Mia:MAI', 'displayname' => 'Mia'],
+    ];
+
     /**
      * Test the constructor.
      */
@@ -181,6 +195,116 @@ final class connector_test extends \advanced_testcase {
     }
 
     /**
+     * Test that a text to speech model is wrapped by the OpenAI TTS connector with the speech endpoint and without temperature.
+     */
+    public function test_setup_wrapped_connector_tts_model(): void {
+        $this->resetAfterTest();
+        $this->create_tts_model();
+
+        $connector = $this->create_connector(self::TTSMODEL);
+
+        $this->assertInstanceOf(\aitool_openaitts\connector::class, $connector->get_wrapped_connector());
+        $this->assertSame(
+            'https://api.telli-test.com/v1/audio/speech',
+            $connector->get_wrapped_connector()->get_instance()->get_endpoint()
+        );
+        $this->assertFalse($connector->has_customvalue1());
+    }
+
+    /**
+     * Test that a text to speech model offers the voices of the Telli model info as options.
+     */
+    public function test_get_available_options_tts_model(): void {
+        $this->resetAfterTest();
+        $this->create_tts_model();
+        $modelinfo = $this->createMock(modelinfo::class);
+        $modelinfo->expects($this->once())->method('get_voices')
+            ->with(self::GLOBALAPIKEY, self::TTSMODEL)
+            ->willReturn(self::VOICES);
+        \core\di::set(modelinfo::class, $modelinfo);
+        $connector = $this->create_connector(self::TTSMODEL);
+
+        $options = $connector->get_available_options();
+
+        $this->assertSame(['voices' => self::VOICES], $options);
+    }
+
+    /**
+     * Test that a text model offers no options and does not ask the Telli model info.
+     */
+    public function test_get_available_options_text_model(): void {
+        $this->resetAfterTest();
+        $modelinfo = $this->createMock(modelinfo::class);
+        $modelinfo->expects($this->never())->method('get_voices');
+        \core\di::set(modelinfo::class, $modelinfo);
+        $connector = $this->create_connector('gpt-4o');
+
+        $options = $connector->get_available_options();
+
+        $this->assertSame([], $options);
+    }
+
+    /**
+     * Data provider for test_get_prompt_data_tts_model.
+     *
+     * @return array Datasets with the request options and the expected voice in the prompt data.
+     */
+    public static function get_prompt_data_tts_model_provider(): array {
+        return [
+            'selected_voice' => [
+                'requestoptions' => ['voices' => ['de-DE-Mia:MAI']],
+                'expectedvoice' => 'de-DE-Mia:MAI',
+            ],
+            'no_voice_selected' => [
+                'requestoptions' => [],
+                'expectedvoice' => 'de-DE-Klaus:MAI',
+            ],
+        ];
+    }
+
+    /**
+     * Test that the selected voice is sent and that the first voice of the model info is used if no voice is selected.
+     *
+     * @param array $requestoptions the options of the request
+     * @param string $expectedvoice the voice expected in the prompt data
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('get_prompt_data_tts_model_provider')]
+    public function test_get_prompt_data_tts_model(array $requestoptions, string $expectedvoice): void {
+        $this->resetAfterTest();
+        $this->create_tts_model();
+        $modelinfo = $this->createMock(modelinfo::class);
+        $modelinfo->method('get_voices')->willReturn(self::VOICES);
+        \core\di::set(modelinfo::class, $modelinfo);
+        $requestoptionsobject = $this->createMock(request_options::class);
+        $requestoptionsobject->method('get_options')->willReturn($requestoptions);
+        $connector = $this->create_connector(self::TTSMODEL);
+
+        $promptdata = $connector->get_prompt_data('Hallo Welt', $requestoptionsobject);
+
+        $this->assertSame('Hallo Welt', $promptdata['input']);
+        $this->assertSame(self::TTSMODEL, $promptdata['model']);
+        $this->assertSame($expectedvoice, $promptdata['voice']);
+    }
+
+    /**
+     * Test that a text to speech request without any available voice is rejected instead of sending the OpenAI default voice.
+     */
+    public function test_get_prompt_data_tts_model_without_voices(): void {
+        $this->resetAfterTest();
+        $this->create_tts_model();
+        $modelinfo = $this->createMock(modelinfo::class);
+        $modelinfo->method('get_voices')->willReturn([]);
+        \core\di::set(modelinfo::class, $modelinfo);
+        $requestoptions = $this->createMock(request_options::class);
+        $requestoptions->method('get_options')->willReturn([]);
+        $connector = $this->create_connector(self::TTSMODEL);
+
+        $this->expectException(\moodle_exception::class);
+        $this->expectExceptionMessage(get_string('err_novoices', 'aitool_telli'));
+        $connector->get_prompt_data('Hallo Welt', $requestoptions);
+    }
+
+    /**
      * Test the get_custom_error_message method with various error responses.
      *
      * @param int $code The HTTP error code.
@@ -275,6 +399,33 @@ final class connector_test extends \advanced_testcase {
                 'expectedkey' => '',
             ],
         ];
+    }
+
+    /**
+     * Creates the text to speech model which is not part of the shipped models.
+     */
+    private function create_tts_model(): void {
+        /** @var \local_ai_manager_generator $generator */
+        $generator = $this->getDataGenerator()->get_plugin_generator('local_ai_manager');
+        $generator->create_model([
+            'name' => self::TTSMODEL,
+            'textgeneration' => 0,
+            'tts' => 1,
+            'connectors' => ['telli'],
+        ]);
+    }
+
+    /**
+     * Creates a Telli connector for the given model with configured base URL and global API key.
+     *
+     * @param string $modelname the name of the model the connector should use
+     * @return connector the Telli connector
+     */
+    private function create_connector(string $modelname): connector {
+        set_config('baseurl', 'https://api.telli-test.com', 'aitool_telli');
+        set_config('globalapikey', self::GLOBALAPIKEY, 'aitool_telli');
+        $connectorfactory = \core\di::get(connector_factory::class);
+        return $connectorfactory->get_connector_by_connectorname_and_model('telli', $modelname);
     }
 
     /**
