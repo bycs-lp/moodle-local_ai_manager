@@ -237,6 +237,40 @@ abstract class base_vecstore {
     abstract public function get_all(string $collection): vecstore_response;
 
     /**
+     * Retrieves the stored embeddings of one document created by the given embedding model, without their vectors.
+     *
+     * The order of the returned records is not defined. If no vectors of this embedding model have been stored yet, the
+     * result is empty.
+     *
+     * @param string $model the name of the embedding model which created the embeddings
+     * @param int $documentid the document id whose embeddings are retrieved
+     * @param array $filters optional additional payload filters, see {@see self::query()}, e.g. to read a document in pages
+     * @return vecstore_response structured response containing operation status and a query payload, the vectors of the
+     *  records are empty strings
+     */
+    public function get_document(string $model, int $documentid, array $filters = []): vecstore_response {
+        $collectionrecord = $this->get_collection_record($model);
+        if ($collectionrecord === null) {
+            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
+        }
+        return $this->get_document_from_collection($collectionrecord->collection, $documentid, $filters);
+    }
+
+    /**
+     * Retrieves the stored embeddings of one document from a collection, without their vectors.
+     *
+     * A missing collection leads to an empty result.
+     *
+     * @param string $collection the backend name of the collection
+     * @param int $documentid the document id whose embeddings are retrieved
+     * @param array $filters additional payload filters, see {@see self::query()}
+     * @return vecstore_response structured response containing operation status and a query payload, the vectors of the
+     *  records are empty strings
+     */
+    abstract protected function get_document_from_collection(string $collection, int $documentid,
+            array $filters): vecstore_response;
+
+    /**
      * Deletes all embeddings carrying one of the given document ids.
      *
      * Deleting is idempotent: if there is nothing to delete (no matching embeddings or no collection), the operation

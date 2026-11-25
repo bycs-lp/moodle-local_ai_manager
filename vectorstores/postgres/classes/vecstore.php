@@ -161,34 +161,8 @@ class vecstore extends base_vecstore {
         $managed = $this->is_managed_collection($collection);
 
         // Parameter $1 is reserved for the query vector; filter values are bound from $2 onwards.
-        // Keys are escaped literals instead of parameters, so arbitrary filter keys can't inject SQL.
         $params = [$this->vector_to_literal($vector)];
-        $conditions = [];
-        foreach ($filters as $key => $value) {
-            // Tables created by Moodle store the document id in its own (indexed) column, all other keys in the payload.
-            $field = $managed && $key === vector_record::PAYLOAD_DOCUMENTID
-                ? 'documentid'
-                : 'payload->>' . pg_escape_literal($connection, (string) $key);
-            if (is_array($value)) {
-                if (empty($value)) {
-                    // An empty value set matches nothing.
-                    $conditions[] = 'FALSE';
-                    continue;
-                }
-                // Array value → IN semantics.
-                $placeholders = [];
-                foreach (array_values($value) as $item) {
-                    $params[] = (string) $item;
-                    $placeholders[] = '$' . count($params);
-                }
-                $conditions[] = "{$field} IN (" . implode(', ', $placeholders) . ')';
-            } else {
-                // Scalar value → exact match.
-                $params[] = (string) $value;
-                $valueparam = '$' . count($params);
-                $conditions[] = "{$field} = {$valueparam}";
-            }
-        }
+        $conditions = $this->build_filter_conditions($connection, $managed, $filters, $params);
         $where = empty($conditions) ? '' : ('WHERE ' . implode(' AND ', $conditions));
 
         $columns = $managed ? 'id, documentid, payload' : 'id, payload';
@@ -232,6 +206,32 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
+    protected function get_document_from_collection(string $collection, int $documentid, array $filters): vecstore_response {
+        $connection = $this->get_connection();
+        if (!$connection) {
+            return $this->create_connection_error_response();
+        }
+        if (!$this->table_exists($collection)) {
+            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
+        }
+        $table = pg_escape_identifier($connection, $collection);
+        // Collections of embedding models are created by Moodle, so the document id has its own column.
+        $params = [];
+        $conditions = $this->build_filter_conditions($connection, true,
+            [vector_record::PAYLOAD_DOCUMENTID => $documentid] + $filters, $params);
+        // The vectors are not needed, reading them would multiply the transferred data.
+        $sql = "SELECT id, documentid, payload, '' AS vector FROM {$table} WHERE " . implode(' AND ', $conditions);
+        $result = @pg_query_params($connection, $sql, $params);
+        if ($result === false) {
+            return $this->create_error_response(500, 'Could not fetch document from postgres vecstore collection.',
+                pg_last_error($connection));
+        }
+        return vecstore_response::create_from_query_result(
+            vecstore_query_response::create_from_result($this->rows_to_records($result))
+        );
+    }
+
+    #[\Override]
     protected function delete_from_collection(string $collection, int ...$documentids): vecstore_response {
         if (empty($documentids)) {
             return vecstore_response::create_from_result();
@@ -252,6 +252,47 @@ class vecstore extends base_vecstore {
                 pg_last_error($connection));
         }
         return vecstore_response::create_from_result();
+    }
+
+    /**
+     * Builds the SQL conditions of payload filters, see {@see base_vecstore::query()}.
+     *
+     * Keys are escaped literals instead of parameters, so arbitrary filter keys can't inject SQL.
+     *
+     * @param \PgSql\Connection|resource $connection the connection
+     * @param bool $managed whether the collection table has been created by Moodle, see {@see self::is_managed_collection()}
+     * @param array $filters the payload filters
+     * @param array $params the query parameters, the filter values are appended
+     * @return string[] the conditions
+     */
+    protected function build_filter_conditions($connection, bool $managed, array $filters, array &$params): array {
+        $conditions = [];
+        foreach ($filters as $key => $value) {
+            // Tables created by Moodle store the document id in its own (indexed) column, all other keys in the payload.
+            $field = $managed && $key === vector_record::PAYLOAD_DOCUMENTID
+                ? 'documentid'
+                : 'payload->>' . pg_escape_literal($connection, (string) $key);
+            if (is_array($value)) {
+                if (empty($value)) {
+                    // An empty value set matches nothing.
+                    $conditions[] = 'FALSE';
+                    continue;
+                }
+                // Array value → IN semantics.
+                $placeholders = [];
+                foreach (array_values($value) as $item) {
+                    $params[] = (string) $item;
+                    $placeholders[] = '$' . count($params);
+                }
+                $conditions[] = "{$field} IN (" . implode(', ', $placeholders) . ')';
+            } else {
+                // Scalar value → exact match.
+                $params[] = (string) $value;
+                $valueparam = '$' . count($params);
+                $conditions[] = "{$field} = {$valueparam}";
+            }
+        }
+        return $conditions;
     }
 
     /**

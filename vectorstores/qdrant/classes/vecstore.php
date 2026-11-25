@@ -107,14 +107,7 @@ class vecstore extends base_vecstore {
             'with_vector' => true,
         ];
         if (!empty($filters)) {
-            $must = [];
-            foreach ($filters as $key => $value) {
-                // An array value matches any of the given values (IN semantics); a scalar matches exactly.
-                $must[] = is_array($value)
-                    ? ['key' => $key, 'match' => ['any' => array_values($value)]]
-                    : ['key' => $key, 'match' => ['value' => $value]];
-            }
-            $body['filter'] = ['must' => $must];
+            $body['filter'] = $this->build_filter($filters);
         }
         $response = $this->request('POST', '/collections/' . rawurlencode($collection) . '/points/search', $body);
         // A missing collection contains no vectors.
@@ -165,6 +158,37 @@ class vecstore extends base_vecstore {
     }
 
     #[\Override]
+    protected function get_document_from_collection(string $collection, int $documentid, array $filters): vecstore_response {
+        $records = [];
+        $offset = null;
+        do {
+            // The vectors are not needed, reading them would multiply the transferred data.
+            $body = [
+                'limit' => 100,
+                'with_payload' => true,
+                'with_vector' => false,
+                'filter' => $this->build_filter([vector_record::PAYLOAD_DOCUMENTID => $documentid] + $filters),
+            ];
+            if (!is_null($offset)) {
+                $body['offset'] = $offset;
+            }
+            $response = $this->request('POST', '/collections/' . rawurlencode($collection) . '/points/scroll', $body);
+            // A missing collection contains no vectors.
+            if ($response['status'] === 404) {
+                return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
+            }
+            if ($response['status'] !== 200) {
+                return $this->create_error_response($response, 'Could not fetch document from qdrant collection.');
+            }
+            foreach ($response['data']['result']['points'] ?? [] as $point) {
+                $records[] = vector_record::from_payload('', $point['payload'] ?? []);
+            }
+            $offset = $response['data']['result']['next_page_offset'] ?? null;
+        } while (!is_null($offset));
+        return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($records));
+    }
+
+    #[\Override]
     protected function delete_from_collection(string $collection, int ...$documentids): vecstore_response {
         if (empty($documentids)) {
             return vecstore_response::create_from_result();
@@ -183,6 +207,23 @@ class vecstore extends base_vecstore {
             return vecstore_response::create_from_result();
         }
         return $this->create_error_response($response, 'Could not delete embeddings from qdrant collection.');
+    }
+
+    /**
+     * Builds the Qdrant filter of payload filters, see {@see base_vecstore::query()}.
+     *
+     * @param array $filters the payload filters
+     * @return array the Qdrant filter
+     */
+    protected function build_filter(array $filters): array {
+        $must = [];
+        foreach ($filters as $key => $value) {
+            // An array value matches any of the given values (IN semantics); a scalar matches exactly.
+            $must[] = is_array($value)
+                ? ['key' => $key, 'match' => ['any' => array_values($value)]]
+                : ['key' => $key, 'match' => ['value' => $value]];
+        }
+        return ['must' => $must];
     }
 
     /**

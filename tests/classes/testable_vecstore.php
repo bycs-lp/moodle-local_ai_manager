@@ -92,6 +92,22 @@ class testable_vecstore extends base_vecstore {
     }
 
     #[\Override]
+    protected function get_document_from_collection(string $collection, int $documentid, array $filters): vecstore_response {
+        $records = [];
+        foreach ($this->collections[$collection]['vectors'] ?? [] as $embedding) {
+            $payload = $embedding->to_payload();
+            $matches = $embedding->get_documentid() === $documentid;
+            foreach ($filters as $key => $value) {
+                $matches = $matches && in_array($payload[$key] ?? null, (array) $value);
+            }
+            if ($matches) {
+                $records[] = vector_record::from_payload('', $payload);
+            }
+        }
+        return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($records));
+    }
+
+    #[\Override]
     protected function delete_from_collection(string $collection, int ...$documentids): vecstore_response {
         if (isset($this->collections[$collection])) {
             $this->collections[$collection]['vectors'] = array_values(array_filter(
