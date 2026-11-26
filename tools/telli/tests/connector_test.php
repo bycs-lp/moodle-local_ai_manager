@@ -230,6 +230,29 @@ final class connector_test extends \advanced_testcase {
     }
 
     /**
+     * Test that the instance API key is passed to the Telli model info if no global API key is set.
+     */
+    public function test_get_available_options_tts_model_uses_instance_apikey_without_globalapikey(): void {
+        $this->resetAfterTest();
+        $this->create_tts_model();
+        set_config('baseurl', 'https://api.telli-test.com', 'aitool_telli');
+        $modelinfo = $this->createMock(modelinfo::class);
+        $modelinfo->expects($this->once())->method('get_voices')
+            ->with('instanceapikey', self::TTSMODEL)
+            ->willReturn(self::VOICES);
+        \core\di::set(modelinfo::class, $modelinfo);
+        $connectorfactory = \core\di::get(connector_factory::class);
+        $instance = $connectorfactory->get_new_instance('telli');
+        $instance->set_model_id_from_name(self::TTSMODEL);
+        $instance->set_apikey('instanceapikey');
+        $connector = new \aitool_telli\connector($instance);
+
+        $options = $connector->get_available_options();
+
+        $this->assertSame(['voices' => self::VOICES], $options);
+    }
+
+    /**
      * Test that a text model offers no options and does not ask the Telli model info.
      */
     public function test_get_available_options_text_model(): void {
