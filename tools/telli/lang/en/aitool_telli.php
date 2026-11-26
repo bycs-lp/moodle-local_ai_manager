@@ -22,6 +22,7 @@
  * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 $string['adddescription'] = 'The Telli API provides different AI models for German schools.';
 $string['apikey'] = 'API key';
 $string['availablemodels'] = 'Available models';
