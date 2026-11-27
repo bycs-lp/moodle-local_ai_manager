@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace aitool_telli\fixtures;
+namespace aitool_telli\tests;
 
 use core\lock\lock;
 use core\lock\lock_factory;

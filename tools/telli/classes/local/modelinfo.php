@@ -16,6 +16,8 @@
 
 namespace aitool_telli\local;
 
+use aitool_telli\event\modelinfo_fetch_failed;
+
 /**
  * Model information.
  *
@@ -85,13 +87,19 @@ class modelinfo {
                             $models = $currententry['models'];
                         } else {
                             $decoded = null;
+                            $errormessage = 'The response does not contain any usable model.';
                             try {
                                 $this->apihandler->init($apikey, $baseurl);
                                 $json = $this->apihandler->get_models_info();
                                 $decoded = json_decode($json, true);
                             } catch (\moodle_exception $e) {
                                 // External API, keep last known state and retry after the retry delay.
-                                debugging('Could not retrieve the model information from the telli API: ' . $e->getMessage());
+                                $errormessage = $e->getMessage();
+                                if (debugging('', DEBUG_DEVELOPER)) {
+                                    // Use format_backtrace() instead of getTraceAsString(), the latter may contain the API key
+                                    // as function argument.
+                                    $errormessage .= "\n" . format_backtrace($e->getTrace(), true);
+                                }
                             }
                             $fetchedmodels = [];
                             if (is_array($decoded)) {
@@ -124,6 +132,13 @@ class modelinfo {
                                     'lastfetched' => $lastfetched,
                                     'lastfailed' => $now,
                                 ]);
+                                modelinfo_fetch_failed::create([
+                                    'context' => \context_system::instance(),
+                                    'other' => [
+                                        'baseurl' => $baseurl,
+                                        'errormessage' => $errormessage,
+                                    ],
+                                ])->trigger();
                             }
                         }
                     } finally {

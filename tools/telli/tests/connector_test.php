@@ -218,19 +218,19 @@ final class connector_test extends \advanced_testcase {
      */
     public static function has_customvalue1_provider(): array {
         return [
-            'text model' => [
+            'text_model' => [
                 'model' => 'gpt-4o',
                 'expected' => true,
             ],
-            'image generation model' => [
+            'image_generation_model' => [
                 'model' => 'gpt-image-1.5',
                 'expected' => false,
             ],
-            'text to speech model' => [
+            'text_to_speech_model' => [
                 'model' => self::TTSMODEL,
                 'expected' => false,
             ],
-            'no model' => [
+            'no_model' => [
                 'model' => null,
                 'expected' => true,
             ],
@@ -305,37 +305,37 @@ final class connector_test extends \advanced_testcase {
      */
     public static function get_available_options_tts_model_passes_baseurl_provider(): array {
         return [
-            'global baseurl without trailing slash' => [
+            'global_baseurl_without_trailing_slash' => [
                 'baseurl' => 'https://api.telli-test.com',
                 'globalapikey' => '',
                 'instanceendpoint' => '',
                 'expectedbaseurl' => 'https://api.telli-test.com/',
             ],
-            'global baseurl with trailing slash' => [
+            'global_baseurl_with_trailing_slash' => [
                 'baseurl' => 'https://api.telli-test.com/',
                 'globalapikey' => '',
                 'instanceendpoint' => '',
                 'expectedbaseurl' => 'https://api.telli-test.com/',
             ],
-            'instance endpoint with text to speech suffix' => [
+            'instance_endpoint_with_tts_suffix' => [
                 'baseurl' => '',
                 'globalapikey' => '',
                 'instanceendpoint' => 'https://own.example.com/v1/audio/speech',
                 'expectedbaseurl' => 'https://own.example.com/',
             ],
-            'instance endpoint with text to speech suffix and trailing slash' => [
+            'instance_endpoint_with_tts_suffix_and_trailing_slash' => [
                 'baseurl' => '',
                 'globalapikey' => '',
                 'instanceendpoint' => 'https://own.example.com/v1/audio/speech/',
                 'expectedbaseurl' => 'https://own.example.com/',
             ],
-            'instance endpoint without text to speech suffix' => [
+            'instance_endpoint_without_tts_suffix' => [
                 'baseurl' => '',
                 'globalapikey' => '',
                 'instanceendpoint' => 'https://own.example.com/speech',
                 'expectedbaseurl' => '',
             ],
-            'global API key without baseurl ignores instance endpoint' => [
+            'global_apikey_without_baseurl_ignores_instance_endpoint' => [
                 'baseurl' => '',
                 'globalapikey' => 'globalkey',
                 'instanceendpoint' => 'https://own.example.com/v1/audio/speech',
@@ -460,12 +460,12 @@ final class connector_test extends \advanced_testcase {
      */
     public static function get_prompt_data_tts_model_not_configured_provider(): array {
         return [
-            'no API key' => [
+            'no_apikey' => [
                 'baseurl' => 'https://api.telli-test.com',
                 'instanceapikey' => '',
                 'instanceendpoint' => '',
             ],
-            'no base URL derivable from the instance endpoint' => [
+            'no_baseurl_derivable_from_instance_endpoint' => [
                 'baseurl' => '',
                 'instanceapikey' => 'instanceapikey',
                 'instanceendpoint' => 'https://own.example.com/speech',

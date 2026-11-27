@@ -16,6 +16,9 @@
 
 namespace aitool_telli\local;
 
+use aitool_telli\event\modelinfo_fetch_failed;
+use aitool_telli\tests\callback_lock_factory;
+
 /**
  * Tests for the Telli model info service.
  *
@@ -84,13 +87,17 @@ final class modelinfo_test extends \advanced_testcase {
         $apihandler->expects($this->once())->method('get_models_info')->willReturn(self::get_models_response());
         \core\di::set(apihandler::class, $apihandler);
         $modelinfo = \core\di::get(modelinfo::class);
+        $sink = $this->redirectEvents();
 
         $firstmodels = $modelinfo->get_models(self::BASEURL, self::APIKEY);
         $clock->bump(modelinfo::CACHE_LIFETIME - 1);
         $secondmodels = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $events = $sink->get_events();
+        $sink->close();
 
         $this->assertSame([self::TTSMODEL, self::TEXTMODEL, self::IMAGEMODEL], array_keys($firstmodels));
         $this->assertSame($firstmodels, $secondmodels);
+        $this->assertSame([], $events);
     }
 
     /**
@@ -114,10 +121,29 @@ final class modelinfo_test extends \advanced_testcase {
     }
 
     /**
-     * Test that the last known models are kept if the API throws an exception.
+     * Data provider for test_get_models_keeps_last_state_on_api_exception.
+     *
+     * @return array Datasets with the debug level and whether the stack trace is expected in the event.
      */
-    public function test_get_models_keeps_last_state_on_api_exception(): void {
+    public static function get_models_keeps_last_state_on_api_exception_provider(): array {
+        return [
+            'debug_developer' => ['debuglevel' => DEBUG_DEVELOPER, 'expectstacktrace' => true],
+            'debug_none' => ['debuglevel' => DEBUG_NONE, 'expectstacktrace' => false],
+        ];
+    }
+
+    /**
+     * Test that the last known models are kept and an event is triggered if the API throws an exception.
+     *
+     * @param int $debuglevel the debug level to use
+     * @param bool $expectstacktrace whether the event is expected to contain the stack trace
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('get_models_keeps_last_state_on_api_exception_provider')]
+    public function test_get_models_keeps_last_state_on_api_exception(int $debuglevel, bool $expectstacktrace): void {
+        global $CFG;
         $this->resetAfterTest();
+        $CFG->debug = $debuglevel;
+        $CFG->debugdeveloper = $debuglevel === DEBUG_DEVELOPER;
         $clock = $this->mock_clock_with_frozen(self::STARTTIME);
         $apihandler = $this->createMock(apihandler::class);
         $apihandler->expects($this->exactly(2))->method('get_models_info')
@@ -133,10 +159,23 @@ final class modelinfo_test extends \advanced_testcase {
 
         $firstmodels = $modelinfo->get_models(self::BASEURL, self::APIKEY);
         $clock->bump(modelinfo::CACHE_LIFETIME);
+        $sink = $this->redirectEvents();
         $secondmodels = $modelinfo->get_models(self::BASEURL, self::APIKEY);
-        $this->assertDebuggingCalled();
+        $events = $sink->get_events();
+        $sink->close();
 
         $this->assertSame($firstmodels, $secondmodels);
+        $this->assertCount(1, $events);
+        $this->assertInstanceOf(modelinfo_fetch_failed::class, $events[0]);
+        $this->assertSame(self::BASEURL, $events[0]->other['baseurl']);
+        $errormessage = $events[0]->other['errormessage'];
+        $this->assertStringStartsWith(get_string('err_apiresult', 'aitool_telli'), $errormessage);
+        $this->assertStringNotContainsString(self::APIKEY, $errormessage);
+        if ($expectstacktrace) {
+            $this->assertStringContainsString('aitool_telli\local\modelinfo->get_models()', $errormessage);
+        } else {
+            $this->assertSame(get_string('err_apiresult', 'aitool_telli'), $errormessage);
+        }
     }
 
     /**
@@ -155,7 +194,7 @@ final class modelinfo_test extends \advanced_testcase {
     }
 
     /**
-     * Test that the last known models are kept if the API returns no usable model.
+     * Test that the last known models are kept and an event is triggered if the API returns no usable model.
      *
      * @param string $invalidresponse the response body of the failing request
      */
@@ -171,9 +210,15 @@ final class modelinfo_test extends \advanced_testcase {
 
         $firstmodels = $modelinfo->get_models(self::BASEURL, self::APIKEY);
         $clock->bump(modelinfo::CACHE_LIFETIME);
+        $sink = $this->redirectEvents();
         $secondmodels = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $events = $sink->get_events();
+        $sink->close();
 
         $this->assertSame($firstmodels, $secondmodels);
+        $this->assertCount(1, $events);
+        $this->assertInstanceOf(modelinfo_fetch_failed::class, $events[0]);
+        $this->assertSame(self::BASEURL, $events[0]->other['baseurl']);
     }
 
     /**
@@ -190,12 +235,10 @@ final class modelinfo_test extends \advanced_testcase {
         $modelinfo = \core\di::get(modelinfo::class);
 
         $modelsafterfailure = $modelinfo->get_models(self::BASEURL, self::APIKEY);
-        $this->assertDebuggingCalled();
         $clock->bump(modelinfo::RETRY_DELAY - 1);
         $modelswithinretrydelay = $modelinfo->get_models(self::BASEURL, self::APIKEY);
         $clock->bump(1);
         $modelsafterretrydelay = $modelinfo->get_models(self::BASEURL, self::APIKEY);
-        $this->assertDebuggingCalled();
 
         $this->assertSame([], $modelsafterfailure);
         $this->assertSame([], $modelswithinretrydelay);
@@ -252,15 +295,15 @@ final class modelinfo_test extends \advanced_testcase {
      */
     public static function get_models_without_configuration_provider(): array {
         return [
-            'empty base URL' => [
+            'empty_baseurl' => [
                 'baseurl' => '',
                 'apikey' => self::APIKEY,
             ],
-            'base URL only consisting of a slash' => [
+            'baseurl_only_consisting_of_a_slash' => [
                 'baseurl' => '/',
                 'apikey' => self::APIKEY,
             ],
-            'empty API key' => [
+            'empty_apikey' => [
                 'baseurl' => self::BASEURL,
                 'apikey' => '',
             ],
@@ -398,7 +441,6 @@ final class modelinfo_test extends \advanced_testcase {
         $modelinfo = \core\di::get(modelinfo::class);
 
         $models = $modelinfo->get_models(self::BASEURL, self::APIKEY);
-        $this->assertDebuggingCalled();
         $lockfactory = \core\lock\lock_config::get_lock_factory('aitool_telli_modelinfo');
         $lock = $lockfactory->get_lock(hash('sha256', self::BASEURL . self::APIKEY), 0);
         $lockreleased = $lock !== false;
@@ -415,16 +457,15 @@ final class modelinfo_test extends \advanced_testcase {
      */
     public function test_get_models_uses_cache_updated_while_waiting_for_lock(): void {
         global $CFG;
-        require_once(__DIR__ . '/../fixtures/callback_lock_factory.php');
         $this->resetAfterTest();
-        $CFG->lock_factory = '\\aitool_telli\\fixtures\\callback_lock_factory';
+        $CFG->lock_factory = '\\' . callback_lock_factory::class;
         $clock = $this->mock_clock_with_frozen(self::STARTTIME);
         $apihandler = $this->createMock(apihandler::class);
         $apihandler->expects($this->never())->method('get_models_info');
         \core\di::set(apihandler::class, $apihandler);
         $modelinfo = \core\di::get(modelinfo::class);
         $concurrentmodels = ['gpt-5' => ['name' => 'gpt-5', 'isDeleted' => false]];
-        \aitool_telli\fixtures\callback_lock_factory::$beforelock = function () use ($concurrentmodels, $clock): void {
+        callback_lock_factory::$beforelock = function () use ($concurrentmodels, $clock): void {
             $cache = \cache::make('aitool_telli', 'modelinfo');
             $cache->set(hash('sha256', self::BASEURL . self::APIKEY), [
                 'models' => $concurrentmodels,
@@ -436,7 +477,7 @@ final class modelinfo_test extends \advanced_testcase {
         try {
             $models = $modelinfo->get_models(self::BASEURL, self::APIKEY);
         } finally {
-            \aitool_telli\fixtures\callback_lock_factory::$beforelock = null;
+            callback_lock_factory::$beforelock = null;
         }
 
         $this->assertSame($concurrentmodels, $models);
@@ -450,9 +491,8 @@ final class modelinfo_test extends \advanced_testcase {
      */
     public function test_get_models_uses_store_updated_by_other_request_while_waiting_for_lock(): void {
         global $CFG;
-        require_once(__DIR__ . '/../fixtures/callback_lock_factory.php');
         $this->resetAfterTest();
-        $CFG->lock_factory = '\\aitool_telli\\fixtures\\callback_lock_factory';
+        $CFG->lock_factory = '\\' . callback_lock_factory::class;
         $clock = $this->mock_clock_with_frozen(self::STARTTIME);
         $apihandler = $this->createMock(apihandler::class);
         $apihandler->expects($this->once())->method('get_models_info')->willReturn(self::get_models_response());
@@ -461,7 +501,7 @@ final class modelinfo_test extends \advanced_testcase {
         $modelinfo->get_models(self::BASEURL, self::APIKEY);
         $clock->bump(modelinfo::CACHE_LIFETIME);
         $concurrentmodels = ['gpt-5' => ['name' => 'gpt-5', 'isDeleted' => false]];
-        \aitool_telli\fixtures\callback_lock_factory::$beforelock = function () use ($concurrentmodels, $clock): void {
+        callback_lock_factory::$beforelock = function () use ($concurrentmodels, $clock): void {
             \cache_factory::reset();
             $othercache = \cache::make('aitool_telli', 'modelinfo');
             $othercache->set(hash('sha256', self::BASEURL . self::APIKEY), [
@@ -474,7 +514,7 @@ final class modelinfo_test extends \advanced_testcase {
         try {
             $models = $modelinfo->get_models(self::BASEURL, self::APIKEY);
         } finally {
-            \aitool_telli\fixtures\callback_lock_factory::$beforelock = null;
+            callback_lock_factory::$beforelock = null;
         }
 
         $this->assertSame($concurrentmodels, $models);

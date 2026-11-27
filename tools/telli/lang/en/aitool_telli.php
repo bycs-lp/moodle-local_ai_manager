@@ -43,6 +43,7 @@ $string['err_novoices'] = 'No voices are currently available for the configured 
 $string['err_retrievingmodels'] = 'There was an error while trying to retrieve the list of models from the Telli API. Error code: {$a->code}.';
 $string['err_ttsnotconfigured'] = 'Text to speech is not configured correctly for this AI tool. Please contact your administrator.';
 $string['eurocents'] = 'Cents';
+$string['eventmodelinfofetchfailed'] = 'Fetching the Telli model information failed';
 $string['getconsumptiontask'] = 'Get Telli API consumption data';
 $string['globalapikeysetting'] = 'Global API key';
 $string['globalapikeysettingdesc'] = 'If this setting is set, this API key will be used for all requests. The endpoint field will then also be locked to the configured base URL for the API (or, if no base URL is configured, the endpoint already stored in the instance), so the tenant manager cannot point the connector to a self-chosen endpoint. If this setting is not set, the tenant manager will be able to insert own API keys.';
