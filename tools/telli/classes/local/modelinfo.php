@@ -33,15 +33,6 @@ class modelinfo {
     /** @var int seconds to wait after a failed fetch before the next attempt */
     public const RETRY_DELAY = 5 * MINSECS;
 
-    /** @var int seconds to wait for the lock held by a concurrent fetch, afterwards the last known state is used */
-    public const LOCK_TIMEOUT = 2;
-
-    /**
-     * @var int seconds to wait for the lock held by a concurrent fetch if there is no last known state to fall back to,
-     *     longer than the 10 seconds timeout of apihandler::get_models_info() so the result of the concurrent fetch is used
-     */
-    public const LOCK_TIMEOUT_WITHOUT_STATE = 15;
-
     /**
      * Constructor.
      *
@@ -59,7 +50,6 @@ class modelinfo {
     /**
      * Get the model information.
      *
-     * Only one request fetches the model information at a time. Concurrent requests get the last known state.
      * After a failed fetch the last known state is kept and the next attempt is made after the retry delay.
      *
      * @param string $apikey The API key.
@@ -74,42 +64,19 @@ class modelinfo {
         $cache = \cache::make('aitool_telli', 'modelinfo');
         $cachekey = hash('sha256', $baseurl . $apikey);
         $entry = $cache->get($cachekey);
-        if ($this->is_valid($entry)) {
+        if ($entry && $this->clock->time() < $entry['expires']) {
             return $entry['models'];
         }
-        // Without a last known state (e.g. after a cache purge) there is nothing to fall back to, so wait until
-        // a concurrent fetch has finished instead of returning no models.
-        $locktimeout = empty($entry['models']) ? self::LOCK_TIMEOUT_WITHOUT_STATE : self::LOCK_TIMEOUT;
-        $lock = \core\lock\lock_config::get_lock_factory('aitool_telli_modelinfo')->get_lock($cachekey, $locktimeout);
-        if (!$lock) {
-            // A concurrent request is still fetching, use the last known state.
-            return $entry['models'] ?? [];
-        }
-        try {
-            // Another request might have updated the cache while this request was waiting for the lock.
-            $entry = $cache->get($cachekey);
-            $models = $entry['models'] ?? [];
-            if (!$this->is_valid($entry)) {
-                $fetchedmodels = $this->fetch_models($apikey, $baseurl);
-                $models = $fetchedmodels ?? $models;
-                $lifetime = $fetchedmodels === null ? self::RETRY_DELAY : self::CACHE_LIFETIME;
-                $cache->set($cachekey, ['models' => $models, 'expires' => $this->clock->time() + $lifetime]);
-            }
-        } finally {
-            $lock->release();
-        }
+        // Concurrent requests may fetch the model info in parallel when the entry expires. This is accepted on purpose
+        // instead of using a lock: it only happens for requests arriving within the duration of a single fetch at the
+        // time of expiry, which are very few, and a few parallel requests do not harm the API.
+        $fetchedmodels = $this->fetch_models($apikey, $baseurl);
+        $models = $fetchedmodels ?? $entry['models'] ?? [];
+        $lifetime = $fetchedmodels === null ? self::RETRY_DELAY : self::CACHE_LIFETIME;
+        $cache->set($cachekey, ['models' => $models, 'expires' => $this->clock->time() + $lifetime]);
         return $models;
     }
 
-    /**
-     * Check whether a cache entry exists and has not expired yet.
-     *
-     * @param array|false $entry the cache entry, false if there is none
-     * @return bool true if the entry can be used without fetching again
-     */
-    private function is_valid(array|false $entry): bool {
-        return $entry && $this->clock->time() < $entry['expires'];
-    }
 
     /**
      * Fetch the model information from the API.
