@@ -56,11 +56,11 @@ class modelinfo {
      * Only one request fetches the model information at a time. Concurrent requests get the last known state.
      * After a failed fetch the last known state is kept and the next attempt is made after the retry delay.
      *
-     * @param string $baseurl The base URL of the API.
      * @param string $apikey The API key.
+     * @param string $baseurl The base URL of the API.
      * @return array Model information.
      */
-    public function get_models(string $baseurl, string $apikey): array {
+    public function get_models(string $apikey, string $baseurl): array {
         $baseurl = rtrim($baseurl, '/');
         if (!$baseurl || !$apikey) {
             return [];
@@ -81,7 +81,7 @@ class modelinfo {
             $entry = $cache->get($cachekey);
             $models = $entry['models'] ?? [];
             if (!$this->is_valid($entry)) {
-                $fetchedmodels = $this->fetch_models($baseurl, $apikey);
+                $fetchedmodels = $this->fetch_models($apikey, $baseurl);
                 $models = $fetchedmodels ?? $models;
                 $lifetime = $fetchedmodels === null ? self::RETRY_DELAY : self::CACHE_LIFETIME;
                 $cache->set($cachekey, ['models' => $models, 'expires' => $this->clock->time() + $lifetime]);
@@ -107,16 +107,21 @@ class modelinfo {
      *
      * Triggers a modelinfo_fetch_failed event if the request fails or the response does not contain any usable model.
      *
-     * @param string $baseurl The base URL of the API.
      * @param string $apikey The API key.
+     * @param string $baseurl The base URL of the API.
      * @return array|null the models indexed by their name, null if fetching failed
      */
-    private function fetch_models(string $baseurl, string $apikey): ?array {
+    private function fetch_models(string $apikey, string $baseurl): ?array {
         try {
             $this->apihandler->init($apikey, $baseurl);
             $decoded = json_decode($this->apihandler->get_models_info(), true);
         } catch (\moodle_exception $e) {
-            $errormessage = $e->getMessage();
+            // The message is only a generic sentence in the language of the current user, the actual cause
+            // (HTTP status or HTTP client message) is passed as $a, so log the error code and $a instead.
+            $errormessage = $e->module . '/' . $e->errorcode;
+            if (is_string($e->a) && $e->a !== '') {
+                $errormessage .= ': ' . $e->a;
+            }
             if (debugging('', DEBUG_DEVELOPER)) {
                 // Use format_backtrace() instead of getTraceAsString(), the latter may contain the API key
                 // as function argument.
@@ -162,13 +167,13 @@ class modelinfo {
     /**
      * Get the voices for a specific model.
      *
-     * @param string $baseurl The base URL of the API.
      * @param string $apikey The API key.
+     * @param string $baseurl The base URL of the API.
      * @param string $modelname The model name.
      * @return array Voices for the model.
      */
-    public function get_voices(string $baseurl, string $apikey, string $modelname): array {
-        $models = $this->get_models($baseurl, $apikey);
+    public function get_voices(string $apikey, string $baseurl, string $modelname): array {
+        $models = $this->get_models($apikey, $baseurl);
         $voices = [];
         $modelvoices = $models[$modelname]['modelConfig']['voices'] ?? [];
         foreach ($modelvoices as $voice) {

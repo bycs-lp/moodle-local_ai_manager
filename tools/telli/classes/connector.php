@@ -122,7 +122,7 @@ class connector extends base_connector {
             $apikey = $this->get_api_key();
             $baseurl = $this->get_baseurl();
             $modelname = $this->instance->get_model_name();
-            $options['voices'] = $modelinfo->get_voices($baseurl, $apikey, $modelname);
+            $options['voices'] = $modelinfo->get_voices($apikey, $baseurl, $modelname);
         }
         return $options;
     }

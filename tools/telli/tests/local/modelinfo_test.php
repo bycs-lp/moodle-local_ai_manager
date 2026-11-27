@@ -89,9 +89,9 @@ final class modelinfo_test extends \advanced_testcase {
         $modelinfo = \core\di::get(modelinfo::class);
         $sink = $this->redirectEvents();
 
-        $firstmodels = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $firstmodels = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         $clock->bump(modelinfo::CACHE_LIFETIME - 1);
-        $secondmodels = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $secondmodels = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         $events = $sink->get_events();
         $sink->close();
 
@@ -113,9 +113,9 @@ final class modelinfo_test extends \advanced_testcase {
         \core\di::set(apihandler::class, $apihandler);
         $modelinfo = \core\di::get(modelinfo::class);
 
-        $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $modelinfo->get_models(self::APIKEY, self::BASEURL);
         $clock->bump(modelinfo::CACHE_LIFETIME);
-        $models = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $models = $modelinfo->get_models(self::APIKEY, self::BASEURL);
 
         $this->assertSame(['gpt-5'], array_keys($models));
     }
@@ -152,15 +152,15 @@ final class modelinfo_test extends \advanced_testcase {
                 if ($clock->time() === self::STARTTIME) {
                     return self::get_models_response();
                 }
-                throw new \moodle_exception('err_apiresult', 'aitool_telli');
+                throw new \moodle_exception('err_apiresult', 'aitool_telli', '', 'Status code: 401: Unauthorized');
             });
         \core\di::set(apihandler::class, $apihandler);
         $modelinfo = \core\di::get(modelinfo::class);
 
-        $firstmodels = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $firstmodels = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         $clock->bump(modelinfo::CACHE_LIFETIME);
         $sink = $this->redirectEvents();
-        $secondmodels = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $secondmodels = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         $events = $sink->get_events();
         $sink->close();
 
@@ -169,12 +169,13 @@ final class modelinfo_test extends \advanced_testcase {
         $this->assertInstanceOf(modelinfo_fetch_failed::class, $events[0]);
         $this->assertSame(self::BASEURL, $events[0]->other['baseurl']);
         $errormessage = $events[0]->other['errormessage'];
-        $this->assertStringStartsWith(get_string('err_apiresult', 'aitool_telli'), $errormessage);
+        $expectedmessage = 'aitool_telli/err_apiresult: Status code: 401: Unauthorized';
+        $this->assertStringStartsWith($expectedmessage, $errormessage);
         $this->assertStringNotContainsString(self::APIKEY, $errormessage);
         if ($expectstacktrace) {
             $this->assertStringContainsString('aitool_telli\local\modelinfo->get_models()', $errormessage);
         } else {
-            $this->assertSame(get_string('err_apiresult', 'aitool_telli'), $errormessage);
+            $this->assertSame($expectedmessage, $errormessage);
         }
     }
 
@@ -208,10 +209,10 @@ final class modelinfo_test extends \advanced_testcase {
         \core\di::set(apihandler::class, $apihandler);
         $modelinfo = \core\di::get(modelinfo::class);
 
-        $firstmodels = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $firstmodels = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         $clock->bump(modelinfo::CACHE_LIFETIME);
         $sink = $this->redirectEvents();
-        $secondmodels = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $secondmodels = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         $events = $sink->get_events();
         $sink->close();
 
@@ -234,11 +235,11 @@ final class modelinfo_test extends \advanced_testcase {
         \core\di::set(apihandler::class, $apihandler);
         $modelinfo = \core\di::get(modelinfo::class);
 
-        $modelsafterfailure = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $modelsafterfailure = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         $clock->bump(modelinfo::RETRY_DELAY - 1);
-        $modelswithinretrydelay = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $modelswithinretrydelay = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         $clock->bump(1);
-        $modelsafterretrydelay = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $modelsafterretrydelay = $modelinfo->get_models(self::APIKEY, self::BASEURL);
 
         $this->assertSame([], $modelsafterfailure);
         $this->assertSame([], $modelswithinretrydelay);
@@ -257,10 +258,10 @@ final class modelinfo_test extends \advanced_testcase {
         \core\di::set(apihandler::class, $apihandler);
         $modelinfo = \core\di::get(modelinfo::class);
 
-        $modelinfo->get_models(self::BASEURL, self::APIKEY);
-        $modelinfo->get_models(self::BASEURL, 'otherapikey');
-        $modelinfo->get_models('https://telli-staging.example.com', self::APIKEY);
-        $models = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        $modelinfo->get_models('otherapikey', self::BASEURL);
+        $modelinfo->get_models(self::APIKEY, 'https://telli-staging.example.com');
+        $models = $modelinfo->get_models(self::APIKEY, self::BASEURL);
 
         $this->assertSame([self::TTSMODEL, self::TEXTMODEL, self::IMAGEMODEL], array_keys($models));
     }
@@ -283,7 +284,7 @@ final class modelinfo_test extends \advanced_testcase {
         \core\di::set(apihandler::class, $apihandler);
         $modelinfo = \core\di::get(modelinfo::class);
 
-        $models = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $models = $modelinfo->get_models(self::APIKEY, self::BASEURL);
 
         $this->assertSame([self::TEXTMODEL], array_keys($models));
     }
@@ -296,16 +297,16 @@ final class modelinfo_test extends \advanced_testcase {
     public static function get_models_without_configuration_provider(): array {
         return [
             'empty_baseurl' => [
-                'baseurl' => '',
                 'apikey' => self::APIKEY,
+                'baseurl' => '',
             ],
             'baseurl_only_consisting_of_a_slash' => [
-                'baseurl' => '/',
                 'apikey' => self::APIKEY,
+                'baseurl' => '/',
             ],
             'empty_apikey' => [
-                'baseurl' => self::BASEURL,
                 'apikey' => '',
+                'baseurl' => self::BASEURL,
             ],
         ];
     }
@@ -315,11 +316,11 @@ final class modelinfo_test extends \advanced_testcase {
      *
      * A missing configuration is no failure of the external API, so it must not trigger the retry delay.
      *
-     * @param string $baseurl the base URL
      * @param string $apikey the API key
+     * @param string $baseurl the base URL
      */
     #[\PHPUnit\Framework\Attributes\DataProvider('get_models_without_configuration_provider')]
-    public function test_get_models_without_configuration(string $baseurl, string $apikey): void {
+    public function test_get_models_without_configuration(string $apikey, string $baseurl): void {
         $this->resetAfterTest();
         $this->mock_clock_with_frozen(self::STARTTIME);
         $apihandler = $this->createMock(apihandler::class);
@@ -328,7 +329,7 @@ final class modelinfo_test extends \advanced_testcase {
         \core\di::set(apihandler::class, $apihandler);
         $modelinfo = \core\di::get(modelinfo::class);
 
-        $models = $modelinfo->get_models($baseurl, $apikey);
+        $models = $modelinfo->get_models($apikey, $baseurl);
 
         $this->assertSame([], $models);
         $cachekey = hash('sha256', rtrim($baseurl, '/') . $apikey);
@@ -346,8 +347,8 @@ final class modelinfo_test extends \advanced_testcase {
         \core\di::set(apihandler::class, $apihandler);
         $modelinfo = \core\di::get(modelinfo::class);
 
-        $modelinfo->get_models(self::BASEURL, self::APIKEY);
-        $models = $modelinfo->get_models(self::BASEURL . '/', self::APIKEY);
+        $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        $models = $modelinfo->get_models(self::APIKEY, self::BASEURL . '/');
 
         $this->assertSame([self::TTSMODEL, self::TEXTMODEL, self::IMAGEMODEL], array_keys($models));
     }
@@ -392,7 +393,7 @@ final class modelinfo_test extends \advanced_testcase {
         \core\di::set(apihandler::class, $apihandler);
         $modelinfo = \core\di::get(modelinfo::class);
 
-        $voices = $modelinfo->get_voices(self::BASEURL, self::APIKEY, $modelname);
+        $voices = $modelinfo->get_voices(self::APIKEY, self::BASEURL, $modelname);
 
         $this->assertSame($expected, $voices);
     }
@@ -411,14 +412,14 @@ final class modelinfo_test extends \advanced_testcase {
         $apihandler->expects($this->once())->method('get_models_info')->willReturn(self::get_models_response());
         \core\di::set(apihandler::class, $apihandler);
         $modelinfo = \core\di::get(modelinfo::class);
-        $firstmodels = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $firstmodels = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         $clock->bump(modelinfo::CACHE_LIFETIME);
         $lockfactory = \core\lock\lock_config::get_lock_factory('aitool_telli_modelinfo');
         $lock = $lockfactory->get_lock(hash('sha256', self::BASEURL . self::APIKEY), 0);
         $this->assertNotFalse($lock);
 
         try {
-            $secondmodels = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+            $secondmodels = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         } finally {
             $lock->release();
         }
@@ -440,7 +441,7 @@ final class modelinfo_test extends \advanced_testcase {
         \core\di::set(apihandler::class, $apihandler);
         $modelinfo = \core\di::get(modelinfo::class);
 
-        $models = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $models = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         $lockfactory = \core\lock\lock_config::get_lock_factory('aitool_telli_modelinfo');
         $lock = $lockfactory->get_lock(hash('sha256', self::BASEURL . self::APIKEY), 0);
         $lockreleased = $lock !== false;
@@ -474,7 +475,7 @@ final class modelinfo_test extends \advanced_testcase {
         };
 
         try {
-            $models = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+            $models = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         } finally {
             callback_lock_factory::$beforelock = null;
         }
@@ -497,7 +498,7 @@ final class modelinfo_test extends \advanced_testcase {
         $apihandler->expects($this->once())->method('get_models_info')->willReturn(self::get_models_response());
         \core\di::set(apihandler::class, $apihandler);
         $modelinfo = \core\di::get(modelinfo::class);
-        $modelinfo->get_models(self::BASEURL, self::APIKEY);
+        $modelinfo->get_models(self::APIKEY, self::BASEURL);
         $clock->bump(modelinfo::CACHE_LIFETIME);
         $concurrentmodels = ['gpt-5' => ['name' => 'gpt-5', 'isDeleted' => false]];
         callback_lock_factory::$beforelock = function () use ($concurrentmodels, $clock): void {
@@ -510,7 +511,7 @@ final class modelinfo_test extends \advanced_testcase {
         };
 
         try {
-            $models = $modelinfo->get_models(self::BASEURL, self::APIKEY);
+            $models = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         } finally {
             callback_lock_factory::$beforelock = null;
         }
