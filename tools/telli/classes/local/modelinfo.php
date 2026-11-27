@@ -54,100 +54,109 @@ class modelinfo {
      * Get the model information.
      *
      * Only one request fetches the model information at a time. Concurrent requests get the last known state.
+     * After a failed fetch the last known state is kept and the next attempt is made after the retry delay.
      *
      * @param string $baseurl The base URL of the API.
      * @param string $apikey The API key.
      * @return array Model information.
      */
     public function get_models(string $baseurl, string $apikey): array {
-        $models = [];
         $baseurl = rtrim($baseurl, '/');
-        if ($baseurl && $apikey) {
-            $cache = \cache::make('aitool_telli', 'modelinfo');
-            $cachekey = hash('sha256', $baseurl . $apikey);
+        if (!$baseurl || !$apikey) {
+            return [];
+        }
+        $cache = \cache::make('aitool_telli', 'modelinfo');
+        $cachekey = hash('sha256', $baseurl . $apikey);
+        $entry = $cache->get($cachekey);
+        if ($this->is_valid($entry)) {
+            return $entry['models'];
+        }
+        $lock = \core\lock\lock_config::get_lock_factory('aitool_telli_modelinfo')->get_lock($cachekey, self::LOCK_TIMEOUT);
+        if (!$lock) {
+            // A concurrent request is fetching, use the last known state.
+            return $entry['models'] ?? [];
+        }
+        try {
+            // Another request might have updated the cache while this request was waiting for the lock.
             $entry = $cache->get($cachekey);
-            $now = $this->clock->time();
-            if ($entry) {
-                $models = $entry['models'];
-                $isfresh = $now - $entry['lastfetched'] < self::CACHE_LIFETIME;
-                $inbackoff = $now - $entry['lastfailed'] < self::RETRY_DELAY;
-            } else {
-                $isfresh = false;
-                $inbackoff = false;
+            $models = $entry['models'] ?? [];
+            if (!$this->is_valid($entry)) {
+                $fetchedmodels = $this->fetch_models($baseurl, $apikey);
+                $models = $fetchedmodels ?? $models;
+                $lifetime = $fetchedmodels === null ? self::RETRY_DELAY : self::CACHE_LIFETIME;
+                $cache->set($cachekey, ['models' => $models, 'expires' => $this->clock->time() + $lifetime]);
             }
-            if (!$isfresh && !$inbackoff) {
-                $lockfactory = \core\lock\lock_config::get_lock_factory('aitool_telli_modelinfo');
-                $lock = $lockfactory->get_lock($cachekey, self::LOCK_TIMEOUT);
-                if ($lock) {
-                    try {
-                        // Another request might have updated the cache while this request was waiting for the lock.
-                        $currententry = $cache->get($cachekey);
-                        $updatedmeanwhile = $currententry && $currententry !== $entry;
-                        if ($updatedmeanwhile) {
-                            $models = $currententry['models'];
-                        } else {
-                            $decoded = null;
-                            $errormessage = 'The response does not contain any usable model.';
-                            try {
-                                $this->apihandler->init($apikey, $baseurl);
-                                $json = $this->apihandler->get_models_info();
-                                $decoded = json_decode($json, true);
-                            } catch (\moodle_exception $e) {
-                                // External API, keep last known state and retry after the retry delay.
-                                $errormessage = $e->getMessage();
-                                if (debugging('', DEBUG_DEVELOPER)) {
-                                    // Use format_backtrace() instead of getTraceAsString(), the latter may contain the API key
-                                    // as function argument.
-                                    $errormessage .= "\n" . format_backtrace($e->getTrace(), true);
-                                }
-                            }
-                            $fetchedmodels = [];
-                            if (is_array($decoded)) {
-                                foreach ($decoded as $model) {
-                                    // External API, skip entries which are no model objects instead of failing the whole request.
-                                    if (!is_array($model)) {
-                                        continue;
-                                    }
-                                    $hasname = array_key_exists('name', $model) && is_string($model['name']);
-                                    $isdeleted = array_key_exists('isDeleted', $model) && $model['isDeleted'];
-                                    if (!$hasname || $isdeleted) {
-                                        continue;
-                                    }
-                                    $fetchedmodels[$model['name']] = $model;
-                                }
-                            }
-                            // External API, a response without any usable model (e.g. "[]" or an error object) counts as
-                            // failure too, otherwise a single bad response would remove all models for 24 hours.
-                            if (!empty($fetchedmodels)) {
-                                $models = $fetchedmodels;
-                                $cache->set($cachekey, [
-                                    'models' => $models,
-                                    'lastfetched' => $now,
-                                    'lastfailed' => 0,
-                                ]);
-                            } else {
-                                $lastfetched = $entry['lastfetched'] ?? 0;
-                                $cache->set($cachekey, [
-                                    'models' => $models,
-                                    'lastfetched' => $lastfetched,
-                                    'lastfailed' => $now,
-                                ]);
-                                modelinfo_fetch_failed::create([
-                                    'context' => \context_system::instance(),
-                                    'other' => [
-                                        'baseurl' => $baseurl,
-                                        'errormessage' => $errormessage,
-                                    ],
-                                ])->trigger();
-                            }
-                        }
-                    } finally {
-                        $lock->release();
-                    }
-                }
-            }
+        } finally {
+            $lock->release();
         }
         return $models;
+    }
+
+    /**
+     * Check whether a cache entry exists and has not expired yet.
+     *
+     * @param array|false $entry the cache entry, false if there is none
+     * @return bool true if the entry can be used without fetching again
+     */
+    private function is_valid(array|false $entry): bool {
+        return $entry && $this->clock->time() < $entry['expires'];
+    }
+
+    /**
+     * Fetch the model information from the API.
+     *
+     * Triggers a modelinfo_fetch_failed event if the request fails or the response does not contain any usable model.
+     *
+     * @param string $baseurl The base URL of the API.
+     * @param string $apikey The API key.
+     * @return array|null the models indexed by their name, null if fetching failed
+     */
+    private function fetch_models(string $baseurl, string $apikey): ?array {
+        try {
+            $this->apihandler->init($apikey, $baseurl);
+            $decoded = json_decode($this->apihandler->get_models_info(), true);
+        } catch (\moodle_exception $e) {
+            $errormessage = $e->getMessage();
+            if (debugging('', DEBUG_DEVELOPER)) {
+                // Use format_backtrace() instead of getTraceAsString(), the latter may contain the API key
+                // as function argument.
+                $errormessage .= "\n" . format_backtrace($e->getTrace(), true);
+            }
+            $this->trigger_fetch_failed($baseurl, $errormessage);
+            return null;
+        }
+        $models = [];
+        foreach (is_array($decoded) ? $decoded : [] as $model) {
+            // External API, skip entries which are no model objects instead of failing the whole request.
+            if (!is_array($model)) {
+                continue;
+            }
+            $hasname = array_key_exists('name', $model) && is_string($model['name']);
+            $isdeleted = array_key_exists('isDeleted', $model) && $model['isDeleted'];
+            if ($hasname && !$isdeleted) {
+                $models[$model['name']] = $model;
+            }
+        }
+        // External API, a response without any usable model (e.g. "[]" or an error object) counts as
+        // failure too, otherwise a single bad response would remove all models for 24 hours.
+        if (empty($models)) {
+            $this->trigger_fetch_failed($baseurl, 'The response does not contain any usable model.');
+            return null;
+        }
+        return $models;
+    }
+
+    /**
+     * Trigger the event for a failed fetch of the model information.
+     *
+     * @param string $baseurl The base URL of the API.
+     * @param string $errormessage the reason why fetching failed
+     */
+    private function trigger_fetch_failed(string $baseurl, string $errormessage): void {
+        modelinfo_fetch_failed::create([
+            'context' => \context_system::instance(),
+            'other' => ['baseurl' => $baseurl, 'errormessage' => $errormessage],
+        ])->trigger();
     }
 
     /**

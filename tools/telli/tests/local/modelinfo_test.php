@@ -469,8 +469,7 @@ final class modelinfo_test extends \advanced_testcase {
             $cache = \cache::make('aitool_telli', 'modelinfo');
             $cache->set(hash('sha256', self::BASEURL . self::APIKEY), [
                 'models' => $concurrentmodels,
-                'lastfetched' => $clock->time(),
-                'lastfailed' => 0,
+                'expires' => $clock->time() + modelinfo::CACHE_LIFETIME,
             ]);
         };
 
@@ -506,8 +505,7 @@ final class modelinfo_test extends \advanced_testcase {
             $othercache = \cache::make('aitool_telli', 'modelinfo');
             $othercache->set(hash('sha256', self::BASEURL . self::APIKEY), [
                 'models' => $concurrentmodels,
-                'lastfetched' => $clock->time(),
-                'lastfailed' => 0,
+                'expires' => $clock->time() + modelinfo::CACHE_LIFETIME,
             ]);
         };
 
