@@ -1,0 +1,40 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_ai_manager/templatetenanthint
+
+    Hint shown below the heading of the tenant config pages of the template tenant.
+
+    Example context (json):
+    {
+    }
+}}
+<div class="alert alert-warning d-flex align-items-center" role="status">
+    <i class="fa fa-wand-magic-sparkles fa-lg me-2" aria-hidden="true"></i>
+    <div>
+        <strong>{{#str}} templatetenant_hint_heading, local_ai_manager {{/str}}</strong><br>
+        {{#str}} templatetenant_hint, local_ai_manager {{/str}}
+        {{#str}} templatetenant_hint_noautoupdate, local_ai_manager {{/str}}
+    </div>
+</div>
+<div class="alert alert-danger d-flex align-items-center" role="alert">
+    <i class="fa fa-triangle-exclamation fa-lg me-2" aria-hidden="true"></i>
+    <div>
+        <strong>{{#str}} templatetenant_credentialswarning_heading, local_ai_manager {{/str}}</strong><br>
+        {{#str}} templatetenant_credentialswarning, local_ai_manager {{/str}}
+    </div>
+</div>

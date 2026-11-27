@@ -39,8 +39,8 @@ final class tenant_factory_test extends \advanced_testcase {
      * Tests that the tenant cannot be retrieved from the DI container directly.
      */
     public function test_tenant_not_retrievable_from_di(): void {
-        $this->setUser($this->getDataGenerator()->create_user(['institution' => 'schoola']));
-        $this->assertEquals('schoola', \core\di::get(tenant_factory::class)->get()->get_identifier());
+        $this->setUser($this->getDataGenerator()->create_user(['institution' => 'tenanta']));
+        $this->assertEquals('tenanta', \core\di::get(tenant_factory::class)->get()->get_identifier());
         $this->expectException(\coding_exception::class);
         \core\di::get(tenant::class);
     }
@@ -49,21 +49,21 @@ final class tenant_factory_test extends \advanced_testcase {
      * Tests getting, setting and resetting the current tenant.
      */
     public function test_get_set_reset(): void {
-        $usera = $this->getDataGenerator()->create_user(['institution' => 'schoola']);
-        $userb = $this->getDataGenerator()->create_user(['institution' => 'schoolb']);
+        $usera = $this->getDataGenerator()->create_user(['institution' => 'tenanta']);
+        $userb = $this->getDataGenerator()->create_user(['institution' => 'tenantb']);
         $this->setUser($usera);
         $tenantfactory = \core\di::get(tenant_factory::class);
 
-        $this->assertEquals('schoola', $tenantfactory->get()->get_identifier());
+        $this->assertEquals('tenanta', $tenantfactory->get()->get_identifier());
         // Without an explicitly set tenant, a change of the current user is respected.
         $this->setUser($userb);
-        $this->assertEquals('schoolb', $tenantfactory->get()->get_identifier());
+        $this->assertEquals('tenantb', $tenantfactory->get()->get_identifier());
 
-        $tenantfactory->set(new tenant('schoolc'));
-        $this->assertEquals('schoolc', $tenantfactory->get()->get_identifier());
+        $tenantfactory->set(new tenant('tenantc'));
+        $this->assertEquals('tenantc', $tenantfactory->get()->get_identifier());
 
         $tenantfactory->reset();
-        $this->assertEquals('schoolb', $tenantfactory->get()->get_identifier());
+        $this->assertEquals('tenantb', $tenantfactory->get()->get_identifier());
     }
 
     /**
@@ -82,18 +82,18 @@ final class tenant_factory_test extends \advanced_testcase {
      * Tests that the config manager from the DI container follows the current tenant, a config manager with a fixed tenant not.
      */
     public function test_config_manager_follows_current_tenant(): void {
-        $this->setUser($this->getDataGenerator()->create_user(['institution' => 'schoola']));
-        (new config_manager($this->create_tenant_factory('schoola')))->set_config('somekey', 'valuea');
-        (new config_manager($this->create_tenant_factory('schoolb')))->set_config('somekey', 'valueb');
+        $this->setUser($this->getDataGenerator()->create_user(['institution' => 'tenanta']));
+        (new config_manager($this->create_tenant_factory('tenanta')))->set_config('somekey', 'valuea');
+        (new config_manager($this->create_tenant_factory('tenantb')))->set_config('somekey', 'valueb');
 
         $configmanager = \core\di::get(config_manager::class);
-        $fixedconfigmanager = new config_manager($this->create_tenant_factory('schoola'));
-        $this->assertEquals('schoola', $configmanager->get_tenant()->get_identifier());
+        $fixedconfigmanager = new config_manager($this->create_tenant_factory('tenanta'));
+        $this->assertEquals('tenanta', $configmanager->get_tenant()->get_identifier());
         $this->assertEquals('valuea', $configmanager->get_config('somekey'));
 
-        \core\di::get(tenant_factory::class)->set(new tenant('schoolb'));
+        \core\di::get(tenant_factory::class)->set(new tenant('tenantb'));
         $this->assertSame($configmanager, \core\di::get(config_manager::class));
-        $this->assertEquals('schoolb', $configmanager->get_tenant()->get_identifier());
+        $this->assertEquals('tenantb', $configmanager->get_tenant()->get_identifier());
         $this->assertEquals('valueb', $configmanager->get_config('somekey'));
         $this->assertEquals('valuea', $fixedconfigmanager->get_config('somekey'));
 
@@ -105,12 +105,12 @@ final class tenant_factory_test extends \advanced_testcase {
      * Tests that the access manager from the DI container follows the current tenant.
      */
     public function test_access_manager_follows_current_tenant(): void {
-        $this->setUser($this->getDataGenerator()->create_user(['institution' => 'schoola']));
+        $this->setUser($this->getDataGenerator()->create_user(['institution' => 'tenanta']));
         $accessmanager = \core\di::get(access_manager::class);
         $this->assertTrue($accessmanager->is_tenant_member());
 
-        \core\di::get(tenant_factory::class)->set(new tenant('schoolb'));
+        \core\di::get(tenant_factory::class)->set(new tenant('tenantb'));
         $this->assertFalse($accessmanager->is_tenant_member());
-        $this->assertTrue((new access_manager($this->create_tenant_factory('schoola')))->is_tenant_member());
+        $this->assertTrue((new access_manager($this->create_tenant_factory('tenanta')))->is_tenant_member());
     }
 }

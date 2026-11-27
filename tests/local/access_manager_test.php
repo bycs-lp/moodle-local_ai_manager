@@ -34,16 +34,17 @@ final class access_manager_test extends \advanced_testcase {
         $this->resetAfterTest();
         $this->redirectHook(\local_ai_manager\hook\userinfo_extend::class, fn() => null);
         $categorycontexts = [
-            'schoolb' => \context_coursecat::instance($this->getDataGenerator()->create_category()->id),
-            'schoolc' => \context_coursecat::instance($this->getDataGenerator()->create_category()->id),
+            'tenantb' => \context_coursecat::instance($this->getDataGenerator()->create_category()->id),
+            'tenantc' => \context_coursecat::instance($this->getDataGenerator()->create_category()->id),
         ];
-        // Simulates a plugin like local_bycsauth: Some tenants have their own context, non-existing tenants cause an exception.
+        // Simulates a plugin implementing the custom_tenant hook: Some tenants get their own context and the hook validates the
+        // tenant by throwing an exception for unknown tenants.
         $this->redirectHook(custom_tenant::class, function (custom_tenant $customtenant) use ($categorycontexts) {
             $identifier = $customtenant->get_tenantidentifier();
             if (array_key_exists($identifier, $categorycontexts)) {
                 $customtenant->set_tenant_context($categorycontexts[$identifier]);
-            } else if (!in_array($identifier, ['schoola', tenant::DEFAULT_IDENTIFIER])) {
-                throw new \moodle_exception('Invalid school id');
+            } else if (!in_array($identifier, ['tenanta', tenant::DEFAULT_IDENTIFIER])) {
+                throw new \moodle_exception('Unknown tenant');
             }
         });
     }
@@ -97,19 +98,19 @@ final class access_manager_test extends \advanced_testcase {
     public static function require_tenant_access_provider(): array {
         return [
             'member_own_tenant' => [
-                'institution' => 'schoola',
+                'institution' => 'tenanta',
                 'role' => null,
-                'requestedtenant' => 'schoola',
+                'requestedtenant' => 'tenanta',
                 'allowed' => true,
             ],
             'member_foreign_tenant' => [
-                'institution' => 'schoola',
+                'institution' => 'tenanta',
                 'role' => null,
-                'requestedtenant' => 'schoolb',
+                'requestedtenant' => 'tenantb',
                 'allowed' => false,
             ],
             'member_default_tenant' => [
-                'institution' => 'schoola',
+                'institution' => 'tenanta',
                 'role' => null,
                 'requestedtenant' => tenant::DEFAULT_IDENTIFIER,
                 'allowed' => false,
@@ -123,45 +124,58 @@ final class access_manager_test extends \advanced_testcase {
             'user_without_tenant_foreign_tenant' => [
                 'institution' => '',
                 'role' => null,
-                'requestedtenant' => 'schoola',
+                'requestedtenant' => 'tenanta',
                 'allowed' => false,
             ],
             'managetenants_foreign_tenant' => [
-                'institution' => 'schoola',
+                'institution' => 'tenanta',
                 'role' => 'managetenants',
-                'requestedtenant' => 'schoolb',
+                'requestedtenant' => 'tenantb',
                 'allowed' => true,
             ],
             'managetenants_default_tenant' => [
-                'institution' => 'schoola',
+                'institution' => 'tenanta',
                 'role' => 'managetenants',
                 'requestedtenant' => tenant::DEFAULT_IDENTIFIER,
                 'allowed' => true,
             ],
             'manager_by_tenant_context_managed_tenant' => [
-                'institution' => 'schoola',
-                'role' => 'schoolb',
-                'requestedtenant' => 'schoolb',
+                'institution' => 'tenanta',
+                'role' => 'tenantb',
+                'requestedtenant' => 'tenantb',
                 'allowed' => true,
             ],
             'manager_by_tenant_context_other_tenant' => [
-                'institution' => 'schoola',
-                'role' => 'schoolb',
-                'requestedtenant' => 'schoolc',
+                'institution' => 'tenanta',
+                'role' => 'tenantb',
+                'requestedtenant' => 'tenantc',
                 'allowed' => false,
             ],
             // Must result in the same exception as a foreign tenant to not reveal which tenants exist.
             'non_existing_tenant' => [
-                'institution' => 'schoola',
+                'institution' => 'tenanta',
                 'role' => null,
                 'requestedtenant' => 'notexisting',
                 'allowed' => false,
             ],
             'invalid_tenant_identifier' => [
-                'institution' => 'schoola',
+                'institution' => 'tenanta',
                 'role' => null,
                 'requestedtenant' => ' invalid identifier!',
                 'allowed' => false,
+            ],
+            // No user must belong to the template tenant, even if the tenant field is (wrongly) set to its identifier.
+            'member_template_tenant' => [
+                'institution' => tenant::TEMPLATE_IDENTIFIER,
+                'role' => null,
+                'requestedtenant' => tenant::TEMPLATE_IDENTIFIER,
+                'allowed' => false,
+            ],
+            'managetenants_template_tenant' => [
+                'institution' => 'tenanta',
+                'role' => 'managetenants',
+                'requestedtenant' => tenant::TEMPLATE_IDENTIFIER,
+                'allowed' => true,
             ],
         ];
     }
@@ -170,14 +184,14 @@ final class access_manager_test extends \advanced_testcase {
      * Tests that a missing tenant context record results in the access denied exception, but database errors are passed through.
      */
     public function test_require_tenant_access_exception_handling(): void {
-        $this->setup_user('schoola');
+        $this->setup_user('tenanta');
         $accessmanager = \core\di::get(access_manager::class);
 
         $this->redirectHook(custom_tenant::class, function () {
             throw new \dml_missing_record_exception('context');
         });
         try {
-            $accessmanager->require_tenant_access('schoolb');
+            $accessmanager->require_tenant_access('tenantb');
             $this->fail('A missing tenant context must result in an exception');
         } catch (\moodle_exception $exception) {
             $this->assertNotInstanceOf(\dml_exception::class, $exception);
@@ -188,7 +202,7 @@ final class access_manager_test extends \advanced_testcase {
             throw new \dml_read_exception('Simulated database error');
         });
         $this->expectException(\dml_read_exception::class);
-        $accessmanager->require_tenant_access('schoolb');
+        $accessmanager->require_tenant_access('tenantb');
     }
 
     /**
@@ -198,17 +212,17 @@ final class access_manager_test extends \advanced_testcase {
         $tenantfactory = \core\di::get(tenant_factory::class);
         $accessmanager = \core\di::get(access_manager::class);
 
-        $this->setup_user('schoola', 'managetenants');
-        $accessmanager->require_tenant_access('schoolb');
-        $this->assertEquals('schoola', $tenantfactory->get()->get_identifier());
+        $this->setup_user('tenanta', 'managetenants');
+        $accessmanager->require_tenant_access('tenantb');
+        $this->assertEquals('tenanta', $tenantfactory->get()->get_identifier());
         $this->assertTrue($accessmanager->is_tenant_member());
 
-        $this->setup_user('schoola');
+        $this->setup_user('tenanta');
         try {
-            $accessmanager->require_tenant_access('schoolb');
+            $accessmanager->require_tenant_access('tenantb');
             $this->fail('Accessing a foreign tenant must not be possible');
         } catch (\moodle_exception) {
-            $this->assertEquals('schoola', $tenantfactory->get()->get_identifier());
+            $this->assertEquals('tenanta', $tenantfactory->get()->get_identifier());
             $this->assertTrue($accessmanager->is_tenant_member());
         }
     }

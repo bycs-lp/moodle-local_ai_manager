@@ -30,6 +30,15 @@ class tenant {
     /** @var string identifier of the default tenant */
     public const DEFAULT_IDENTIFIER = 'default';
 
+    /**
+     * @var string identifier of the template tenant
+     *
+     * The template tenant is a reserved tenant no user belongs to. Its AI tools and purpose assignments are offered to all other
+     * tenants as a starting configuration. It is not being passed to plugins implementing the {@see custom_tenant} hook.
+     * The identifier is prefixed with the component name to avoid collisions with the identifiers of real tenants.
+     */
+    public const TEMPLATE_IDENTIFIER = 'local_ai_manager_template';
+
     /** @var string The identifier of the current tenant */
     private string $identifier;
 
@@ -44,6 +53,9 @@ class tenant {
         if (empty($identifier)) {
             $tenantfield = get_config('local_ai_manager', 'tenantcolumn');
             $identifier = !empty($USER->{$tenantfield}) ? $USER->{$tenantfield} : '';
+            if ($identifier === self::TEMPLATE_IDENTIFIER) {
+                throw new \invalid_parameter_exception('Users must not belong to the template tenant.');
+            }
             if (empty($identifier)) {
                 $identifier = self::DEFAULT_IDENTIFIER;
             }
@@ -103,26 +115,50 @@ class tenant {
     }
 
     /**
+     * Returns if the current tenant of this object is the template tenant.
+     *
+     * @return bool true if this tenant is the template tenant
+     */
+    public function is_template_tenant(): bool {
+        return $this->identifier === self::TEMPLATE_IDENTIFIER;
+    }
+
+    /**
      * Get the tenant context.
      *
      * @return \context the context the tenant is associated with
      */
     public function get_context(): \context {
+        return $this->get_custom_tenant()->get_tenant_context();
+    }
+
+    /**
+     * Creates the custom_tenant hook object and lets other plugins customize (and validate) the tenant.
+     *
+     * The template tenant does not represent a real tenant, so it is not being passed to other plugins and always keeps
+     * the default context and fullname.
+     *
+     * @return custom_tenant the hook object
+     */
+    private function get_custom_tenant(): custom_tenant {
         $customtenant = new custom_tenant($this);
-        \core\di::get(\core\hook\manager::class)->dispatch($customtenant);
-        return $customtenant->get_tenant_context();
+        if (!$this->is_template_tenant()) {
+            \core\di::get(\core\hook\manager::class)->dispatch($customtenant);
+        }
+        return $customtenant;
     }
 
     /**
      * Returns if the tenant is allowed.
      *
-     * In this context "allowed" means that the tenant is not being restricted by an admin setting.
+     * In this context "allowed" means that the tenant is not being restricted by an admin setting. The template tenant cannot
+     * be restricted, because no user belongs to it.
      *
      * @return bool true if the tenant is allowed
      */
     public function is_tenant_allowed(): bool {
         $restricttenants = !empty(get_config('local_ai_manager', 'restricttenants'));
-        if (!$restricttenants) {
+        if (!$restricttenants || $this->is_template_tenant()) {
             return true;
         }
         $allowedtenantsconfig = get_config('local_ai_manager', 'allowedtenants');
@@ -141,9 +177,7 @@ class tenant {
      * @return string the display name of this tenant
      */
     public function get_fullname(): string {
-        $customtenant = new custom_tenant($this);
-        \core\di::get(\core\hook\manager::class)->dispatch($customtenant);
-        return $customtenant->get_fullname();
+        return $this->get_custom_tenant()->get_fullname();
     }
 
     /**
@@ -160,8 +194,10 @@ class tenant {
      * @return string the default tenant fullname
      */
     public function get_defaultfullname(): string {
-        return $this->identifier === self::DEFAULT_IDENTIFIER
-                ? get_string('defaulttenantname', 'local_ai_manager')
-                : $this->identifier;
+        return match ($this->identifier) {
+            self::DEFAULT_IDENTIFIER => get_string('defaulttenantname', 'local_ai_manager'),
+            self::TEMPLATE_IDENTIFIER => get_string('templatetenantname', 'local_ai_manager'),
+            default => $this->identifier,
+        };
     }
 }

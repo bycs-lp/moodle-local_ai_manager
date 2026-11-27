@@ -23,6 +23,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+use local_ai_manager\local\template_tenant_manager;
 use local_ai_manager\local\tenant_factory;
 use local_ai_manager\local\tenant;
 use local_ai_manager\local\tenant_config_output_utils;
@@ -62,8 +63,22 @@ try {
     );
 }
 
+if (optional_param('applytemplatetenant', false, PARAM_BOOL)) {
+    require_sesskey();
+    \core\di::get(template_tenant_manager::class)->apply_template($tenant);
+    redirect(
+        $PAGE->url,
+        get_string('templatetenant_applied', 'local_ai_manager'),
+        null,
+        \core\output\notification::NOTIFY_SUCCESS
+    );
+}
+
 $renderer = $PAGE->get_renderer('core');
 echo $OUTPUT->header();
+if ($tenant->is_template_tenant()) {
+    echo $OUTPUT->render_from_template('local_ai_manager/templatetenanthint', []);
+}
 if ($configmanager->is_tenant_enabled()) {
     $tenantnavbar = new tenantnavbar('tenant_config.php');
     echo $OUTPUT->render($tenantnavbar);

@@ -175,14 +175,17 @@ class base_instance {
      *
      * @param bool $allinstances true if all instances should be returned, by default only the instances of the current tenant are
      *  returned
+     * @param ?tenant $tenant the tenant whose instances should be returned, null to use the current tenant; ignored if
+     *  $allinstances is true
      * @return array array of instance objects
      */
-    public static function get_all_instances(bool $allinstances = false): array {
+    public static function get_all_instances(bool $allinstances = false, ?tenant $tenant = null): array {
         global $DB;
 
         $params = [];
         if (!$allinstances) {
-            $params['tenant'] = \core\di::get(tenant_factory::class)->get()->get_identifier();
+            $tenant = $tenant ?? \core\di::get(tenant_factory::class)->get();
+            $params['tenant'] = $tenant->get_identifier();
         }
         $records = $DB->get_records('local_ai_manager_instance', $params, '', 'id');
         $instances = [];
@@ -763,6 +766,21 @@ class base_instance {
             }
         }
         $DB->delete_records('local_ai_manager_instance', ['id' => $this->id]);
+    }
+
+    /**
+     * Creates and stores a copy of this instance for another tenant.
+     *
+     * @param tenant $tenant the tenant the copy should belong to
+     * @return base_instance the stored copy
+     */
+    final public function copy_to_tenant(tenant $tenant): base_instance {
+        $copy = clone $this;
+        $copy->id = 0;
+        $copy->record = null;
+        $copy->tenant = $tenant->get_identifier();
+        $copy->store();
+        return $copy;
     }
 
     /**

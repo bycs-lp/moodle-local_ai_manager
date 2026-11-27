@@ -130,4 +130,16 @@ class local_ai_manager_generator extends component_generator_base {
         $instance->store();
         return $instance;
     }
+
+    /**
+     * Sets a config value of a tenant.
+     *
+     * @param array $record the config data with the keys 'tenant' (tenant identifier), 'configkey' and 'value'
+     */
+    public function create_tenant_config(array $record): void {
+        $tenantfactory = new \local_ai_manager\local\tenant_factory();
+        $tenantfactory->set(new \local_ai_manager\local\tenant($record['tenant']));
+        $configmanager = new \local_ai_manager\local\config_manager($tenantfactory);
+        $configmanager->set_config($record['configkey'], (string) $record['value']);
+    }
 }

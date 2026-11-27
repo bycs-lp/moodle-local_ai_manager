@@ -15,6 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace local_ai_manager\check;
+
 use core\check\check;
 use core\check\result;
 use core\output\html_writer;
@@ -68,7 +69,11 @@ class tenantcolumn_identifiers_valid extends check {
 
         $invalidtenants = [];
         foreach ($identifiers as $identifier) {
-            if (!\local_ai_manager\local\tenant::is_valid_identifier($identifier)) {
+            // No user must belong to the reserved template tenant.
+            if (
+                !\local_ai_manager\local\tenant::is_valid_identifier($identifier)
+                || $identifier === \local_ai_manager\local\tenant::TEMPLATE_IDENTIFIER
+            ) {
                 $invalidtenants[] = $identifier;
             }
         }
