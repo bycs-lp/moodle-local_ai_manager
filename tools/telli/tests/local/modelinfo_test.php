@@ -126,6 +126,7 @@ final class modelinfo_test extends \advanced_testcase {
         $firstmodels = (new modelinfo($workingapihandler, $clock))->get_models(self::APIKEY, self::BASEURL);
         $clock->bump(modelinfo::CACHE_LIFETIME);
         $secondmodels = (new modelinfo($failingapihandler, $clock))->get_models(self::APIKEY, self::BASEURL);
+        $this->assertDebuggingCalled();
 
         $this->assertSame($firstmodels, $secondmodels);
     }
@@ -179,10 +180,12 @@ final class modelinfo_test extends \advanced_testcase {
         $modelinfo = new modelinfo($apihandler, $clock);
 
         $modelsafterfailure = $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        $this->assertDebuggingCalled();
         $clock->bump(modelinfo::RETRY_DELAY - 1);
         $modelswithinretrydelay = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         $clock->bump(1);
         $modelsafterretrydelay = $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        $this->assertDebuggingCalled();
 
         $this->assertSame([], $modelsafterfailure);
         $this->assertSame([], $modelswithinretrydelay);
@@ -378,6 +381,7 @@ final class modelinfo_test extends \advanced_testcase {
         $modelinfo = new modelinfo($apihandler, $clock);
 
         $models = $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        $this->assertDebuggingCalled();
         $lockfactory = \core\lock\lock_config::get_lock_factory('aitool_telli_modelinfo');
         $lock = $lockfactory->get_lock(hash('sha256', self::BASEURL . self::APIKEY), 0);
         $lockreleased = $lock !== false;

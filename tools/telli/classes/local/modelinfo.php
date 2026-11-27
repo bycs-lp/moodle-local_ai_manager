@@ -91,7 +91,7 @@ class modelinfo {
                                 $decoded = json_decode($json, true);
                             } catch (\moodle_exception $e) {
                                 // External API, keep last known state and retry after the retry delay.
-                                $decoded = null;
+                                debugging('Could not retrieve the model information from the telli API: ' . $e->getMessage());
                             }
                             $fetchedmodels = [];
                             if (is_array($decoded)) {
