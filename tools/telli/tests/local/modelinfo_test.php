@@ -79,15 +79,14 @@ final class modelinfo_test extends \advanced_testcase {
      */
     public function test_get_models_uses_cache_within_lifetime(): void {
         $this->resetAfterTest();
-        set_config('baseurl', self::BASEURL, 'aitool_telli');
         $clock = $this->mock_clock_with_frozen(self::STARTTIME);
         $apihandler = $this->createMock(apihandler::class);
         $apihandler->expects($this->once())->method('get_models_info')->willReturn(self::get_models_response());
         $modelinfo = new modelinfo($apihandler, $clock);
 
-        $firstmodels = $modelinfo->get_models(self::APIKEY);
-        $clock->bump(DAYSECS - 1);
-        $secondmodels = $modelinfo->get_models(self::APIKEY);
+        $firstmodels = $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        $clock->bump(modelinfo::CACHE_LIFETIME - 1);
+        $secondmodels = $modelinfo->get_models(self::APIKEY, self::BASEURL);
 
         $this->assertSame([self::TTSMODEL, self::TEXTMODEL, self::IMAGEMODEL], array_keys($firstmodels));
         $this->assertSame($firstmodels, $secondmodels);
@@ -98,7 +97,6 @@ final class modelinfo_test extends \advanced_testcase {
      */
     public function test_get_models_refetches_after_lifetime(): void {
         $this->resetAfterTest();
-        set_config('baseurl', self::BASEURL, 'aitool_telli');
         $clock = $this->mock_clock_with_frozen(self::STARTTIME);
         $newresponse = json_encode([['name' => 'gpt-5', 'isDeleted' => false]]);
         $apihandler = $this->createMock(apihandler::class);
@@ -106,9 +104,9 @@ final class modelinfo_test extends \advanced_testcase {
             ->willReturn(self::get_models_response(), $newresponse);
         $modelinfo = new modelinfo($apihandler, $clock);
 
-        $modelinfo->get_models(self::APIKEY);
-        $clock->bump(DAYSECS);
-        $models = $modelinfo->get_models(self::APIKEY);
+        $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        $clock->bump(modelinfo::CACHE_LIFETIME);
+        $models = $modelinfo->get_models(self::APIKEY, self::BASEURL);
 
         $this->assertSame(['gpt-5'], array_keys($models));
     }
@@ -118,7 +116,6 @@ final class modelinfo_test extends \advanced_testcase {
      */
     public function test_get_models_keeps_last_state_on_api_exception(): void {
         $this->resetAfterTest();
-        set_config('baseurl', self::BASEURL, 'aitool_telli');
         $clock = $this->mock_clock_with_frozen(self::STARTTIME);
         $workingapihandler = $this->createMock(apihandler::class);
         $workingapihandler->expects($this->once())->method('get_models_info')->willReturn(self::get_models_response());
@@ -126,9 +123,9 @@ final class modelinfo_test extends \advanced_testcase {
         $failingapihandler->expects($this->once())->method('get_models_info')
             ->willThrowException(new \moodle_exception('err_apiresult', 'aitool_telli'));
 
-        $firstmodels = (new modelinfo($workingapihandler, $clock))->get_models(self::APIKEY);
-        $clock->bump(DAYSECS);
-        $secondmodels = (new modelinfo($failingapihandler, $clock))->get_models(self::APIKEY);
+        $firstmodels = (new modelinfo($workingapihandler, $clock))->get_models(self::APIKEY, self::BASEURL);
+        $clock->bump(modelinfo::CACHE_LIFETIME);
+        $secondmodels = (new modelinfo($failingapihandler, $clock))->get_models(self::APIKEY, self::BASEURL);
 
         $this->assertSame($firstmodels, $secondmodels);
     }
@@ -156,16 +153,15 @@ final class modelinfo_test extends \advanced_testcase {
     #[\PHPUnit\Framework\Attributes\DataProvider('get_models_keeps_last_state_on_invalid_response_provider')]
     public function test_get_models_keeps_last_state_on_invalid_response(string $invalidresponse): void {
         $this->resetAfterTest();
-        set_config('baseurl', self::BASEURL, 'aitool_telli');
         $clock = $this->mock_clock_with_frozen(self::STARTTIME);
         $apihandler = $this->createMock(apihandler::class);
         $apihandler->expects($this->exactly(2))->method('get_models_info')
             ->willReturn(self::get_models_response(), $invalidresponse);
         $modelinfo = new modelinfo($apihandler, $clock);
 
-        $firstmodels = $modelinfo->get_models(self::APIKEY);
-        $clock->bump(DAYSECS);
-        $secondmodels = $modelinfo->get_models(self::APIKEY);
+        $firstmodels = $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        $clock->bump(modelinfo::CACHE_LIFETIME);
+        $secondmodels = $modelinfo->get_models(self::APIKEY, self::BASEURL);
 
         $this->assertSame($firstmodels, $secondmodels);
     }
@@ -175,7 +171,6 @@ final class modelinfo_test extends \advanced_testcase {
      */
     public function test_get_models_waits_before_retry_after_failure(): void {
         $this->resetAfterTest();
-        set_config('baseurl', self::BASEURL, 'aitool_telli');
         $clock = $this->mock_clock_with_frozen(self::STARTTIME);
         $apihandler = $this->createMock(apihandler::class);
         // First call at the start time, the call within the 5 minutes must not reach the API, the call afterwards must.
@@ -183,11 +178,11 @@ final class modelinfo_test extends \advanced_testcase {
             ->willThrowException(new \moodle_exception('err_apiresult', 'aitool_telli'));
         $modelinfo = new modelinfo($apihandler, $clock);
 
-        $modelsafterfailure = $modelinfo->get_models(self::APIKEY);
-        $clock->bump(5 * MINSECS - 1);
-        $modelswithinretrydelay = $modelinfo->get_models(self::APIKEY);
+        $modelsafterfailure = $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        $clock->bump(modelinfo::RETRY_DELAY - 1);
+        $modelswithinretrydelay = $modelinfo->get_models(self::APIKEY, self::BASEURL);
         $clock->bump(1);
-        $modelsafterretrydelay = $modelinfo->get_models(self::APIKEY);
+        $modelsafterretrydelay = $modelinfo->get_models(self::APIKEY, self::BASEURL);
 
         $this->assertSame([], $modelsafterfailure);
         $this->assertSame([], $modelswithinretrydelay);
@@ -199,19 +194,16 @@ final class modelinfo_test extends \advanced_testcase {
      */
     public function test_get_models_caches_per_baseurl_and_apikey(): void {
         $this->resetAfterTest();
-        set_config('baseurl', self::BASEURL, 'aitool_telli');
         $clock = $this->mock_clock_with_frozen(self::STARTTIME);
         $apihandler = $this->createMock(apihandler::class);
         // One request per combination of base URL and API key, the repeated first combination comes from the cache.
         $apihandler->expects($this->exactly(3))->method('get_models_info')->willReturn(self::get_models_response());
         $modelinfo = new modelinfo($apihandler, $clock);
 
-        $modelinfo->get_models(self::APIKEY);
-        $modelinfo->get_models('otherapikey');
-        set_config('baseurl', 'https://telli-staging.example.com', 'aitool_telli');
-        $modelinfo->get_models(self::APIKEY);
-        set_config('baseurl', self::BASEURL, 'aitool_telli');
-        $models = $modelinfo->get_models(self::APIKEY);
+        $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        $modelinfo->get_models('otherapikey', self::BASEURL);
+        $modelinfo->get_models(self::APIKEY, 'https://telli-staging.example.com');
+        $models = $modelinfo->get_models(self::APIKEY, self::BASEURL);
 
         $this->assertSame([self::TTSMODEL, self::TEXTMODEL, self::IMAGEMODEL], array_keys($models));
     }
@@ -221,7 +213,6 @@ final class modelinfo_test extends \advanced_testcase {
      */
     public function test_get_models_skips_deleted_and_unnamed_models(): void {
         $this->resetAfterTest();
-        set_config('baseurl', self::BASEURL, 'aitool_telli');
         $clock = $this->mock_clock_with_frozen(self::STARTTIME);
         $response = json_encode([
             ['name' => self::TEXTMODEL, 'isDeleted' => false],
@@ -234,24 +225,71 @@ final class modelinfo_test extends \advanced_testcase {
         $apihandler->expects($this->once())->method('get_models_info')->willReturn($response);
         $modelinfo = new modelinfo($apihandler, $clock);
 
-        $models = $modelinfo->get_models(self::APIKEY);
+        $models = $modelinfo->get_models(self::APIKEY, self::BASEURL);
 
         $this->assertSame([self::TEXTMODEL], array_keys($models));
     }
 
     /**
-     * Test that no request is sent and no models are returned without a configured base URL.
+     * Data provider for test_get_models_without_configuration.
+     *
+     * @return array
      */
-    public function test_get_models_without_baseurl(): void {
+    public static function get_models_without_configuration_provider(): array {
+        return [
+            'empty base URL' => [
+                'apikey' => self::APIKEY,
+                'baseurl' => '',
+            ],
+            'base URL only consisting of a slash' => [
+                'apikey' => self::APIKEY,
+                'baseurl' => '/',
+            ],
+            'empty API key' => [
+                'apikey' => '',
+                'baseurl' => self::BASEURL,
+            ],
+        ];
+    }
+
+    /**
+     * Test that no request is sent, nothing is cached and no models are returned without API key or base URL.
+     *
+     * A missing configuration is no failure of the external API, so it must not trigger the retry delay.
+     *
+     * @param string $apikey the API key
+     * @param string $baseurl the base URL
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('get_models_without_configuration_provider')]
+    public function test_get_models_without_configuration(string $apikey, string $baseurl): void {
         $this->resetAfterTest();
         $clock = $this->mock_clock_with_frozen(self::STARTTIME);
         $apihandler = $this->createMock(apihandler::class);
+        $apihandler->expects($this->never())->method('init');
         $apihandler->expects($this->never())->method('get_models_info');
         $modelinfo = new modelinfo($apihandler, $clock);
 
-        $models = $modelinfo->get_models(self::APIKEY);
+        $models = $modelinfo->get_models($apikey, $baseurl);
 
         $this->assertSame([], $models);
+        $cachekey = hash('sha256', rtrim($baseurl, '/') . $apikey);
+        $this->assertFalse(\cache::make('aitool_telli', 'modelinfo')->get($cachekey));
+    }
+
+    /**
+     * Test that a trailing slash of the base URL does not lead to a separate cache entry.
+     */
+    public function test_get_models_ignores_trailing_slash_of_baseurl(): void {
+        $this->resetAfterTest();
+        $clock = $this->mock_clock_with_frozen(self::STARTTIME);
+        $apihandler = $this->createMock(apihandler::class);
+        $apihandler->expects($this->once())->method('get_models_info')->willReturn(self::get_models_response());
+        $modelinfo = new modelinfo($apihandler, $clock);
+
+        $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        $models = $modelinfo->get_models(self::APIKEY, self::BASEURL . '/');
+
+        $this->assertSame([self::TTSMODEL, self::TEXTMODEL, self::IMAGEMODEL], array_keys($models));
     }
 
     /**
@@ -288,14 +326,134 @@ final class modelinfo_test extends \advanced_testcase {
     #[\PHPUnit\Framework\Attributes\DataProvider('get_voices_provider')]
     public function test_get_voices(string $modelname, array $expected): void {
         $this->resetAfterTest();
-        set_config('baseurl', self::BASEURL, 'aitool_telli');
         $clock = $this->mock_clock_with_frozen(self::STARTTIME);
         $apihandler = $this->createMock(apihandler::class);
         $apihandler->method('get_models_info')->willReturn(self::get_models_response());
         $modelinfo = new modelinfo($apihandler, $clock);
 
-        $voices = $modelinfo->get_voices(self::APIKEY, $modelname);
+        $voices = $modelinfo->get_voices(self::APIKEY, self::BASEURL, $modelname);
 
         $this->assertSame($expected, $voices);
+    }
+
+    /**
+     * Test that a request does not fetch the model info while another request holds the lock, but gets the last known state.
+     */
+    public function test_get_models_returns_last_state_while_locked(): void {
+        global $CFG;
+        $this->resetAfterTest();
+        // The database lock factories allow a second lock on the same resource within the same database session,
+        // file locks via flock() do not, so the concurrent request can be simulated in one process.
+        $CFG->lock_factory = '\\core\\lock\\file_lock_factory';
+        $clock = $this->mock_clock_with_frozen(self::STARTTIME);
+        $apihandler = $this->createMock(apihandler::class);
+        $apihandler->expects($this->once())->method('get_models_info')->willReturn(self::get_models_response());
+        $modelinfo = new modelinfo($apihandler, $clock);
+        $firstmodels = $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        $clock->bump(modelinfo::CACHE_LIFETIME);
+        $lockfactory = \core\lock\lock_config::get_lock_factory('aitool_telli_modelinfo');
+        $lock = $lockfactory->get_lock(hash('sha256', self::BASEURL . self::APIKEY), 0);
+        $this->assertNotFalse($lock);
+
+        try {
+            $secondmodels = $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        } finally {
+            $lock->release();
+        }
+
+        $this->assertSame($firstmodels, $secondmodels);
+    }
+
+    /**
+     * Test that the lock is released if fetching the model info fails, so the next attempt is not blocked.
+     */
+    public function test_get_models_releases_lock_after_failure(): void {
+        global $CFG;
+        $this->resetAfterTest();
+        $CFG->lock_factory = '\\core\\lock\\file_lock_factory';
+        $clock = $this->mock_clock_with_frozen(self::STARTTIME);
+        $apihandler = $this->createMock(apihandler::class);
+        $apihandler->expects($this->once())->method('get_models_info')
+            ->willThrowException(new \moodle_exception('err_apiresult', 'aitool_telli'));
+        $modelinfo = new modelinfo($apihandler, $clock);
+
+        $models = $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        $lockfactory = \core\lock\lock_config::get_lock_factory('aitool_telli_modelinfo');
+        $lock = $lockfactory->get_lock(hash('sha256', self::BASEURL . self::APIKEY), 0);
+        $lockreleased = $lock !== false;
+        if ($lockreleased) {
+            $lock->release();
+        }
+
+        $this->assertSame([], $models);
+        $this->assertTrue($lockreleased);
+    }
+
+    /**
+     * Test that a request which got the lock does not fetch again if a concurrent request updated the cache meanwhile.
+     */
+    public function test_get_models_uses_cache_updated_while_waiting_for_lock(): void {
+        global $CFG;
+        require_once(__DIR__ . '/../fixtures/callback_lock_factory.php');
+        $this->resetAfterTest();
+        $CFG->lock_factory = '\\aitool_telli\\fixtures\\callback_lock_factory';
+        $clock = $this->mock_clock_with_frozen(self::STARTTIME);
+        $apihandler = $this->createMock(apihandler::class);
+        $apihandler->expects($this->never())->method('get_models_info');
+        $modelinfo = new modelinfo($apihandler, $clock);
+        $concurrentmodels = ['gpt-5' => ['name' => 'gpt-5', 'isDeleted' => false]];
+        \aitool_telli\fixtures\callback_lock_factory::$beforelock = function () use ($concurrentmodels, $clock): void {
+            $cache = \cache::make('aitool_telli', 'modelinfo');
+            $cache->set(hash('sha256', self::BASEURL . self::APIKEY), [
+                'models' => $concurrentmodels,
+                'lastfetched' => $clock->time(),
+                'lastfailed' => 0,
+            ]);
+        };
+
+        try {
+            $models = $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        } finally {
+            \aitool_telli\fixtures\callback_lock_factory::$beforelock = null;
+        }
+
+        $this->assertSame($concurrentmodels, $models);
+    }
+
+    /**
+     * Test that a request which got the lock reads the cache store and not its own outdated copy.
+     *
+     * The concurrent request writes through a new cache instance, so the static acceleration array of the
+     * cache instance used by get_models() still holds the outdated entry, as it would in a separate process.
+     */
+    public function test_get_models_uses_store_updated_by_other_request_while_waiting_for_lock(): void {
+        global $CFG;
+        require_once(__DIR__ . '/../fixtures/callback_lock_factory.php');
+        $this->resetAfterTest();
+        $CFG->lock_factory = '\\aitool_telli\\fixtures\\callback_lock_factory';
+        $clock = $this->mock_clock_with_frozen(self::STARTTIME);
+        $apihandler = $this->createMock(apihandler::class);
+        $apihandler->expects($this->once())->method('get_models_info')->willReturn(self::get_models_response());
+        $modelinfo = new modelinfo($apihandler, $clock);
+        $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        $clock->bump(modelinfo::CACHE_LIFETIME);
+        $concurrentmodels = ['gpt-5' => ['name' => 'gpt-5', 'isDeleted' => false]];
+        \aitool_telli\fixtures\callback_lock_factory::$beforelock = function () use ($concurrentmodels, $clock): void {
+            \cache_factory::reset();
+            $othercache = \cache::make('aitool_telli', 'modelinfo');
+            $othercache->set(hash('sha256', self::BASEURL . self::APIKEY), [
+                'models' => $concurrentmodels,
+                'lastfetched' => $clock->time(),
+                'lastfailed' => 0,
+            ]);
+        };
+
+        try {
+            $models = $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        } finally {
+            \aitool_telli\fixtures\callback_lock_factory::$beforelock = null;
+        }
+
+        $this->assertSame($concurrentmodels, $models);
     }
 }

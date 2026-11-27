@@ -212,6 +212,52 @@ final class connector_test extends \advanced_testcase {
     }
 
     /**
+     * Data provider for test_has_customvalue1.
+     *
+     * @return array Test cases.
+     */
+    public static function has_customvalue1_provider(): array {
+        return [
+            'text model' => [
+                'model' => 'gpt-4o',
+                'expected' => true,
+            ],
+            'image generation model' => [
+                'model' => 'gpt-image-1.5',
+                'expected' => false,
+            ],
+            'text to speech model' => [
+                'model' => self::TTSMODEL,
+                'expected' => false,
+            ],
+            'no model' => [
+                'model' => null,
+                'expected' => true,
+            ],
+        ];
+    }
+
+    /**
+     * Test that only text models offer the custom value (temperature).
+     *
+     * @param string|null $model The model name, null for a connector without model.
+     * @param bool $expected Whether the custom value is expected to be offered.
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('has_customvalue1_provider')]
+    public function test_has_customvalue1(?string $model, bool $expected): void {
+        $this->resetAfterTest();
+        $this->create_tts_model();
+        if ($model === null) {
+            $connectorfactory = \core\di::get(connector_factory::class);
+            $connector = $connectorfactory->get_connector_by_connectorname('telli');
+        } else {
+            $connector = $this->create_connector($model);
+        }
+
+        $this->assertSame($expected, $connector->has_customvalue1());
+    }
+
+    /**
      * Test that a text to speech model offers the voices of the Telli model info as options.
      */
     public function test_get_available_options_tts_model(): void {
@@ -219,7 +265,7 @@ final class connector_test extends \advanced_testcase {
         $this->create_tts_model();
         $modelinfo = $this->createMock(modelinfo::class);
         $modelinfo->expects($this->once())->method('get_voices')
-            ->with(self::GLOBALAPIKEY, self::TTSMODEL)
+            ->with(self::GLOBALAPIKEY, 'https://api.telli-test.com/', self::TTSMODEL)
             ->willReturn(self::VOICES);
         \core\di::set(modelinfo::class, $modelinfo);
         $connector = $this->create_connector(self::TTSMODEL);
@@ -238,7 +284,7 @@ final class connector_test extends \advanced_testcase {
         set_config('baseurl', 'https://api.telli-test.com', 'aitool_telli');
         $modelinfo = $this->createMock(modelinfo::class);
         $modelinfo->expects($this->once())->method('get_voices')
-            ->with('instanceapikey', self::TTSMODEL)
+            ->with('instanceapikey', 'https://api.telli-test.com/', self::TTSMODEL)
             ->willReturn(self::VOICES);
         \core\di::set(modelinfo::class, $modelinfo);
         $connectorfactory = \core\di::get(connector_factory::class);
@@ -250,6 +296,80 @@ final class connector_test extends \advanced_testcase {
         $options = $connector->get_available_options();
 
         $this->assertSame(['voices' => self::VOICES], $options);
+    }
+
+    /**
+     * Data provider for test_get_available_options_tts_model_passes_baseurl.
+     *
+     * @return array
+     */
+    public static function get_available_options_tts_model_passes_baseurl_provider(): array {
+        return [
+            'global baseurl without trailing slash' => [
+                'baseurl' => 'https://api.telli-test.com',
+                'globalapikey' => '',
+                'instanceendpoint' => '',
+                'expectedbaseurl' => 'https://api.telli-test.com/',
+            ],
+            'global baseurl with trailing slash' => [
+                'baseurl' => 'https://api.telli-test.com/',
+                'globalapikey' => '',
+                'instanceendpoint' => '',
+                'expectedbaseurl' => 'https://api.telli-test.com/',
+            ],
+            'instance endpoint with text to speech suffix' => [
+                'baseurl' => '',
+                'globalapikey' => '',
+                'instanceendpoint' => 'https://own.example.com/v1/audio/speech',
+                'expectedbaseurl' => 'https://own.example.com/',
+            ],
+            'instance endpoint without text to speech suffix' => [
+                'baseurl' => '',
+                'globalapikey' => '',
+                'instanceendpoint' => 'https://own.example.com/speech',
+                'expectedbaseurl' => '',
+            ],
+            'global API key without baseurl ignores instance endpoint' => [
+                'baseurl' => '',
+                'globalapikey' => 'globalkey',
+                'instanceendpoint' => 'https://own.example.com/v1/audio/speech',
+                'expectedbaseurl' => '',
+            ],
+        ];
+    }
+
+    /**
+     * Test that the base URL passed to the Telli model info is derived from the endpoint of the wrapped connector.
+     *
+     * @param string $baseurl the configured base URL
+     * @param string $globalapikey the configured global API key
+     * @param string $instanceendpoint the endpoint of the Telli instance
+     * @param string $expectedbaseurl the base URL expected to be passed to the model info
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('get_available_options_tts_model_passes_baseurl_provider')]
+    public function test_get_available_options_tts_model_passes_baseurl(
+        string $baseurl,
+        string $globalapikey,
+        string $instanceendpoint,
+        string $expectedbaseurl
+    ): void {
+        $this->resetAfterTest();
+        $this->create_tts_model();
+        set_config('baseurl', $baseurl, 'aitool_telli');
+        set_config('globalapikey', $globalapikey, 'aitool_telli');
+        $modelinfo = $this->createMock(modelinfo::class);
+        $modelinfo->expects($this->once())->method('get_voices')
+            ->with($this->anything(), $expectedbaseurl, self::TTSMODEL)
+            ->willReturn(self::VOICES);
+        \core\di::set(modelinfo::class, $modelinfo);
+        $connectorfactory = \core\di::get(connector_factory::class);
+        $instance = $connectorfactory->get_new_instance('telli');
+        $instance->set_model_id_from_name(self::TTSMODEL);
+        $instance->set_apikey('instanceapikey');
+        $instance->set_endpoint($instanceendpoint);
+        $connector = new \aitool_telli\connector($instance);
+
+        $connector->get_available_options();
     }
 
     /**
@@ -325,6 +445,74 @@ final class connector_test extends \advanced_testcase {
         $this->expectException(\moodle_exception::class);
         $this->expectExceptionMessage(get_string('err_novoices', 'aitool_telli'));
         $connector->get_prompt_data('Hallo Welt', $requestoptions);
+    }
+
+    /**
+     * Data provider for test_get_prompt_data_tts_model_not_configured.
+     *
+     * @return array
+     */
+    public static function get_prompt_data_tts_model_not_configured_provider(): array {
+        return [
+            'no API key' => [
+                'baseurl' => 'https://api.telli-test.com',
+                'instanceapikey' => '',
+                'instanceendpoint' => '',
+            ],
+            'no base URL derivable from the instance endpoint' => [
+                'baseurl' => '',
+                'instanceapikey' => 'instanceapikey',
+                'instanceendpoint' => 'https://own.example.com/speech',
+            ],
+        ];
+    }
+
+    /**
+     * Test that a text to speech request without API key or base URL is rejected as configuration error.
+     *
+     * @param string $baseurl the configured base URL
+     * @param string $instanceapikey the API key of the Telli instance
+     * @param string $instanceendpoint the endpoint of the Telli instance
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('get_prompt_data_tts_model_not_configured_provider')]
+    public function test_get_prompt_data_tts_model_not_configured(
+        string $baseurl,
+        string $instanceapikey,
+        string $instanceendpoint
+    ): void {
+        $this->resetAfterTest();
+        $this->create_tts_model();
+        set_config('baseurl', $baseurl, 'aitool_telli');
+        set_config('globalapikey', '', 'aitool_telli');
+        $modelinfo = $this->createMock(modelinfo::class);
+        $modelinfo->method('get_voices')->willReturn([]);
+        \core\di::set(modelinfo::class, $modelinfo);
+        $requestoptions = $this->createMock(request_options::class);
+        $requestoptions->method('get_options')->willReturn([]);
+        $connectorfactory = \core\di::get(connector_factory::class);
+        $instance = $connectorfactory->get_new_instance('telli');
+        $instance->set_model_id_from_name(self::TTSMODEL);
+        $instance->set_apikey($instanceapikey);
+        $instance->set_endpoint($instanceendpoint);
+        $connector = new \aitool_telli\connector($instance);
+
+        $this->expectException(\moodle_exception::class);
+        $this->expectExceptionMessage(get_string('err_ttsnotconfigured', 'aitool_telli'));
+        $connector->get_prompt_data('Hallo Welt', $requestoptions);
+    }
+
+    /**
+     * Test that the configuration check for text to speech does not affect text models.
+     */
+    public function test_get_prompt_data_text_model_ignores_tts_configuration(): void {
+        $this->resetAfterTest();
+        $requestoptions = $this->createMock(request_options::class);
+        $requestoptions->method('get_options')->willReturn([]);
+        $connector = $this->create_connector('gpt-4o');
+
+        $promptdata = $connector->get_prompt_data('Hallo Welt', $requestoptions);
+
+        $this->assertArrayNotHasKey('voice', $promptdata);
     }
 
     /**

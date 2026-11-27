@@ -19,16 +19,21 @@ namespace aitool_telli\local;
 /**
  * Model information.
  *
- * The model info also contains supportedImageFormats. They are intentionally not used for the allowed mimetypes:
- * a model can be used by several connectors, the API might only allow a subset of the formats and an empty list
- * (e.g. FLUX) is ambiguous. The mimetypes are maintained manually in the model configuration of the administration.
- *
  * @package    aitool_telli
  * @copyright  2026 ISB Bayern
  * @author     Thomas Schönlein
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class modelinfo {
+    /** @var int seconds after which the cached model information is fetched again */
+    public const CACHE_LIFETIME = DAYSECS;
+
+    /** @var int seconds to wait after a failed fetch before the next attempt */
+    public const RETRY_DELAY = 5 * MINSECS;
+
+    /** @var int seconds to wait for the lock held by a concurrent fetch, afterwards the last known state is used */
+    public const LOCK_TIMEOUT = 2;
+
     /**
      * Constructor.
      *
@@ -46,66 +51,84 @@ class modelinfo {
     /**
      * Get the model information.
      *
+     * Only one request fetches the model information at a time. Concurrent requests get the last known state.
+     *
      * @param string $apikey The API key.
+     * @param string $baseurl The base URL of the API.
      * @return array Model information.
      */
-    public function get_models(string $apikey): array {
-        $baseurl = get_config('aitool_telli', 'baseurl');
+    public function get_models(string $apikey, string $baseurl): array {
         $models = [];
-        if ($baseurl) {
+        $baseurl = rtrim($baseurl, '/');
+        if ($baseurl && $apikey) {
             $cache = \cache::make('aitool_telli', 'modelinfo');
             $cachekey = hash('sha256', $baseurl . $apikey);
             $entry = $cache->get($cachekey);
             $now = $this->clock->time();
             if ($entry) {
                 $models = $entry['models'];
-                $isfresh = $now - $entry['lastfetched'] < DAYSECS;
-                $inbackoff = $now - $entry['lastfailed'] < MINSECS * 5;
+                $isfresh = $now - $entry['lastfetched'] < self::CACHE_LIFETIME;
+                $inbackoff = $now - $entry['lastfailed'] < self::RETRY_DELAY;
             } else {
                 $isfresh = false;
                 $inbackoff = false;
             }
             if (!$isfresh && !$inbackoff) {
-                $decoded = null;
-                try {
-                    $this->apihandler->init($apikey, $baseurl);
-                    $json = $this->apihandler->get_models_info();
-                    $decoded = json_decode($json, true);
-                } catch (\moodle_exception $e) {
-                    // External API, keep last known state and retry after 5 minutes.
-                    $decoded = null;
-                }
-                $fetchedmodels = [];
-                if (is_array($decoded)) {
-                    foreach ($decoded as $model) {
-                        // External API, skip entries which are no model objects instead of failing the whole request.
-                        if (!is_array($model)) {
-                            continue;
+                $lockfactory = \core\lock\lock_config::get_lock_factory('aitool_telli_modelinfo');
+                $lock = $lockfactory->get_lock($cachekey, self::LOCK_TIMEOUT);
+                if ($lock) {
+                    try {
+                        // Another request might have updated the cache while this request was waiting for the lock.
+                        $currententry = $cache->get($cachekey);
+                        $updatedmeanwhile = $currententry && $currententry !== $entry;
+                        if ($updatedmeanwhile) {
+                            $models = $currententry['models'];
+                        } else {
+                            $decoded = null;
+                            try {
+                                $this->apihandler->init($apikey, $baseurl);
+                                $json = $this->apihandler->get_models_info();
+                                $decoded = json_decode($json, true);
+                            } catch (\moodle_exception $e) {
+                                // External API, keep last known state and retry after the retry delay.
+                                $decoded = null;
+                            }
+                            $fetchedmodels = [];
+                            if (is_array($decoded)) {
+                                foreach ($decoded as $model) {
+                                    // External API, skip entries which are no model objects instead of failing the whole request.
+                                    if (!is_array($model)) {
+                                        continue;
+                                    }
+                                    $hasname = array_key_exists('name', $model) && is_string($model['name']);
+                                    $isdeleted = array_key_exists('isDeleted', $model) && $model['isDeleted'];
+                                    if (!$hasname || $isdeleted) {
+                                        continue;
+                                    }
+                                    $fetchedmodels[$model['name']] = $model;
+                                }
+                            }
+                            // External API, a response without any usable model (e.g. "[]" or an error object) counts as
+                            // failure too, otherwise a single bad response would remove all models for 24 hours.
+                            if (!empty($fetchedmodels)) {
+                                $models = $fetchedmodels;
+                                $cache->set($cachekey, [
+                                    'models' => $models,
+                                    'lastfetched' => $now,
+                                    'lastfailed' => 0,
+                                ]);
+                            } else {
+                                $lastfetched = $entry['lastfetched'] ?? 0;
+                                $cache->set($cachekey, [
+                                    'models' => $models,
+                                    'lastfetched' => $lastfetched,
+                                    'lastfailed' => $now,
+                                ]);
+                            }
                         }
-                        $hasname = array_key_exists('name', $model) && is_string($model['name']);
-                        $isdeleted = array_key_exists('isDeleted', $model) && $model['isDeleted'];
-                        if (!$hasname || $isdeleted) {
-                            continue;
-                        }
-                        $fetchedmodels[$model['name']] = $model;
+                    } finally {
+                        $lock->release();
                     }
-                }
-                // External API, a response without any usable model (e.g. "[]" or an error object) counts as failure too,
-                // otherwise a single bad response would remove all models for 24 hours.
-                if (!empty($fetchedmodels)) {
-                    $models = $fetchedmodels;
-                    $cache->set($cachekey, [
-                        'models' => $models,
-                        'lastfetched' => $now,
-                        'lastfailed' => 0,
-                    ]);
-                } else {
-                    $lastfetched = $entry['lastfetched'] ?? 0;
-                    $cache->set($cachekey, [
-                        'models' => $models,
-                        'lastfetched' => $lastfetched,
-                        'lastfailed' => $now,
-                    ]);
                 }
             }
         }
@@ -116,11 +139,12 @@ class modelinfo {
      * Get the voices for a specific model.
      *
      * @param string $apikey The API key.
+     * @param string $baseurl The base URL of the API.
      * @param string $modelname The model name.
      * @return array Voices for the model.
      */
-    public function get_voices(string $apikey, string $modelname): array {
-        $models = $this->get_models($apikey);
+    public function get_voices(string $apikey, string $baseurl, string $modelname): array {
+        $models = $this->get_models($apikey, $baseurl);
         $voices = [];
         $modelvoices = $models[$modelname]['modelConfig']['voices'] ?? [];
         foreach ($modelvoices as $voice) {

@@ -41,6 +41,7 @@ $string['err_noendpoint'] = 'No endpoint is configured. Please contact your admi
 $string['err_noimagedata'] = 'The external AI system could not generate an image. Your prompt probably requests something that is not allowed.';
 $string['err_novoices'] = 'No voices are currently available for the configured text to speech model. Please try again later or contact your administrator.';
 $string['err_retrievingmodels'] = 'There was an error while trying to retrieve the list of models from the Telli API. Error code: {$a->code}.';
+$string['err_ttsnotconfigured'] = 'Text to speech is not configured correctly for this AI tool. Please contact your administrator.';
 $string['eurocents'] = 'Cents';
 $string['getconsumptiontask'] = 'Get Telli API consumption data';
 $string['globalapikeysetting'] = 'Global API key';
