@@ -1,0 +1,464 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+namespace aivecstore_postgres;
+
+use local_ai_manager\base_vecstore;
+use local_ai_manager\collection_not_found_exception;
+use local_ai_manager\local\vecstore_query_response;
+use local_ai_manager\local\vecstore_response;
+use local_ai_manager\local\vector_record;
+
+/**
+ * Vector store implementation backed by PostgreSQL using the pgvector extension.
+ *
+ * Connects to an external PostgreSQL database using the endpoint, user name and password configured on the
+ * {@see instance}. A "collection" maps to a table
+ * with an `id text`, an `embedding vector(N)` and a `payload jsonb` column.
+ *
+ * @package    aivecstore_postgres
+ * @copyright  2026 ISB Bayern
+ * @author     Philipp Memmel
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class vecstore extends base_vecstore {
+    /** @var \PgSql\Connection|resource|false|null The cached PostgreSQL connection (null = not yet attempted). */
+    protected $connection = null;
+
+    /** @var string The last connection error message captured during {@see self::get_connection()}. */
+    protected string $connectionerror = '';
+
+    /** @var bool Whether the last connection attempt was refused because the connection settings are not allowed. */
+    protected bool $connectionrefused = false;
+
+    /**
+     * Closes the connection as soon as the driver is no longer used.
+     *
+     * Otherwise PHP keeps the connection open until the end of the request, i.e. also during the long running AI request
+     * following a vector search, and the number of database connections grows with the number of concurrent AI requests
+     * instead of the number of concurrent vector store operations.
+     */
+    public function __destruct() {
+        if ($this->connection) {
+            pg_close($this->connection);
+        }
+    }
+
+    #[\Override]
+    public function is_available(): vecstore_response {
+        $connection = $this->get_connection();
+        if (!$connection) {
+            return $this->create_connection_error_response();
+        }
+        if (pg_query($connection, 'SELECT 1') === false) {
+            return $this->create_error_response(503, 'Could not run postgres vecstore health query.',
+                pg_last_error($connection));
+        }
+        return vecstore_response::create_from_result();
+    }
+
+    #[\Override]
+    public function create_collection(string $collection, int $dimensions): vecstore_response {
+        $connection = $this->get_connection();
+        if (!$connection) {
+            return $this->create_connection_error_response();
+        }
+        // The vector type requires the pgvector extension; create it if the user is allowed to.
+        pg_query($connection, 'CREATE EXTENSION IF NOT EXISTS vector');
+        $table = pg_escape_identifier($connection, $collection);
+        // The document id is stored in its own column (not in the payload): it is used for every retrieval, replacement and
+        // deletion, so it is typed, indexed and could serve as partition key of very large tables.
+        $sql = "CREATE TABLE IF NOT EXISTS {$table} "
+            . '(id text PRIMARY KEY, documentid bigint NOT NULL, embedding vector(' . $dimensions . '), payload jsonb)';
+        if (pg_query($connection, $sql) === false) {
+            return $this->create_error_response(500, 'Could not create postgres vecstore collection table.',
+                pg_last_error($connection));
+        }
+        // Retrieval and deletion always filter by document id, without this index every query scans the whole table.
+        $index = pg_escape_identifier($connection, self::get_documentid_index_name($collection));
+        if (pg_query($connection, "CREATE INDEX IF NOT EXISTS {$index} ON {$table} (documentid)") === false) {
+            return $this->create_error_response(500, 'Could not create postgres vecstore collection index.',
+                pg_last_error($connection));
+        }
+        return vecstore_response::create_from_result();
+    }
+
+    #[\Override]
+    public function delete_collection(string $collection): vecstore_response {
+        $connection = $this->get_connection();
+        if (!$connection) {
+            return $this->create_connection_error_response();
+        }
+        $table = pg_escape_identifier($connection, $collection);
+        if (pg_query($connection, "DROP TABLE IF EXISTS {$table}") === false) {
+            return $this->create_error_response(500, 'Could not delete postgres vecstore collection table.',
+                pg_last_error($connection));
+        }
+        return vecstore_response::create_from_result();
+    }
+
+    #[\Override]
+    protected function store_embeddings(string $collection, array $embeddings): vecstore_response {
+        $connection = $this->get_connection();
+        if (!$connection) {
+            return $this->create_connection_error_response();
+        }
+        if (!$this->table_exists($collection)) {
+            throw new collection_not_found_exception();
+        }
+        $table = pg_escape_identifier($connection, $collection);
+        $sql = "INSERT INTO {$table} (id, documentid, embedding, payload) VALUES ($1, $2, $3::vector, $4::jsonb)";
+
+        $success = pg_query($connection, 'BEGIN') !== false;
+        foreach ($embeddings as $embedding) {
+            // The document id has its own column, so it is not duplicated in the payload.
+            $payload = $embedding->to_payload();
+            unset($payload[vector_record::PAYLOAD_DOCUMENTID]);
+            $params = [
+                // The id column is the table's primary key; we generate a UUID as callers do not manage references.
+                \core\uuid::generate(),
+                $embedding->get_documentid(),
+                $this->normalize_vector_literal($embedding->get_vector()),
+                json_encode($payload),
+            ];
+            if (@pg_query_params($connection, $sql, $params) === false) {
+                $success = false;
+                break;
+            }
+        }
+        pg_query($connection, $success ? 'COMMIT' : 'ROLLBACK');
+        if (!$success) {
+            return $this->create_error_response(500, 'Could not store embeddings in postgres vecstore collection.',
+                pg_last_error($connection));
+        }
+        return vecstore_response::create_from_result();
+    }
+
+    #[\Override]
+    public function query_collection(string $collection, array $vector, int $topk = 5, array $filters = []): vecstore_response {
+        $connection = $this->get_connection();
+        if (!$connection) {
+            return $this->create_connection_error_response();
+        }
+        // A missing collection contains no vectors.
+        if (!$this->table_exists($collection)) {
+            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
+        }
+        $table = pg_escape_identifier($connection, $collection);
+        $managed = $this->is_managed_collection($collection);
+
+        // Parameter $1 is reserved for the query vector; filter values are bound from $2 onwards.
+        $params = [$this->vector_to_literal($vector)];
+        $conditions = $this->build_filter_conditions($connection, $managed, $filters, $params);
+        $where = empty($conditions) ? '' : ('WHERE ' . implode(' AND ', $conditions));
+
+        $columns = $managed ? 'id, documentid, payload' : 'id, payload';
+        // The nearest neighbours are determined first, only their vectors are converted to text and their payloads read.
+        // Otherwise this is done for every candidate row before sorting, which makes searches over large sources
+        // (thousands of chunks) several times slower. The operator <=> is the cosine distance, the score the cosine similarity.
+        $sql = "SELECT {$columns}, embedding::text AS vector, 1 - (embedding <=> \$1::vector) AS score "
+            . "FROM (SELECT {$columns}, embedding FROM {$table} {$where} "
+            . "ORDER BY embedding <=> \$1::vector ASC LIMIT " . (int) $topk . ') AS nearest '
+            . "ORDER BY embedding <=> \$1::vector ASC";
+
+        $result = @pg_query_params($connection, $sql, $params);
+        if ($result === false) {
+            return $this->create_error_response(500, 'Could not run postgres vecstore similarity query.',
+                pg_last_error($connection));
+        }
+        return vecstore_response::create_from_query_result(
+            vecstore_query_response::create_from_result($this->rows_to_records($result))
+        );
+    }
+
+    #[\Override]
+    public function get_all(string $collection): vecstore_response {
+        $connection = $this->get_connection();
+        if (!$connection) {
+            return $this->create_connection_error_response();
+        }
+        if (!$this->table_exists($collection)) {
+            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
+        }
+        $table = pg_escape_identifier($connection, $collection);
+        $columns = $this->is_managed_collection($collection) ? 'id, documentid, payload' : 'id, payload';
+        $result = @pg_query($connection, "SELECT {$columns}, embedding::text AS vector FROM {$table}");
+        if ($result === false) {
+            return $this->create_error_response(500, 'Could not fetch vectors from postgres vecstore collection.',
+                pg_last_error($connection));
+        }
+        return vecstore_response::create_from_query_result(
+            vecstore_query_response::create_from_result($this->rows_to_records($result))
+        );
+    }
+
+    #[\Override]
+    protected function get_document_from_collection(string $collection, int $documentid, array $filters): vecstore_response {
+        $connection = $this->get_connection();
+        if (!$connection) {
+            return $this->create_connection_error_response();
+        }
+        if (!$this->table_exists($collection)) {
+            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
+        }
+        $table = pg_escape_identifier($connection, $collection);
+        // Collections of embedding models are created by Moodle, so the document id has its own column.
+        $params = [];
+        $conditions = $this->build_filter_conditions($connection, true,
+            [vector_record::PAYLOAD_DOCUMENTID => $documentid] + $filters, $params);
+        // The vectors are not needed, reading them would multiply the transferred data.
+        $sql = "SELECT id, documentid, payload, '' AS vector FROM {$table} WHERE " . implode(' AND ', $conditions);
+        $result = @pg_query_params($connection, $sql, $params);
+        if ($result === false) {
+            return $this->create_error_response(500, 'Could not fetch document from postgres vecstore collection.',
+                pg_last_error($connection));
+        }
+        return vecstore_response::create_from_query_result(
+            vecstore_query_response::create_from_result($this->rows_to_records($result))
+        );
+    }
+
+    #[\Override]
+    protected function delete_from_collection(string $collection, int ...$documentids): vecstore_response {
+        if (empty($documentids)) {
+            return vecstore_response::create_from_result();
+        }
+        $connection = $this->get_connection();
+        if (!$connection) {
+            return $this->create_connection_error_response();
+        }
+        if (!$this->table_exists($collection)) {
+            return vecstore_response::create_from_result();
+        }
+        $table = pg_escape_identifier($connection, $collection);
+        $params = array_values($documentids);
+        $placeholders = array_map(static fn(int $index): string => '$' . ($index + 1), array_keys($params));
+        $sql = "DELETE FROM {$table} WHERE documentid IN (" . implode(', ', $placeholders) . ')';
+        if (@pg_query_params($connection, $sql, $params) === false) {
+            return $this->create_error_response(500, 'Could not delete embeddings from postgres vecstore collection.',
+                pg_last_error($connection));
+        }
+        return vecstore_response::create_from_result();
+    }
+
+    /**
+     * Builds the SQL conditions of payload filters, see {@see base_vecstore::query()}.
+     *
+     * Keys are escaped literals instead of parameters, so arbitrary filter keys can't inject SQL.
+     *
+     * @param \PgSql\Connection|resource $connection the connection
+     * @param bool $managed whether the collection table has been created by Moodle, see {@see self::is_managed_collection()}
+     * @param array $filters the payload filters
+     * @param array $params the query parameters, the filter values are appended
+     * @return string[] the conditions
+     */
+    protected function build_filter_conditions($connection, bool $managed, array $filters, array &$params): array {
+        $conditions = [];
+        foreach ($filters as $key => $value) {
+            // Tables created by Moodle store the document id in its own (indexed) column, all other keys in the payload.
+            $field = $managed && $key === vector_record::PAYLOAD_DOCUMENTID
+                ? 'documentid'
+                : 'payload->>' . pg_escape_literal($connection, (string) $key);
+            if (is_array($value)) {
+                if (empty($value)) {
+                    // An empty value set matches nothing.
+                    $conditions[] = 'FALSE';
+                    continue;
+                }
+                // Array value → IN semantics.
+                $placeholders = [];
+                foreach (array_values($value) as $item) {
+                    $params[] = (string) $item;
+                    $placeholders[] = '$' . count($params);
+                }
+                $conditions[] = "{$field} IN (" . implode(', ', $placeholders) . ')';
+            } else {
+                // Scalar value → exact match.
+                $params[] = (string) $value;
+                $valueparam = '$' . count($params);
+                $conditions[] = "{$field} = {$valueparam}";
+            }
+        }
+        return $conditions;
+    }
+
+    /**
+     * Returns the name of the document id index of a collection table.
+     *
+     * Index names are unique per schema and limited to 63 bytes like table names, so the name is derived from a hash of
+     * the table name instead of appending a suffix to it.
+     *
+     * @param string $collection the backend name of the collection
+     * @return string the index name
+     */
+    protected static function get_documentid_index_name(string $collection): string {
+        return 'documentid_' . substr(sha1($collection), 0, 20);
+    }
+
+    /**
+     * Checks whether a collection table has been created by Moodle and thus stores the document id in its own column.
+     *
+     * Tables of external sources are written outside of Moodle and keep all values (if any) in the payload.
+     *
+     * @param string $collection the backend name of the collection
+     * @return bool true if the collection is registered for this vector store instance
+     */
+    protected function is_managed_collection(string $collection): bool {
+        return in_array($collection, $this->get_collections(), true);
+    }
+
+    /**
+     * Converts the result rows of a collection table into vector records.
+     *
+     * @param \PgSql\Result $result the result containing the columns vector, payload, (managed tables only) documentid and
+     *  (similarity searches only) score
+     * @return vector_record[] the vector records
+     */
+    protected function rows_to_records(\PgSql\Result $result): array {
+        $records = [];
+        foreach (pg_fetch_all($result) as $row) {
+            // Rows of external sources are written outside of Moodle and may come without payload.
+            $payload = $row['payload'] === null ? [] : json_decode($row['payload'], true, flags: JSON_THROW_ON_ERROR);
+            if (array_key_exists('documentid', $row)) {
+                $payload[vector_record::PAYLOAD_DOCUMENTID] = (int) $row['documentid'];
+            }
+            // Only similarity searches select a score.
+            $score = array_key_exists('score', $row) ? (float) $row['score'] : null;
+            $records[] = vector_record::from_payload($row['vector'], $payload, $score);
+        }
+        return $records;
+    }
+
+    /**
+     * Creates a standardized error response for postgres vecstore operations.
+     *
+     * @param int $code the error code
+     * @param string $errormessage the error message
+     * @param string $debuginfo optional debug info
+     * @return vecstore_response the standardized error response
+     */
+    protected function create_error_response(int $code, string $errormessage, string $debuginfo = ''): vecstore_response {
+        return vecstore_response::create_from_error($code, $errormessage, $debuginfo);
+    }
+
+    /**
+     * Creates a standardized error response for a connection failure, deriving the appropriate status code
+     * from the connection error message captured during {@see self::get_connection()}.
+     *
+     * The codes follow HTTP semantics:
+     * - 400 Bad Request: the connection settings are missing or not allowed (e.g. no encryption, blocked host)
+     * - 401 Unauthorized: authentication or password failure
+     * - 503 Service Unavailable: backend not reachable
+     *
+     * @return vecstore_response the standardized connection error response
+     */
+    protected function create_connection_error_response(): vecstore_response {
+        if ($this->connectionrefused) {
+            return $this->create_error_response(400, 'The PostgreSQL connection settings are not allowed.', $this->connectionerror);
+        }
+        if (preg_match('/\b(authentication|password|pg_hba)\b/i', $this->connectionerror)) {
+            return $this->create_error_response(401, 'PostgreSQL authentication failed.', $this->connectionerror);
+        }
+        return $this->create_error_response(503, 'Could not connect to postgres vecstore backend.', $this->connectionerror);
+    }
+
+    /**
+     * Converts a numeric vector to the textual representation pgvector expects, e.g. "[1,0.5,0]".
+     *
+     * @param array $vector the embedding vector
+     * @return string the pgvector text literal
+     */
+    protected function vector_to_literal(array $vector): string {
+        return '[' . implode(',', array_map(static fn($v): string => (string) (float) $v, array_values($vector))) . ']';
+    }
+
+    /**
+     * Normalizes the string representation of an embedding vector into a valid pgvector literal.
+     *
+     * Enriched vectors carry their embedding as a string (typically a JSON encoded array of floats). If the string
+     * is a JSON array it is re-encoded into the pgvector literal format; otherwise it is assumed to already be a
+     * valid pgvector literal and returned unchanged.
+     *
+     * @param string $vector the string representation of the embedding vector
+     * @return string the pgvector text literal
+     */
+    protected function normalize_vector_literal(string $vector): string {
+        $decoded = json_decode($vector, true);
+        if (is_array($decoded)) {
+            return $this->vector_to_literal($decoded);
+        }
+        return $vector;
+    }
+
+    /**
+     * Lazily opens (and caches) the PostgreSQL connection from the connection settings of the instance.
+     *
+     * On failure the libpq error message is stored in {@see self::$connectionerror} so that
+     * {@see self::create_connection_error_response()} can derive a meaningful status code.
+     *
+     * @return \PgSql\Connection|resource|false the connection, or false if it could not be established
+     */
+    protected function get_connection() {
+        if ($this->connection !== null) {
+            return $this->connection;
+        }
+        $instance = $this->instance;
+        if (!$instance instanceof instance) {
+            throw new \coding_exception('The postgres vecstore needs an instance of ' . instance::class);
+        }
+        try {
+            $dsn = $instance->get_connection_string();
+        } catch (\moodle_exception $exception) {
+            $this->connectionerror = $exception->getMessage();
+            $this->connectionrefused = true;
+            $this->connection = false;
+            return false;
+        }
+        // A new connection per driver: pg_connect() would otherwise share the connection of other drivers with the same
+        // connection string, which would be closed for all of them when one driver is destroyed.
+        $connection = @pg_connect($dsn, PGSQL_CONNECT_FORCE_NEW);
+        if ($connection === false) {
+            $this->connectionerror = pg_last_error() ?: 'Connection failed.';
+            $this->connection = false;
+            return false;
+        }
+        $this->connection = $connection;
+        return $this->connection;
+    }
+
+    /**
+     * Checks whether the table backing a collection exists.
+     *
+     * @param string $collection the backend name of the collection
+     * @return bool true if the table exists
+     */
+    protected function table_exists(string $collection): bool {
+        $connection = $this->get_connection();
+        if (!$connection) {
+            return false;
+        }
+        $result = @pg_query_params(
+            $connection,
+            'SELECT to_regclass($1) AS oid',
+            [pg_escape_identifier($connection, $collection)]
+        );
+        if ($result === false) {
+            return false;
+        }
+        $row = pg_fetch_assoc($result);
+        return $row !== false && !is_null($row['oid']) && $row['oid'] !== '';
+    }
+}

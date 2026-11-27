@@ -191,6 +191,9 @@ class config_manager {
     /**
      * Getter for the max requests config option for a purpose and a given role.
      *
+     * If no limit has been configured, internal purposes default to unlimited requests, because their requests are being
+     * triggered by other purposes which already are limited.
+     *
      * @param base_purpose $purpose the purpose for which the max requests should be returned
      * @param int $role the role for which the max requests should be returned
      * @return int amount of max requests, or {@see userusage::UNLIMITED_REQUESTS_PER_USER} if no maximum
@@ -201,13 +204,17 @@ class config_manager {
             case userinfo::ROLE_BASIC:
                 $maxrequests = $this->get_max_requests_raw($purpose, userinfo::ROLE_BASIC);
                 if ($maxrequests === false) {
-                    $maxrequests = userusage::MAX_REQUESTS_DEFAULT_ROLE_BASE;
+                    $maxrequests = $purpose->is_internal()
+                        ? userusage::UNLIMITED_REQUESTS_PER_USER
+                        : userusage::MAX_REQUESTS_DEFAULT_ROLE_BASE;
                 }
                 break;
             case userinfo::ROLE_EXTENDED:
                 $maxrequests = $this->get_max_requests_raw($purpose, userinfo::ROLE_EXTENDED);
                 if ($maxrequests === false) {
-                    $maxrequests = userusage::MAX_REQUESTS_DEFAULT_ROLE_EXTENDED;
+                    $maxrequests = $purpose->is_internal()
+                        ? userusage::UNLIMITED_REQUESTS_PER_USER
+                        : userusage::MAX_REQUESTS_DEFAULT_ROLE_EXTENDED;
                 }
                 break;
             case userinfo::ROLE_UNLIMITED:

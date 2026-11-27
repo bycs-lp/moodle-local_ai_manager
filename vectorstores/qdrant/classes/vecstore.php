@@ -1,0 +1,294 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+namespace aivecstore_qdrant;
+
+use core\http_client;
+use local_ai_manager\base_vecstore;
+use local_ai_manager\collection_not_found_exception;
+use local_ai_manager\local\vecstore_query_response;
+use local_ai_manager\local\vecstore_response;
+use local_ai_manager\local\vector_record;
+
+/**
+ * Vector store implementation for the Qdrant vector database.
+ *
+ * Talks to a Qdrant server over its REST API using the connection details (endpoint, API key) of the configured
+ * {@see base_vecstore_instance}. Collections use the cosine metric.
+ *
+ * @package    aivecstore_qdrant
+ * @copyright  2026 ISB Bayern
+ * @author     Philipp Memmel
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class vecstore extends base_vecstore {
+    #[\Override]
+    public function is_available(): vecstore_response {
+        // Listing collections requires the server to be reachable and the API key (if any) to be valid.
+        $response = $this->request('GET', '/collections');
+        if ($response['status'] === 200) {
+            return vecstore_response::create_from_result();
+        }
+        return $this->create_error_response($response, 'Could not connect to qdrant endpoint.');
+    }
+
+    #[\Override]
+    public function create_collection(string $collection, int $dimensions): vecstore_response {
+        $body = [
+            'vectors' => [
+                'size' => $dimensions,
+                'distance' => 'Cosine',
+            ],
+        ];
+        $response = $this->request('PUT', '/collections/' . rawurlencode($collection), $body);
+        if ($response['status'] !== 200) {
+            return $this->create_error_response($response, 'Could not create qdrant collection.');
+        }
+        // Retrieval and deletion always filter by document id, without a payload index Qdrant filters inefficiently.
+        $indexbody = ['field_name' => vector_record::PAYLOAD_DOCUMENTID, 'field_schema' => 'integer'];
+        $response = $this->request('PUT', '/collections/' . rawurlencode($collection) . '/index?wait=true', $indexbody);
+        if ($response['status'] !== 200) {
+            return $this->create_error_response($response, 'Could not create qdrant payload index.');
+        }
+        return vecstore_response::create_from_result();
+    }
+
+    #[\Override]
+    public function delete_collection(string $collection): vecstore_response {
+        $response = $this->request('DELETE', '/collections/' . rawurlencode($collection));
+        if ($response['status'] === 200) {
+            return vecstore_response::create_from_result();
+        }
+        return $this->create_error_response($response, 'Could not delete qdrant collection.');
+    }
+
+    #[\Override]
+    protected function store_embeddings(string $collection, array $embeddings): vecstore_response {
+        $points = [];
+        foreach ($embeddings as $embedding) {
+            $vector = json_decode($embedding->get_vector(), true, flags: JSON_THROW_ON_ERROR);
+            $points[] = [
+                // Qdrant requires a point id; we generate a UUID as callers do not manage record references.
+                'id' => \core\uuid::generate(),
+                'vector' => array_values($vector),
+                'payload' => $embedding->to_payload(),
+            ];
+        }
+        $path = '/collections/' . rawurlencode($collection) . '/points?wait=true';
+        $response = $this->request('PUT', $path, ['points' => $points]);
+        if ($response['status'] === 404) {
+            throw new collection_not_found_exception();
+        }
+        if ($response['status'] === 200) {
+            return vecstore_response::create_from_result();
+        }
+        return $this->create_error_response($response, 'Could not store embeddings in qdrant collection.');
+    }
+
+    #[\Override]
+    public function query_collection(string $collection, array $vector, int $topk = 5, array $filters = []): vecstore_response {
+        $body = [
+            'vector' => array_values($vector),
+            'limit' => $topk,
+            'with_payload' => true,
+            'with_vector' => true,
+        ];
+        if (!empty($filters)) {
+            $body['filter'] = $this->build_filter($filters);
+        }
+        $response = $this->request('POST', '/collections/' . rawurlencode($collection) . '/points/search', $body);
+        // A missing collection contains no vectors.
+        if ($response['status'] === 404 || ($response['status'] === 200 && empty($response['data']['result']))) {
+            return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
+        }
+        if ($response['status'] !== 200) {
+            return $this->create_error_response($response, 'Could not run qdrant similarity query.');
+        }
+        $matches = [];
+        // The collections use the cosine metric, so the score is the cosine similarity.
+        foreach ($response['data']['result'] as $hit) {
+            $matches[] = vector_record::from_payload(
+                json_encode(array_values($hit['vector'])),
+                $hit['payload'] ?? [],
+                (float) $hit['score']
+            );
+        }
+        return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($matches));
+    }
+
+    #[\Override]
+    public function get_all(string $collection): vecstore_response {
+        $vectors = [];
+        $offset = null;
+        do {
+            $body = ['limit' => 100, 'with_payload' => true, 'with_vector' => true];
+            if (!is_null($offset)) {
+                $body['offset'] = $offset;
+            }
+            $response = $this->request('POST', '/collections/' . rawurlencode($collection) . '/points/scroll', $body);
+            // A missing collection contains no vectors.
+            if ($response['status'] === 404) {
+                return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
+            }
+            if ($response['status'] !== 200) {
+                return $this->create_error_response($response, 'Could not fetch vectors from qdrant collection.');
+            }
+            if (empty($response['data']['result']['points'])) {
+                break;
+            }
+            foreach ($response['data']['result']['points'] as $point) {
+                $vectors[] = vector_record::from_payload(json_encode(array_values($point['vector'])), $point['payload'] ?? []);
+            }
+            $offset = $response['data']['result']['next_page_offset'] ?? null;
+        } while (!is_null($offset));
+        return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($vectors));
+    }
+
+    #[\Override]
+    protected function get_document_from_collection(string $collection, int $documentid, array $filters): vecstore_response {
+        $records = [];
+        $offset = null;
+        do {
+            // The vectors are not needed, reading them would multiply the transferred data.
+            $body = [
+                'limit' => 100,
+                'with_payload' => true,
+                'with_vector' => false,
+                'filter' => $this->build_filter([vector_record::PAYLOAD_DOCUMENTID => $documentid] + $filters),
+            ];
+            if (!is_null($offset)) {
+                $body['offset'] = $offset;
+            }
+            $response = $this->request('POST', '/collections/' . rawurlencode($collection) . '/points/scroll', $body);
+            // A missing collection contains no vectors.
+            if ($response['status'] === 404) {
+                return vecstore_response::create_from_query_result(vecstore_query_response::create_from_empty_result());
+            }
+            if ($response['status'] !== 200) {
+                return $this->create_error_response($response, 'Could not fetch document from qdrant collection.');
+            }
+            foreach ($response['data']['result']['points'] ?? [] as $point) {
+                $records[] = vector_record::from_payload('', $point['payload'] ?? []);
+            }
+            $offset = $response['data']['result']['next_page_offset'] ?? null;
+        } while (!is_null($offset));
+        return vecstore_response::create_from_query_result(vecstore_query_response::create_from_result($records));
+    }
+
+    #[\Override]
+    protected function delete_from_collection(string $collection, int ...$documentids): vecstore_response {
+        if (empty($documentids)) {
+            return vecstore_response::create_from_result();
+        }
+        $path = '/collections/' . rawurlencode($collection) . '/points/delete?wait=true';
+        $body = [
+            'filter' => [
+                'must' => [
+                    ['key' => vector_record::PAYLOAD_DOCUMENTID, 'match' => ['any' => array_values($documentids)]],
+                ],
+            ],
+        ];
+        $response = $this->request('POST', $path, $body);
+        // A missing collection contains no embeddings, so there is nothing left to delete.
+        if ($response['status'] === 200 || $response['status'] === 404) {
+            return vecstore_response::create_from_result();
+        }
+        return $this->create_error_response($response, 'Could not delete embeddings from qdrant collection.');
+    }
+
+    /**
+     * Builds the Qdrant filter of payload filters, see {@see base_vecstore::query()}.
+     *
+     * @param array $filters the payload filters
+     * @return array the Qdrant filter
+     */
+    protected function build_filter(array $filters): array {
+        $must = [];
+        foreach ($filters as $key => $value) {
+            // An array value matches any of the given values (IN semantics); a scalar matches exactly.
+            $must[] = is_array($value)
+                ? ['key' => $key, 'match' => ['any' => array_values($value)]]
+                : ['key' => $key, 'match' => ['value' => $value]];
+        }
+        return ['must' => $must];
+    }
+
+    /**
+     * Creates a standardized error response from a qdrant request payload.
+     *
+     * @param array $response the response array from {@see self::request()}
+     * @param string $fallbackmessage fallback error message when qdrant does not provide one
+     * @return vecstore_response the standardized error response
+     */
+    protected function create_error_response(array $response, string $fallbackmessage): vecstore_response {
+        // Status 0 means that the qdrant endpoint could not be reached at all.
+        $code = $response['status'] > 0 ? $response['status'] : 500;
+        $errormessage = $response['data']['status']['error'] ?? $fallbackmessage;
+        return vecstore_response::create_from_error($code, $errormessage, json_encode($response['data'], JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * Performs a request against the configured Qdrant endpoint.
+     *
+     * @param string $method the HTTP method (GET, PUT, POST, DELETE)
+     * @param string $path the path (including leading slash and any query string) appended to the endpoint
+     * @param ?array $body optional payload that will be JSON-encoded into the request body
+     * @return array ['status' => int HTTP status (0 on connection failure), 'data' => mixed decoded JSON body or null]
+     */
+    protected function request(string $method, string $path, ?array $body = null): array {
+        $endpoint = rtrim((string) $this->instance->get_endpoint(), '/');
+        if (empty($endpoint)) {
+            return ['status' => 0, 'data' => null];
+        }
+
+        $client = new http_client([
+            'timeout' => (int) (get_config('local_ai_manager', 'requesttimeout') ?: 30),
+            'verify' => !empty(get_config('local_ai_manager', 'verifyssl')),
+            'http_errors' => false,
+        ]);
+
+        $options = ['headers' => $this->get_headers()];
+        if (!is_null($body)) {
+            $options['headers']['Content-Type'] = 'application/json';
+            $options['body'] = json_encode($body);
+        }
+
+        try {
+            $response = $client->request($method, $endpoint . $path, $options);
+        } catch (\Throwable $e) {
+            return ['status' => 0, 'data' => null];
+        }
+
+        return [
+            'status' => $response->getStatusCode(),
+            'data' => json_decode($response->getBody()->getContents(), true),
+        ];
+    }
+
+    /**
+     * Builds the request headers, including the Qdrant API key when one is configured.
+     *
+     * @return array the headers
+     */
+    protected function get_headers(): array {
+        $headers = [];
+        $apikey = $this->instance->get_secret();
+        if (!empty($apikey)) {
+            $headers['api-key'] = $apikey;
+        }
+        return $headers;
+    }
+}

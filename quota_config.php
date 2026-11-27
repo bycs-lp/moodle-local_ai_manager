@@ -54,8 +54,11 @@ if ($quotaconfigform->is_cancelled()) {
     redirect($returnurl);
 } else if ($data = $quotaconfigform->get_data()) {
     foreach (base_purpose::get_all_purposes() as $purpose) {
-        foreach ([$purpose . '_max_requests_basic', $purpose . '_max_requests_extended'] as $configkey) {
-            if (property_exists($data, $configkey)) {
+        foreach (['basic', 'extended'] as $rolesuffix) {
+            $configkey = $purpose . '_max_requests_' . $rolesuffix;
+            if (empty($data->{$purpose . '_limit_requests_' . $rolesuffix})) {
+                $configmanager->set_config($configkey, userusage::UNLIMITED_REQUESTS_PER_USER);
+            } else if (property_exists($data, $configkey)) {
                 // Negative values are interpreted as unlimited requests.
                 $configmanager->set_config(
                     $configkey,
@@ -84,8 +87,17 @@ if ($quotaconfigform->is_cancelled()) {
     $data = new stdClass();
     foreach (base_purpose::get_all_purposes() as $purpose) {
         $purposeobject = \core\di::get(\local_ai_manager\local\connector_factory::class)->get_purpose_by_purpose_string($purpose);
-        $data->{$purpose . '_max_requests_basic'} = $configmanager->get_max_requests($purposeobject, userinfo::ROLE_BASIC);
-        $data->{$purpose . '_max_requests_extended'} = $configmanager->get_max_requests($purposeobject, userinfo::ROLE_EXTENDED);
+        $roles = [
+            'basic' => [userinfo::ROLE_BASIC, userusage::MAX_REQUESTS_DEFAULT_ROLE_BASE],
+            'extended' => [userinfo::ROLE_EXTENDED, userusage::MAX_REQUESTS_DEFAULT_ROLE_EXTENDED],
+        ];
+        foreach ($roles as $rolesuffix => [$role, $defaultmaxrequests]) {
+            $maxrequests = $configmanager->get_max_requests($purposeobject, $role);
+            $unlimited = $maxrequests === userusage::UNLIMITED_REQUESTS_PER_USER;
+            $data->{$purpose . '_limit_requests_' . $rolesuffix} = $unlimited ? 0 : 1;
+            // Show a sensible limit in the (hidden) input field in case the limit is being activated again.
+            $data->{$purpose . '_max_requests_' . $rolesuffix} = $unlimited ? $defaultmaxrequests : $maxrequests;
+        }
     }
     if ($configmanager->get_max_requests_period()) {
         $data->max_requests_period = $configmanager->get_max_requests_period();
