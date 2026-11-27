@@ -265,7 +265,7 @@ final class connector_test extends \advanced_testcase {
         $this->create_tts_model();
         $modelinfo = $this->createMock(modelinfo::class);
         $modelinfo->expects($this->once())->method('get_voices')
-            ->with(self::GLOBALAPIKEY, 'https://api.telli-test.com/', self::TTSMODEL)
+            ->with('https://api.telli-test.com/', self::GLOBALAPIKEY, self::TTSMODEL)
             ->willReturn(self::VOICES);
         \core\di::set(modelinfo::class, $modelinfo);
         $connector = $this->create_connector(self::TTSMODEL);
@@ -284,7 +284,7 @@ final class connector_test extends \advanced_testcase {
         set_config('baseurl', 'https://api.telli-test.com', 'aitool_telli');
         $modelinfo = $this->createMock(modelinfo::class);
         $modelinfo->expects($this->once())->method('get_voices')
-            ->with('instanceapikey', 'https://api.telli-test.com/', self::TTSMODEL)
+            ->with('https://api.telli-test.com/', 'instanceapikey', self::TTSMODEL)
             ->willReturn(self::VOICES);
         \core\di::set(modelinfo::class, $modelinfo);
         $connectorfactory = \core\di::get(connector_factory::class);
@@ -323,6 +323,12 @@ final class connector_test extends \advanced_testcase {
                 'instanceendpoint' => 'https://own.example.com/v1/audio/speech',
                 'expectedbaseurl' => 'https://own.example.com/',
             ],
+            'instance endpoint with text to speech suffix and trailing slash' => [
+                'baseurl' => '',
+                'globalapikey' => '',
+                'instanceendpoint' => 'https://own.example.com/v1/audio/speech/',
+                'expectedbaseurl' => 'https://own.example.com/',
+            ],
             'instance endpoint without text to speech suffix' => [
                 'baseurl' => '',
                 'globalapikey' => '',
@@ -359,7 +365,7 @@ final class connector_test extends \advanced_testcase {
         set_config('globalapikey', $globalapikey, 'aitool_telli');
         $modelinfo = $this->createMock(modelinfo::class);
         $modelinfo->expects($this->once())->method('get_voices')
-            ->with($this->anything(), $expectedbaseurl, self::TTSMODEL)
+            ->with($expectedbaseurl, $this->anything(), self::TTSMODEL)
             ->willReturn(self::VOICES);
         \core\di::set(modelinfo::class, $modelinfo);
         $connectorfactory = \core\di::get(connector_factory::class);

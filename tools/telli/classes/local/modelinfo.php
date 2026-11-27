@@ -53,11 +53,11 @@ class modelinfo {
      *
      * Only one request fetches the model information at a time. Concurrent requests get the last known state.
      *
-     * @param string $apikey The API key.
      * @param string $baseurl The base URL of the API.
+     * @param string $apikey The API key.
      * @return array Model information.
      */
-    public function get_models(string $apikey, string $baseurl): array {
+    public function get_models(string $baseurl, string $apikey): array {
         $models = [];
         $baseurl = rtrim($baseurl, '/');
         if ($baseurl && $apikey) {
@@ -138,13 +138,13 @@ class modelinfo {
     /**
      * Get the voices for a specific model.
      *
-     * @param string $apikey The API key.
      * @param string $baseurl The base URL of the API.
+     * @param string $apikey The API key.
      * @param string $modelname The model name.
      * @return array Voices for the model.
      */
-    public function get_voices(string $apikey, string $baseurl, string $modelname): array {
-        $models = $this->get_models($apikey, $baseurl);
+    public function get_voices(string $baseurl, string $apikey, string $modelname): array {
+        $models = $this->get_models($baseurl, $apikey);
         $voices = [];
         $modelvoices = $models[$modelname]['modelConfig']['voices'] ?? [];
         foreach ($modelvoices as $voice) {

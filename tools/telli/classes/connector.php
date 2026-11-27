@@ -81,8 +81,7 @@ class connector extends base_connector {
         $modelid = $this->instance->get_model_id();
         $modelids = $this->get_model_ids_by_purpose();
         $isimggen = in_array($modelid, $modelids['imggen']);
-        $hasnocustomvalue1 = $isimggen || $this->istts;
-        return !$hasnocustomvalue1;
+        return !($isimggen || $this->istts);
     }
 
     #[\Override]
@@ -123,7 +122,7 @@ class connector extends base_connector {
             $apikey = $this->get_api_key();
             $baseurl = $this->get_baseurl();
             $modelname = $this->instance->get_model_name();
-            $options['voices'] = $modelinfo->get_voices($apikey, $baseurl, $modelname);
+            $options['voices'] = $modelinfo->get_voices($baseurl, $apikey, $modelname);
         }
         return $options;
     }
@@ -134,12 +133,13 @@ class connector extends base_connector {
      * The base URL is derived from the endpoint of the wrapped connector, so the rules of
      * {@see self::setup_wrapped_connector} for endpoint and API key also apply here.
      *
-     * @return string the base URL, empty if the endpoint does not end with the text to speech endpoint suffix
+     * @return string the base URL, empty if the endpoint does not end with the text to speech endpoint suffix (a trailing
+     *     slash of the endpoint is ignored)
      * @throws moodle_exception if the wrapped connector has not been initialized
      */
     private function get_baseurl(): string {
         $suffix = 'v1/audio/speech';
-        $endpoint = $this->get_wrapped_connector()->instance->get_endpoint();
+        $endpoint = rtrim($this->get_wrapped_connector()->instance->get_endpoint() ?? '', '/');
         $baseurl = '';
         if ($endpoint && str_ends_with($endpoint, $suffix)) {
             $baseurl = substr($endpoint, 0, -strlen($suffix));
