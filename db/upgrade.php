@@ -424,5 +424,13 @@ function xmldb_local_ai_manager_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026102301, 'local', 'ai_manager');
     }
 
+    if ($oldversion < 2026112400) {
+        // Import all known models from the JSON seed file.
+        \local_ai_manager\local\utils::import_models_from_json();
+
+        // AI manager savepoint reached.
+        upgrade_plugin_savepoint(true, 2026112400, 'local', 'ai_manager');
+    }
+
     return true;
 }

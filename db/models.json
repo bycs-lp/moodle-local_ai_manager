@@ -1649,5 +1649,19 @@
             "telli"
         ],
         "temperature": "0.0-2.0"
+    },
+    {
+        "name": "Azure Speech Text to speech",
+        "displayname": "Azure Text to Speech",
+        "description": "Microsoft Azure Speech Text-to-Speech model",
+        "mimetypes": "",
+        "textgeneration": 0,
+        "vision": 0,
+        "imggen": 0,
+        "tts": 1,
+        "stt": 0,
+        "connectors": [
+            "telli"
+        ]
     }
 ]

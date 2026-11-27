@@ -22,6 +22,7 @@
  * @author     Philipp Memmel
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 $string['adddescription'] = 'The Telli API provides different AI models for German schools.';
 $string['apikey'] = 'API key';
 $string['availablemodels'] = 'Available models';
@@ -30,6 +31,7 @@ $string['availablemodelssettingdesc'] = 'Enter the names of the models that shou
 $string['baseurl'] = 'Base URL';
 $string['baseurlsetting'] = 'Base URL for the API';
 $string['baseurlsettingdesc'] = 'Insert the base URL of the Telli API here, stopping before "/v1..."';
+$string['cachedef_modelinfo'] = 'Cache for the model information of the Telli API';
 $string['disabledmodelssetting'] = 'Disabled models';
 $string['disabledmodelssettingdesc'] = 'Select the models that should not be available for selection when creating or editing a connector instance. Already configured instances using a disabled model will continue to work.';
 $string['err_apiresult'] = 'An error occurred while trying to connect to the API.';
@@ -37,8 +39,11 @@ $string['err_contentfilter'] = 'Your request was rejected as a result of the con
 $string['err_modelnotavailable'] = 'The currently configured model is not available (anymore).';
 $string['err_noendpoint'] = 'No endpoint is configured. Please contact your administrator.';
 $string['err_noimagedata'] = 'The external AI system could not generate an image. Your prompt probably requests something that is not allowed.';
+$string['err_novoices'] = 'No voices are currently available for the configured text to speech model. Please try again later or contact your administrator.';
 $string['err_retrievingmodels'] = 'There was an error while trying to retrieve the list of models from the Telli API. Error code: {$a->code}.';
+$string['err_ttsnotconfigured'] = 'Text to speech is not configured correctly for this AI tool. Please contact your administrator.';
 $string['eurocents'] = 'Cents';
+$string['eventmodelinfofetchfailed'] = 'Fetching the Telli model information failed';
 $string['getconsumptiontask'] = 'Get Telli API consumption data';
 $string['globalapikeysetting'] = 'Global API key';
 $string['globalapikeysettingdesc'] = 'If this setting is set, this API key will be used for all requests. The endpoint field will then also be locked to the configured base URL for the API (or, if no base URL is configured, the endpoint already stored in the instance), so the tenant manager cannot point the connector to a self-chosen endpoint. If this setting is not set, the tenant manager will be able to insert own API keys.';

@@ -22,9 +22,10 @@
  * @author     Dr. Peter Mayer
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2026111800;
+$plugin->version  = 2026112400;
 $plugin->requires = 2025041400;
 $plugin->supported = [500, 503];
 $plugin->release = '5.2';

@@ -16,6 +16,7 @@
 
 namespace aitool_telli;
 
+use aitool_telli\local\modelinfo;
 use local_ai_manager\base_connector;
 use local_ai_manager\base_instance;
 use local_ai_manager\local\connector_factory;
@@ -38,6 +39,9 @@ class connector extends base_connector {
     /** @var base_connector The wrapped connector this connector is passing everything to. */
     private base_connector $wrappedconnector;
 
+    /** @var bool Whether the current model is a text-to-speech (TTS) model. */
+    private bool $istts = false;
+
     /**
      * Set up the wrapper connector and inject all necessary information.
      *
@@ -57,7 +61,9 @@ class connector extends base_connector {
     protected function get_api_key(): string {
         // We intentionally override the default behavior and also handle the use of "globalapikey" admin setting differently,
         // see self::setup_wrapped_connector.
-        return $this->get_wrapped_connector()->instance->get_apikey();
+        // Without any API key the wrapped instance returns null, which would cause a TypeError here. The empty string lets the
+        // request fail with a proper error message instead (e.g. err_ttsnotconfigured or the authentication error of the API).
+        return $this->get_wrapped_connector()->instance->get_apikey() ?? '';
     }
 
     #[\Override]
@@ -72,16 +78,33 @@ class connector extends base_connector {
 
     #[\Override]
     public function has_customvalue1(): bool {
-        if (in_array($this->instance->get_model_id(), $this->get_model_ids_by_purpose()['imggen'])) {
-            return false;
-        } else {
-            return true;
-        }
+        $modelid = $this->instance->get_model_id();
+        $modelids = $this->get_model_ids_by_purpose();
+        $isimggen = in_array($modelid, $modelids['imggen']);
+        return !($isimggen || $this->istts);
     }
 
     #[\Override]
     public function get_prompt_data(string $prompttext, request_options $requestoptions): array {
-        return $this->get_wrapped_connector()->get_prompt_data($prompttext, $requestoptions);
+        $promptdata = $this->get_wrapped_connector()->get_prompt_data($prompttext, $requestoptions);
+        if ($this->istts) {
+            $apikey = $this->get_api_key();
+            $baseurl = $this->get_baseurl();
+            if (empty($apikey) || empty($baseurl)) {
+                throw new moodle_exception('err_ttsnotconfigured', 'aitool_telli');
+            }
+            $calloptions = $requestoptions->get_options();
+            $voices = $this->get_available_options()['voices'];
+            $novoiceselected = empty($calloptions['voices']);
+            $novoicesavailable = empty($voices);
+            if ($novoiceselected && $novoicesavailable) {
+                throw new moodle_exception('err_novoices', 'aitool_telli');
+            }
+            if ($novoiceselected) {
+                $promptdata['voice'] = $voices[0]['key'];
+            }
+        }
+        return $promptdata;
     }
 
     #[\Override]
@@ -91,9 +114,37 @@ class connector extends base_connector {
 
     #[\Override]
     public function get_available_options(): array {
-        // The endpoint v1/chat/completions does not support any options anyway, but also v1/images/generations of the Telli API
-        // does not support any options like for example sizes which the OpenAI endpoint does, so we have to disable options here.
-        return [];
+        // The Telli endpoints v1/chat/completions and v1/images/generations do not support any options (e.g. image sizes like
+        // the OpenAI endpoint does). For TTS the voices come from the Telli model info, because every model has its own voices.
+        $options = [];
+        if ($this->istts) {
+            $modelinfo = \core\di::get(modelinfo::class);
+            $apikey = $this->get_api_key();
+            $baseurl = $this->get_baseurl();
+            $modelname = $this->instance->get_model_name();
+            $options['voices'] = $modelinfo->get_voices($apikey, $baseurl, $modelname);
+        }
+        return $options;
+    }
+
+    /**
+     * Returns the base URL of the Telli API for text to speech.
+     *
+     * The base URL is derived from the endpoint of the wrapped connector, so the rules of
+     * {@see self::setup_wrapped_connector} for endpoint and API key also apply here.
+     *
+     * @return string the base URL, empty if the endpoint does not end with the text to speech endpoint suffix (a trailing
+     *     slash of the endpoint is ignored)
+     * @throws moodle_exception if the wrapped connector has not been initialized
+     */
+    private function get_baseurl(): string {
+        $suffix = 'v1/audio/speech';
+        $endpoint = rtrim($this->get_wrapped_connector()->instance->get_endpoint() ?? '', '/');
+        $baseurl = '';
+        if ($endpoint && str_ends_with($endpoint, $suffix)) {
+            $baseurl = substr($endpoint, 0, -strlen($suffix));
+        }
+        return $baseurl;
     }
 
     #[\Override]
@@ -236,6 +287,10 @@ class connector extends base_connector {
         if (in_array($instance->get_model_id(), $this->get_model_ids_by_purpose()['imggen'])) {
             $this->wrappedconnector = $connectorfactory->get_connector_by_connectorname('dalle');
             $endpointsuffix = 'v1/images/generations';
+        } else if (in_array($instance->get_model_id(), $this->get_model_ids_by_purpose()['tts'])) {
+            $this->wrappedconnector = $connectorfactory->get_connector_by_connectorname('openaitts');
+            $this->istts = true;
+            $endpointsuffix = 'v1/audio/speech';
         } else {
             $this->wrappedconnector = $connectorfactory->get_connector_by_connectorname('chatgpt');
             $endpointsuffix = 'v1/chat/completions';
