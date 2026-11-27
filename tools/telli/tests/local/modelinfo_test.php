@@ -518,4 +518,50 @@ final class modelinfo_test extends \advanced_testcase {
 
         $this->assertSame($concurrentmodels, $models);
     }
+
+    /**
+     * Data provider for test_get_models_lock_timeout.
+     *
+     * @return array Datasets with whether a last known state exists and the expected lock timeout.
+     */
+    public static function get_models_lock_timeout_provider(): array {
+        return [
+            'with_last_state' => ['withlaststate' => true, 'expectedtimeout' => modelinfo::LOCK_TIMEOUT],
+            'without_last_state' => ['withlaststate' => false, 'expectedtimeout' => modelinfo::LOCK_TIMEOUT_WITHOUT_STATE],
+        ];
+    }
+
+    /**
+     * Test that a request without a last known state waits longer for the lock than a request which can fall back to it.
+     *
+     * @param bool $withlaststate whether the models have been fetched successfully before
+     * @param int $expectedtimeout the expected timeout for acquiring the lock
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('get_models_lock_timeout_provider')]
+    public function test_get_models_lock_timeout(bool $withlaststate, int $expectedtimeout): void {
+        global $CFG;
+        $this->resetAfterTest();
+        $CFG->lock_factory = '\\' . callback_lock_factory::class;
+        $clock = $this->mock_clock_with_frozen(self::STARTTIME);
+        $apihandler = $this->createMock(apihandler::class);
+        $apihandler->method('get_models_info')->willReturn(self::get_models_response());
+        \core\di::set(apihandler::class, $apihandler);
+        $modelinfo = \core\di::get(modelinfo::class);
+        if ($withlaststate) {
+            $modelinfo->get_models(self::APIKEY, self::BASEURL);
+            $clock->bump(modelinfo::CACHE_LIFETIME);
+        }
+        $timeouts = [];
+        callback_lock_factory::$beforelock = function (int $timeout) use (&$timeouts): void {
+            $timeouts[] = $timeout;
+        };
+
+        try {
+            $modelinfo->get_models(self::APIKEY, self::BASEURL);
+        } finally {
+            callback_lock_factory::$beforelock = null;
+        }
+
+        $this->assertSame([$expectedtimeout], $timeouts);
+    }
 }

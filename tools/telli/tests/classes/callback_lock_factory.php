@@ -30,7 +30,7 @@ use core\lock\lock_factory;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class callback_lock_factory implements lock_factory {
-    /** @var \Closure|null callback which is run before a lock is granted */
+    /** @var \Closure|null callback which is run with the requested timeout before a lock is granted */
     public static ?\Closure $beforelock = null;
 
     /**
@@ -60,7 +60,7 @@ class callback_lock_factory implements lock_factory {
     public function get_lock($resource, $timeout, $maxlifetime = 86400) {
         if (self::$beforelock !== null) {
             $callback = self::$beforelock;
-            $callback();
+            $callback($timeout);
         }
         return new lock($resource, $this);
     }

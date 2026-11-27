@@ -37,6 +37,12 @@ class modelinfo {
     public const LOCK_TIMEOUT = 2;
 
     /**
+     * @var int seconds to wait for the lock held by a concurrent fetch if there is no last known state to fall back to,
+     *     longer than the 10 seconds timeout of apihandler::get_models_info() so the result of the concurrent fetch is used
+     */
+    public const LOCK_TIMEOUT_WITHOUT_STATE = 15;
+
+    /**
      * Constructor.
      *
      * @param apihandler $apihandler API handler.
@@ -71,9 +77,12 @@ class modelinfo {
         if ($this->is_valid($entry)) {
             return $entry['models'];
         }
-        $lock = \core\lock\lock_config::get_lock_factory('aitool_telli_modelinfo')->get_lock($cachekey, self::LOCK_TIMEOUT);
+        // Without a last known state (e.g. after a cache purge) there is nothing to fall back to, so wait until
+        // a concurrent fetch has finished instead of returning no models.
+        $locktimeout = empty($entry['models']) ? self::LOCK_TIMEOUT_WITHOUT_STATE : self::LOCK_TIMEOUT;
+        $lock = \core\lock\lock_config::get_lock_factory('aitool_telli_modelinfo')->get_lock($cachekey, $locktimeout);
         if (!$lock) {
-            // A concurrent request is fetching, use the last known state.
+            // A concurrent request is still fetching, use the last known state.
             return $entry['models'] ?? [];
         }
         try {
