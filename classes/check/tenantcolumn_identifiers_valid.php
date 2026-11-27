@@ -15,6 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace local_ai_manager\check;
+
 use core\check\check;
 use core\check\result;
 use core\output\html_writer;

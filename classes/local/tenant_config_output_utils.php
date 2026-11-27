@@ -87,19 +87,4 @@ class tenant_config_output_utils {
             throw new \moodle_exception('exception_templatetenantpage', 'local_ai_manager');
         }
     }
-
-    /**
-     * Renders the hint shown below the heading of the tenant config pages of the template tenant.
-     *
-     * Has to be called on every page available for the template tenant, directly after the page header has been printed.
-     *
-     * @return string the HTML of the hint, empty string if the current tenant is not the template tenant
-     */
-    public static function render_template_tenant_hint(): string {
-        global $OUTPUT;
-        if (!\core\di::get(tenant_factory::class)->get()->is_template_tenant()) {
-            return '';
-        }
-        return $OUTPUT->render_from_template('local_ai_manager/templatetenanthint', []);
-    }
 }

@@ -76,7 +76,9 @@ if (optional_param('applytemplatetenant', false, PARAM_BOOL)) {
 
 $renderer = $PAGE->get_renderer('core');
 echo $OUTPUT->header();
-echo tenant_config_output_utils::render_template_tenant_hint();
+if ($tenant->is_template_tenant()) {
+    echo $OUTPUT->render_from_template('local_ai_manager/templatetenanthint', []);
+}
 if ($configmanager->is_tenant_enabled()) {
     $tenantnavbar = new tenantnavbar('tenant_config.php');
     echo $OUTPUT->render($tenantnavbar);

@@ -58,6 +58,19 @@ final class template_tenant_manager_test extends \advanced_testcase {
         $templatetenant = new tenant(tenant::TEMPLATE_IDENTIFIER);
         $templateinstancea = $generator->create_instance(['name' => 'Template A', 'tenant' => tenant::TEMPLATE_IDENTIFIER]);
         $templateinstanceb = $generator->create_instance(['name' => 'Template B', 'tenant' => tenant::TEMPLATE_IDENTIFIER]);
+        // Set all fields of the instance to make sure everything is copied, including the credentials (which is intended).
+        $model = $generator->create_model(['name' => 'template-model', 'connectors' => ['chatgpt']]);
+        $templateinstancea->set_endpoint('https://example.com/template/endpoint');
+        $templateinstancea->set_model_id((int) $model->id);
+        $templateinstancea->set_infolink('https://example.com/template/info');
+        $templateinstancea->set_useglobalapikey(true);
+        $templateinstancea->set_apikey('templateapikey');
+        $templateinstancea->set_customfield1('customvalue1');
+        $templateinstancea->set_customfield2('customvalue2');
+        $templateinstancea->set_customfield3('customvalue3');
+        $templateinstancea->set_customfield4('customvalue4');
+        $templateinstancea->set_customfield5('customvalue5');
+        $templateinstancea->store();
         $templateconfigmanager = new config_manager($this->create_tenant_factory($templatetenant));
         $templateconfigmanager->set_config('tenantenabled', '1');
         $chatbasickey = base_purpose::get_purpose_tool_config_key('chat', userinfo::ROLE_BASIC);
@@ -84,7 +97,19 @@ final class template_tenant_manager_test extends \advanced_testcase {
         $this->assertEqualsCanonicalizing(['Template A', 'Template B'], array_keys($instances));
         $this->assertFalse((new base_instance($oldinstance->get_id()))->record_exists());
         $this->assertNotEquals($templateinstancea->get_id(), $instances['Template A']->get_id());
-        $this->assertSame('chatgpt', $instances['Template A']->get_connector());
+        $copiedinstance = $instances['Template A'];
+        $this->assertSame('tenanta', $copiedinstance->get_tenant());
+        $this->assertSame('chatgpt', $copiedinstance->get_connector());
+        $this->assertSame('https://example.com/template/endpoint', $copiedinstance->get_endpoint());
+        $this->assertSame((int) $model->id, $copiedinstance->get_model_id());
+        $this->assertSame('https://example.com/template/info', $copiedinstance->get_infolink());
+        $this->assertTrue($copiedinstance->get_useglobalapikey());
+        $this->assertSame('templateapikey', $copiedinstance->get_apikey());
+        $this->assertSame('customvalue1', $copiedinstance->get_customfield1());
+        $this->assertSame('customvalue2', $copiedinstance->get_customfield2());
+        $this->assertSame('customvalue3', $copiedinstance->get_customfield3());
+        $this->assertSame('customvalue4', $copiedinstance->get_customfield4());
+        $this->assertSame('customvalue5', $copiedinstance->get_customfield5());
 
         $configmanager = new config_manager($this->create_tenant_factory($tenant));
         $purposeconfigbasic = $configmanager->get_purpose_config(userinfo::ROLE_BASIC);
